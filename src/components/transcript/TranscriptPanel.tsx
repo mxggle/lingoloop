@@ -1,18 +1,13 @@
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
-import { useSegmentState } from "../../hooks/useSegmentState";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import {
   Loader,
   Trash,
-  Play,
   Bookmark,
   FileAudio,
-  Repeat,
-  Pause,
-  Brain,
   Settings,
   Edit,
   PlayCircle,
@@ -25,11 +20,22 @@ import { toast } from "react-hot-toast";
 import { transcriptionService } from "../../services/transcriptionService";
 import { TranscriptionProvider } from "../../types/aiService";
 import { TranscriptUploader } from "./TranscriptUploader";
-import { ExplanationDrawer } from "./ExplanationDrawer";
+import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
 import { useNavigate } from "react-router-dom";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
+import type {
+  MediaTranscriptStudy,
+  TranscriptLevelSystem,
+  TranscriptStudyLevel,
+  TranscriptSelectionState,
+} from "../../types/transcriptStudy";
+import {
+  buildTranscriptStudy,
+  getLevelOptionsForSystem,
+  inferTranscriptLevelSystem,
+} from "../../utils/transcriptStudy";
 import { encodeWAV } from "../../utils/wavEncoder";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -45,187 +51,9 @@ import {
 
 const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
+const EMPTY_STUDY: MediaTranscriptStudy = {};
 
 // WhisperSegment/WhisperResponse types moved to transcriptionService.ts
-
-// Pure helper — defined outside the component to avoid per-render allocation
-function formatSegmentTime(seconds: number) {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
-
-// TranscriptSegmentItem component
-// bookmarks is passed from the parent (TranscriptPanel already subscribes to it)
-// so this component no longer needs its own per-tick store subscription for isBookmarked.
-const TranscriptSegmentItem = memo(({
-  segment,
-  bookmarks,
-}: {
-  segment: TranscriptSegmentType;
-  bookmarks: LoopBookmark[];
-}) => {
-  const { t } = useTranslation();
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  const {
-    setCurrentTime,
-    createBookmarkFromTranscript,
-    setIsPlaying,
-    setIsLooping,
-    setLoopPoints,
-  } = usePlayerStore(
-    useShallow((state) => ({
-      setCurrentTime: state.setCurrentTime,
-      createBookmarkFromTranscript: state.createBookmarkFromTranscript,
-      setIsPlaying: state.setIsPlaying,
-      setIsLooping: state.setIsLooping,
-      setLoopPoints: state.setLoopPoints,
-    }))
-  );
-
-  // External subscription — only re-renders when active/playing/looping state changes
-  const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
-
-  // Computed from parent-provided bookmarks — no store subscription needed,
-  // so this never runs during currentTime ticks (only when bookmarks array changes).
-  const isBookmarked = useMemo(
-    () =>
-      bookmarks.some(
-        (b) =>
-          Math.abs(b.start - segment.startTime) < 0.5 &&
-          Math.abs(b.end - segment.endTime) < 0.5
-      ),
-    [bookmarks, segment.startTime, segment.endTime]
-  );
-
-  const shouldShowPauseButton = isActive && isPlaying;
-
-  // Jump to this segment's time and start playing
-  const handleJumpToTime = () => {
-    setIsLooping(false);
-    const startTime = Math.max(0, segment.startTime - 0.15);
-    setCurrentTime(startTime);
-    setIsPlaying(true);
-  };
-
-  const handlePausePlayback = () => {
-    setIsPlaying(false);
-  };
-
-  const handleToggleLoop = () => {
-    if (isCurrentlyLooping) {
-      setIsLooping(false);
-    } else {
-      const loopStartTime = Math.max(0, segment.startTime - 0.15);
-      setLoopPoints(loopStartTime, segment.endTime);
-      setIsLooping(true);
-      setCurrentTime(loopStartTime);
-      setIsPlaying(true);
-    }
-  };
-
-  const handleToggleBookmark = () => {
-    if (isBookmarked) {
-      const bookmarkToDelete = bookmarks.find(
-        (b: LoopBookmark) =>
-          Math.abs(b.start - segment.startTime) < 0.5 &&
-          Math.abs(b.end - segment.endTime) < 0.5
-      );
-      if (bookmarkToDelete) {
-        usePlayerStore.getState().deleteBookmark(bookmarkToDelete.id);
-      }
-    } else {
-      createBookmarkFromTranscript(segment.id);
-    }
-  };
-
-  const handleExplain = () => {
-    setShowExplanation((prev) => !prev);
-  };
-
-  return (
-    <>
-      <div
-        className={`p-2 rounded-md ${isActive
-          ? "bg-purple-50 dark:bg-purple-900/20 border-l-2 border-purple-500"
-          : "bg-gray-50 dark:bg-gray-900/30 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-          } transition-colors`}
-      >
-        <div className="flex justify-between items-start mb-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-            {formatSegmentTime(segment.startTime)} - {formatSegmentTime(segment.endTime)}
-          </span>
-
-          <div className="flex space-x-1">
-            <button
-              onClick={
-                shouldShowPauseButton ? handlePausePlayback : handleJumpToTime
-              }
-              className={`p-1 rounded transition-colors ${isActive
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
-                }`}
-              title={t(shouldShowPauseButton ? "transcript.pausePlayback" : "transcript.playSegment")}
-            >
-              {shouldShowPauseButton ? (
-                <Pause size={18} fill="currentColor" />
-              ) : (
-                <Play size={18} fill={isActive ? "currentColor" : "none"} />
-              )}
-            </button>
-
-            <button
-              onClick={handleToggleLoop}
-              className={`p-1 rounded transition-colors ${isCurrentlyLooping
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
-                }`}
-              title={t(isCurrentlyLooping ? "transcript.stopLoopingSegment" : "transcript.loopSegment")}
-            >
-              <Repeat
-                size={18}
-                fill={isCurrentlyLooping ? "currentColor" : "none"}
-              />
-            </button>
-
-            <button
-              onClick={handleToggleBookmark}
-              className={`p-1 rounded transition-colors ${isBookmarked
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
-                }`}
-              title={t(isBookmarked ? "transcript.removeBookmark" : "transcript.createBookmark")}
-            >
-              <Bookmark
-                size={18}
-                fill={isBookmarked ? "currentColor" : "none"}
-              />
-            </button>
-
-            <button
-              onClick={handleExplain}
-              className={`p-1 rounded transition-colors ${showExplanation ? "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30" : "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"}`}
-              title={t("transcript.explainWithAI")}
-            >
-              <Brain size={18} />
-            </button>
-          </div>
-        </div>
-
-        <p className="text-gray-800 dark:text-gray-200">{segment.text}</p>
-      </div>
-
-      {showExplanation && (
-        <ExplanationDrawer
-          isOpen={showExplanation}
-          onClose={() => setShowExplanation(false)}
-          text={segment.text}
-        />
-      )}
-    </>
-  );
-});
 
 export const TranscriptPanel = () => {
   const LARGE_TRANSCRIPTION_FILE_SIZE = 25 * 1024 * 1024;
@@ -281,8 +109,21 @@ export const TranscriptPanel = () => {
   const bookmarks = usePlayerStore(
     (state) => (mediaId ? state.mediaBookmarks[mediaId] ?? EMPTY_BOOKMARKS : EMPTY_BOOKMARKS)
   );
+  const transcriptStudy = usePlayerStore((state) =>
+    mediaId ? state.mediaTranscriptStudy[mediaId] ?? EMPTY_STUDY : EMPTY_STUDY
+  );
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [activeSelection, setActiveSelection] = useState<TranscriptSelectionState | null>(null);
+  const [selectionEnabled, setSelectionEnabled] = useState(false);
+  const [levelFilterOpen, setLevelFilterOpen] = useState(false);
+  const [highlightsEnabled, setHighlightsEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+    return localStorage.getItem("transcript_study_enabled") !== "false";
+  });
+  const [activeLevels, setActiveLevels] = useState<Set<TranscriptStudyLevel> | null>(null);
 
   const LANGUAGE_OPTIONS = [
     { value: "en-US", label: t("transcript.languages.en-US") },
@@ -343,6 +184,66 @@ export const TranscriptPanel = () => {
   const [editAnnotation, setEditAnnotation] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const updateSelectionSupport = () => {
+      const isTouchDevice =
+        window.matchMedia("(pointer: coarse)").matches ||
+        navigator.maxTouchPoints > 0;
+      setSelectionEnabled(!isTouchDevice);
+    };
+
+    updateSelectionSupport();
+    window.addEventListener("resize", updateSelectionSupport);
+    return () => window.removeEventListener("resize", updateSelectionSupport);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    localStorage.setItem("transcript_study_enabled", String(highlightsEnabled));
+  }, [highlightsEnabled]);
+
+  useEffect(() => {
+    setActiveSelection(null);
+  }, [mediaId, activeTabId]);
+
+  useEffect(() => {
+    const transcriptNode = transcriptRef.current;
+    if (!transcriptNode) {
+      return;
+    }
+
+    const clearSelection = () => setActiveSelection(null);
+    transcriptNode.addEventListener("scroll", clearSelection);
+    return () => transcriptNode.removeEventListener("scroll", clearSelection);
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (
+        target.closest(".transcript-selection-popover") ||
+        target.closest("[data-transcript-row]")
+      ) {
+        return;
+      }
+
+      setActiveSelection(null);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
   // Sync active tab with selected bookmark from store (e.g. from waveform interactions)
   useEffect(() => {
     setActiveTabId(selectedBookmarkId);
@@ -370,6 +271,46 @@ export const TranscriptPanel = () => {
     });
   }, [activeBookmark, transcriptSegments]);
 
+  const levelSystem: TranscriptLevelSystem = useMemo(
+    () => inferTranscriptLevelSystem(transcriptLanguage),
+    [transcriptLanguage]
+  );
+
+  const levelOptions = useMemo(
+    () => getLevelOptionsForSystem(levelSystem),
+    [levelSystem]
+  );
+
+  const displayTranscriptStudy = useMemo(() => {
+    const firstStudy = transcriptSegments
+      .map((segment) => transcriptStudy[segment.id])
+      .find(Boolean);
+
+    if (!firstStudy || firstStudy.levelSystem !== levelSystem) {
+      return buildTranscriptStudy(transcriptSegments, levelSystem);
+    }
+
+    return transcriptStudy;
+  }, [levelSystem, transcriptSegments, transcriptStudy]);
+
+  useEffect(() => {
+    setActiveLevels(null);
+  }, [levelSystem, mediaId]);
+
+  useEffect(() => {
+    if (!activeSelection) {
+      return;
+    }
+
+    const isSelectionVisible = filteredSegments.some(
+      (segment) => segment.id === activeSelection.segmentId
+    );
+
+    if (!isSelectionVisible) {
+      setActiveSelection(null);
+    }
+  }, [activeSelection, filteredSegments]);
+
   const handleTabSelect = (id: string | null) => {
     if (id) {
       // If switching to a specific bookmark tab
@@ -384,6 +325,25 @@ export const TranscriptPanel = () => {
       setSelectedBookmarkId(null);
     }
   };
+
+  const toggleLevel = (level: TranscriptStudyLevel) => {
+    setActiveLevels((previous) => {
+      const next = new Set(previous ?? levelOptions);
+      if (next.has(level)) {
+        next.delete(level);
+      } else {
+        next.add(level);
+      }
+      return next.size === levelOptions.length ? null : next;
+    });
+  };
+
+  const clearLevelFilter = () => {
+    setActiveLevels(null);
+  };
+
+  const isLevelActive = (level: TranscriptStudyLevel) =>
+    activeLevels ? activeLevels.has(level) : true;
 
   const handlePlayBookmark = (e: React.MouseEvent, bookmarkId: string) => {
     e.stopPropagation();
@@ -1053,7 +1013,7 @@ export const TranscriptPanel = () => {
     if (isProcessing && filteredSegments.length > 0) {
       virtualizer.scrollToIndex(filteredSegments.length - 1, { align: "end" });
     }
-  }, [isProcessing, transcriptSegments]);
+  }, [filteredSegments.length, isProcessing, virtualizer]);
 
   // Handle export
   const handleExport = (format: "txt" | "srt" | "vtt") => {
@@ -1226,6 +1186,67 @@ export const TranscriptPanel = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => setHighlightsEnabled((previous) => !previous)}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                highlightsEnabled
+                  ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              }`}
+              title={t("transcript.levelToggle")}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wide">
+                {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
+              </span>
+              {highlightsEnabled
+                ? t("transcript.levelsOn")
+                : t("transcript.levelsOff")}
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setLevelFilterOpen((open) => !open)}
+                disabled={!highlightsEnabled}
+                className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                title={t("transcript.levelFilter")}
+              >
+                {t("transcript.levelFilter")}
+                <span className="text-[10px]">{t("transcript.dropdownArrow")}</span>
+              </button>
+              {levelFilterOpen && highlightsEnabled && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setLevelFilterOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-gray-200 bg-white p-2 shadow-md dark:border-gray-700 dark:bg-gray-800">
+                    <button
+                      onClick={clearLevelFilter}
+                      className="mb-2 w-full rounded px-2 py-1 text-left text-xs text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                      {t("transcript.levelFilterAll")}
+                    </button>
+                    <div className="space-y-1">
+                      {levelOptions.map((level) => (
+                        <label
+                          key={level}
+                          className="flex cursor-pointer items-center justify-between rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <span>{level}</span>
+                          <input
+                            type="checkbox"
+                            checked={isLevelActive(level)}
+                            onChange={() => toggleLevel(level)}
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="relative">
               <select
                 value={transcriptLanguage}
@@ -1444,7 +1465,19 @@ export const TranscriptPanel = () => {
                     }}
                     className="pb-2"
                   >
-                    <TranscriptSegmentItem segment={segment} bookmarks={bookmarks} />
+                    <TranscriptSegmentItem
+                      segment={segment}
+                      bookmarks={bookmarks}
+                      study={displayTranscriptStudy[segment.id]}
+                      highlightsEnabled={highlightsEnabled}
+                      activeLevels={activeLevels}
+                      activeSelection={
+                        activeSelection?.segmentId === segment.id ? activeSelection : null
+                      }
+                      selectionEnabled={selectionEnabled}
+                      onSelectionChange={setActiveSelection}
+                      onClearSelection={() => setActiveSelection(null)}
+                    />
                   </div>
                 );
               })}

@@ -1,7 +1,13 @@
-import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { memo } from "react";
-import { HomePage, PlayerPage } from "../pages";
-import { SettingsPage } from "../pages/SettingsPage";
+import {
+  BrowserRouter,
+  HashRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+import { memo, Suspense } from "react";
+import { HomePage, PlayerPage, SettingsPage } from "../pages";
 import { LayoutSettingsProvider } from "../contexts/LayoutSettingsContext";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
@@ -19,6 +25,12 @@ const HIDDEN_STYLE: React.CSSProperties = {
   pointerEvents: "none",
   visibility: "hidden",
 };
+
+const ROUTE_FALLBACK = (
+  <div className="flex min-h-[24rem] items-center justify-center" aria-label="Loading page">
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600 dark:border-gray-700 dark:border-t-purple-400" />
+  </div>
+);
 
 // Memoized so it never re-renders due to AppRouterInner re-renders on route change.
 // PlayerPage has no props — all data flows through store hooks — so memo is safe here.
@@ -39,25 +51,29 @@ const AppRouterInner = () => {
 
   return (
     <>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
-        <Route
-          path="/player"
-          element={hasMedia ? null : <Navigate to="/" replace />}
-        />
-        <Route path="/ai-settings" element={<Navigate to="/settings" replace />} />
-        <Route path="*" element={<HomePage />} />
-      </Routes>
+      <Suspense fallback={ROUTE_FALLBACK}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
+          <Route
+            path="/player"
+            element={hasMedia ? null : <Navigate to="/" replace />}
+          />
+          <Route path="/ai-settings" element={<Navigate to="/settings" replace />} />
+          <Route path="*" element={<HomePage />} />
+        </Routes>
+      </Suspense>
 
       {/* Keep PlayerPage mounted while media is loaded so audio element and state persist.
           PersistentPlayer (memo) skips re-render on route change — only the wrapper div's
           style prop is updated (a fast direct DOM write, not a React subtree reconciliation). */}
       {hasMedia && (
-        <div style={isOnPlayer ? undefined : HIDDEN_STYLE}>
-          <PersistentPlayer />
-        </div>
+        <Suspense fallback={null}>
+          <div style={isOnPlayer ? undefined : HIDDEN_STYLE}>
+            <PersistentPlayer />
+          </div>
+        </Suspense>
       )}
     </>
   );

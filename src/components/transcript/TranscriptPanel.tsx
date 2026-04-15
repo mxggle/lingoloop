@@ -1256,11 +1256,10 @@ export const TranscriptPanel = () => {
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                highlightsEnabled
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
                   ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              }`}
+                }`}
               title={t("transcript.levelToggle")}
             >
               <span className="text-[10px] font-semibold uppercase tracking-wide">
@@ -1362,11 +1361,10 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-              className={`p-1.5 rounded-full transition-colors ${
-                autoScrollEnabled
+              className={`p-1.5 rounded-full transition-colors ${autoScrollEnabled
                   ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-              }`}
+                }`}
               title={t("transcript.autoScroll")}
             >
               <LocateFixed size={16} className={autoScrollEnabled ? "fill-current" : ""} />
@@ -1518,7 +1516,7 @@ export const TranscriptPanel = () => {
                           </div>
                           {loopStart !== null && loopEnd !== null && (
                             <div className="text-xs text-purple-600 dark:text-purple-400">
-                                {t("transcript.transcribeLoopRangeButton")}
+                              {t("transcript.transcribeLoopRangeButton")}
                             </div>
                           )}
                         </div>

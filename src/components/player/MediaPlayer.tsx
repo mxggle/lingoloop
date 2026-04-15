@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { setCurrentTime as setCurrentTimeExternal } from "../../stores/currentTimeStore";
 import { toast } from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
 
@@ -15,8 +16,10 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   // Track pending play intent so we can start playback once the element is ready
   const pendingPlayRef = useRef(false);
   const lastReportedTimeRef = useRef(0);
+  const lastZustandWriteRef = useRef(0);
   const resolvingInfiniteDurationRef = useRef(false);
   const playbackSyncFrameRef = useRef<number | null>(null);
+  const loopResumeTimeoutRef = useRef<number | null>(null);
 
   const {
     currentFile,
@@ -74,7 +77,32 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   useEffect(() => {
     pendingPlayRef.current = false;
     resolvingInfiniteDurationRef.current = false;
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
   }, [currentFile?.url]);
+
+  useEffect(() => {
+    if (isPlaying) return;
+
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (isLooping) return;
+
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
+  }, [isLooping]);
 
   // Listen for canplay to know when the element is ready
   useEffect(() => {
@@ -248,9 +276,16 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     const handleTimeUpdate = () => {
       const currentTimeValue = mediaElement.currentTime;
+      // Always push to the lightweight external store at full rate
+      setCurrentTimeExternal(currentTimeValue);
       if (Math.abs(currentTimeValue - lastReportedTimeRef.current) >= 0.05) {
         lastReportedTimeRef.current = currentTimeValue;
-        setCurrentTime(currentTimeValue);
+        // Throttle Zustand writes to ~4Hz to avoid subscriber storm
+        const now = performance.now();
+        if (now - lastZustandWriteRef.current >= 250) {
+          lastZustandWriteRef.current = now;
+          setCurrentTime(currentTimeValue);
+        }
       }
 
       // Handle A-B looping
@@ -300,10 +335,20 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
             isDelayingRef.current = true;
             mediaElement.pause();
 
-            setTimeout(() => {
+            if (loopResumeTimeoutRef.current !== null) {
+              window.clearTimeout(loopResumeTimeoutRef.current);
+            }
+
+            loopResumeTimeoutRef.current = window.setTimeout(() => {
+              loopResumeTimeoutRef.current = null;
               // Valid check: ensuring we are still meant to loop
               const currentState = usePlayerStore.getState();
-              if (currentState.isLooping && currentState.loopStart !== null) {
+              if (
+                currentState.isPlaying &&
+                currentState.isLooping &&
+                currentState.loopStart !== null &&
+                currentFile?.url === currentState.currentFile?.url
+              ) {
                 mediaElement.currentTime = currentState.loopStart;
                 mediaElement.play().catch(e => console.error("Play after gap failed", e));
               }
@@ -352,6 +397,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     if (!isPlaying) {
       const pausedTime = mediaElement.currentTime;
       lastReportedTimeRef.current = pausedTime;
+      setCurrentTimeExternal(pausedTime);
       setCurrentTime(pausedTime);
       stopSync();
       return stopSync;
@@ -360,9 +406,16 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     const syncCurrentTime = () => {
       if (!mediaElement.paused && !mediaElement.ended && !mediaElement.seeking) {
         const mediaTime = mediaElement.currentTime;
+        // Always push to lightweight store at full rAF rate
+        setCurrentTimeExternal(mediaTime);
         if (Math.abs(mediaTime - lastReportedTimeRef.current) >= 1 / 30) {
           lastReportedTimeRef.current = mediaTime;
-          setCurrentTime(mediaTime);
+          // Throttle Zustand writes to ~4Hz
+          const now = performance.now();
+          if (now - lastZustandWriteRef.current >= 250) {
+            lastZustandWriteRef.current = now;
+            setCurrentTime(mediaTime);
+          }
         }
       }
 

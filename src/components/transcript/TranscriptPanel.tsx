@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
@@ -415,7 +415,7 @@ export const TranscriptPanel = () => {
   const virtualizer = useVirtualizer({
     count: filteredSegments.length,
     getScrollElement: () => transcriptRef.current,
-    estimateSize: () => 72,
+    estimateSize: () => 140,
     overscan: 5,
     getItemKey: (index: number) => filteredSegments[index]?.id ?? `segment-${index}`,
   });
@@ -1015,6 +1015,10 @@ export const TranscriptPanel = () => {
     }
   }, [filteredSegments.length, isProcessing, virtualizer]);
 
+  // Stable callback for clearing selection — prevents breaking React.memo
+  // on TranscriptSegmentItem via a new function reference each render.
+  const handleClearSelection = useCallback(() => setActiveSelection(null), []);
+
   // Handle export
   const handleExport = (format: "txt" | "srt" | "vtt") => {
     const content = exportTranscript(format);
@@ -1048,11 +1052,11 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] rounded-xl shadow-2xl border border-gray-100 dark:border-white/5 overflow-hidden relative">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-gray-800 shadow border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-[#0a0a0a] shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         title={t("transcript.toggleSidebar")}
       >
         <Sidebar size={16} />
@@ -1060,10 +1064,10 @@ export const TranscriptPanel = () => {
 
       {/* Sidebar */}
       <div
-        className={`${isSidebarOpen ? "w-1/4 min-w-[200px] max-w-[300px] border-r" : "w-0 border-none"} transition-all duration-300 ease-in-out border-gray-200 dark:border-gray-700 flex flex-col bg-gray-50/50 dark:bg-gray-900/50 overflow-hidden relative`}
+        className={`${isSidebarOpen ? "w-1/4 min-w-[200px] max-w-[300px] border-r" : "w-0 border-none"} transition-all duration-300 ease-in-out border-gray-100 dark:border-white/5 flex flex-col bg-gray-50 dark:bg-[#0f0f0f] overflow-hidden relative`}
       >
-        <div className="p-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <span className="font-medium text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap overflow-hidden text-ellipsis">
+        <div className="p-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+          <span className="font-semibold text-[10px] text-gray-400 uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis">
             {t("transcript.sections")}
           </span>
           <div className="flex items-center space-x-1">
@@ -1166,8 +1170,8 @@ export const TranscriptPanel = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-[#0a0a0a]">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#0a0a0a]">
           <div className="flex items-center min-w-0 mr-4">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
               {activeTabId
@@ -1313,7 +1317,7 @@ export const TranscriptPanel = () => {
 
         <div
           ref={transcriptRef}
-          className="flex-1 min-h-0 overflow-y-auto p-3 text-sm"
+          className="flex-1 min-h-0 overflow-y-auto px-6 py-12 md:px-12 lg:px-24"
         >
           {showApiKeyInput && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md mb-3">
@@ -1476,7 +1480,7 @@ export const TranscriptPanel = () => {
                       }
                       selectionEnabled={selectionEnabled}
                       onSelectionChange={setActiveSelection}
-                      onClearSelection={() => setActiveSelection(null)}
+                      onClearSelection={handleClearSelection}
                     />
                   </div>
                 );

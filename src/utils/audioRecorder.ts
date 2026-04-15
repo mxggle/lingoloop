@@ -12,6 +12,11 @@ export interface AudioRecorderConfig {
     onPeakUpdate?: (peak: number) => void;
 }
 
+type AudioContextWindow = Window &
+    typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+    };
+
 export class UniversalAudioRecorder {
     private stream: MediaStream | null = null;
     private mediaRecorder: MediaRecorder | null = null;
@@ -58,7 +63,8 @@ export class UniversalAudioRecorder {
 
         try {
             // Create audio context for peak analysis
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            const AudioContextClass =
+                window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
             this.audioContext = new AudioContextClass();
             this.source = this.audioContext.createMediaStreamSource(this.stream);
             this.analyser = this.audioContext.createAnalyser();
@@ -119,7 +125,8 @@ export class UniversalAudioRecorder {
 
         try {
             // Create audio context
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            const AudioContextClass =
+                window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
             this.audioContext = new AudioContextClass({
                 sampleRate: this.config.sampleRate,
             });

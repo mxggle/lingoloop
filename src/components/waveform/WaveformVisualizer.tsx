@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
-import { usePlayerStore } from "../../stores/playerStore";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { usePlayerStore, type LoopBookmark } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useShadowingStore } from "../../stores/shadowingStore";
 import { useShallow } from "zustand/react/shallow";
@@ -44,8 +44,18 @@ const BOOKMARK_TOAST_ID = "bookmark-action-toast";
 
 // Stable empty arrays used in selectors to avoid creating
 // a new [] on every render (prevents infinite re-render loops)
-const EMPTY_BOOKMARKS: readonly any[] = Object.freeze([]);
-const EMPTY_SEGMENTS: readonly any[] = Object.freeze([]);
+type ShadowingSegmentView = {
+  id: string;
+  startTime: number;
+  duration: number;
+  storageId: string;
+  fileOffset?: number;
+  peaks?: number[];
+  peakTimes?: number[];
+};
+
+const EMPTY_BOOKMARKS: readonly LoopBookmark[] = Object.freeze([]);
+const EMPTY_SEGMENTS: readonly ShadowingSegmentView[] = Object.freeze([]);
 
 const normalizeCachedWaveform = (
   waveform: CachedWaveformData
@@ -73,6 +83,11 @@ type RecordingOverlay = {
   peakTimes: number[];
   startedAt: number;
 };
+
+type AudioContextWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
 // Utility function to format time in mm:ss.ms format
 const formatTime = (time: number): string => {
   if (isNaN(time)) return "00:00.0";
@@ -213,10 +228,14 @@ export const WaveformVisualizer = () => {
     }))
   );
 
-  const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
+  const mediaId = currentFile
+    ? currentFile.storageId || currentFile.id || `file-${currentFile.name}-${currentFile.size}`
+    : currentYouTube
+      ? `youtube-${currentYouTube.id}`
+      : null;
   const shadowingSegments = useShadowingStore((state) => {
-    if (!mediaId) return EMPTY_SEGMENTS as any[];
-    return state.sessions[mediaId]?.segments || (EMPTY_SEGMENTS as any[]);
+    if (!mediaId) return EMPTY_SEGMENTS;
+    return state.sessions[mediaId]?.segments || EMPTY_SEGMENTS;
   });
   const [shadowingWaveforms, setShadowingWaveforms] = useState<ShadowWaveform[]>([]);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -257,7 +276,10 @@ export const WaveformVisualizer = () => {
             }
 
             const arrayBuffer = await file.arrayBuffer();
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const audioContext = new (
+              window.AudioContext ||
+              (window as AudioContextWindow).webkitAudioContext
+            )();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
             const fileOffset = seg.fileOffset || 0;
@@ -343,17 +365,32 @@ export const WaveformVisualizer = () => {
 
   // Subscribe to bookmarks for current media so changes re-render this component
   const bookmarks = usePlayerStore((state) => {
-    const mediaId = state.getCurrentMediaId();
     // Return the actual array from state if it exists; otherwise return
     // a module-stable empty array so the selector snapshot is referentially stable.
     return mediaId && state.mediaBookmarks[mediaId]
       ? state.mediaBookmarks[mediaId]
-      : (EMPTY_BOOKMARKS as any[]);
+      : EMPTY_BOOKMARKS;
   });
+  const bookmarkMap = useMemo(
+    () => new Map(bookmarks.map((bookmark) => [bookmark.id, bookmark])),
+    [bookmarks]
+  );
+  const sortedBookmarks = useMemo(
+    () =>
+      bookmarks.length > 1
+        ? [...bookmarks].sort((a, b) => a.start - b.start)
+        : bookmarks,
+    [bookmarks]
+  );
+  const hasBookmarks = bookmarks.length > 0;
+  const getBookmarkById = useCallback(
+    (id: string) => bookmarkMap.get(id) ?? null,
+    [bookmarkMap]
+  );
 
   // Resolve the currently active/selected bookmark for display
   const activeBookmark =
-    bookmarks?.find((b) => b.id === selectedBookmarkId) || null;
+    selectedBookmarkId ? getBookmarkById(selectedBookmarkId) : null;
 
   // YouTube notice dismissal state
   const [isYoutubeNoticeDismissed, setIsYoutubeNoticeDismissed] = useState(false);
@@ -1241,7 +1278,7 @@ export const WaveformVisualizer = () => {
               (r) => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2
             );
             if (laneHit) {
-              const bm = bookmarks?.find((b) => b.id === laneHit.id);
+              const bm = getBookmarkById(laneHit.id);
               if (bm) {
                 loadBookmark(bm.id);
                 setCurrentTime(bm.start);
@@ -1292,7 +1329,6 @@ export const WaveformVisualizer = () => {
       setPinchStartDistance,
       positionToTime,
       duration,
-      bookmarks,
       loadBookmark,
       setCurrentTime,
       isLooping,
@@ -1301,6 +1337,7 @@ export const WaveformVisualizer = () => {
       isShadowingMode,
       setShadowingMode,
       setIsLooping,
+      getBookmarkById,
     ]
   );
 
@@ -1476,7 +1513,7 @@ export const WaveformVisualizer = () => {
     if (resizingBookmark) {
       const time = positionToTime(e.clientX);
       if (time >= 0 && time <= duration) {
-        const bm = bookmarks?.find((b) => b.id === resizingBookmark.id);
+        const bm = getBookmarkById(resizingBookmark.id);
         if (bm) {
           if (resizingBookmark.edge === "start") {
             const newStart = Math.min(time, bm.end - 0.1);
@@ -1586,7 +1623,7 @@ export const WaveformVisualizer = () => {
 
   // Navigate between bookmarks (previous/next)
   const goToBookmark = (direction: "prev" | "next") => {
-    const list = (bookmarks || []).slice().sort((a, b) => a.start - b.start);
+    const list = sortedBookmarks;
     if (list.length === 0) return;
 
     // Find current index: selected id preferred; otherwise nearest to current time
@@ -1642,7 +1679,7 @@ export const WaveformVisualizer = () => {
         (r) => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2
       );
       if (laneHit) {
-        const bm = bookmarks?.find((b) => b.id === laneHit.id);
+        const bm = getBookmarkById(laneHit.id);
         if (bm) {
           loadBookmark(bm.id);
           setCurrentTime(bm.start);
@@ -1687,7 +1724,7 @@ export const WaveformVisualizer = () => {
   };
 
   const handleSelectBookmark = (id: string) => {
-    const bm = bookmarks?.find((b) => b.id === id);
+    const bm = getBookmarkById(id);
     if (!bm) return;
     loadBookmark(id);
     setCurrentTime(bm.start);
@@ -2255,7 +2292,7 @@ export const WaveformVisualizer = () => {
             onClick={() => goToBookmark("prev")}
             title={t("player.previousBookmark")}
             aria-label={t("player.previousBookmark")}
-            disabled={(bookmarks?.length || 0) === 0}
+            disabled={!hasBookmarks}
           >
             <ChevronLeft size={isMobile ? 16 : 14} />
           </button>
@@ -2265,7 +2302,7 @@ export const WaveformVisualizer = () => {
             onClick={() => goToBookmark("next")}
             title={t("player.nextBookmark")}
             aria-label={t("player.nextBookmark")}
-            disabled={(bookmarks?.length || 0) === 0}
+            disabled={!hasBookmarks}
           >
             <ChevronRight size={isMobile ? 16 : 14} />
           </button>

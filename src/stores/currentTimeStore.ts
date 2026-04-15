@@ -27,6 +27,10 @@ export function getCurrentTime(): number {
 
 /** Called by the MediaPlayer rAF loop at full frame rate. */
 export function setCurrentTime(time: number): void {
+  if (Object.is(_currentTime, time)) {
+    return;
+  }
+
   _currentTime = time;
   // Notify all subscribed components
   for (const listener of _listeners) {

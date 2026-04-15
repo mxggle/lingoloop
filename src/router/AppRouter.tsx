@@ -1,19 +1,20 @@
-import {
-  BrowserRouter,
-  HashRouter,
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
-import { memo, Suspense } from "react";
-import { HomePage, PlayerPage, SettingsPage } from "../pages";
+import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Suspense, lazy, memo } from "react";
+import { HomePage } from "../pages";
 import { LayoutSettingsProvider } from "../contexts/LayoutSettingsContext";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { isElectron } from "../utils/platform";
 
 const Router = isElectron() ? HashRouter : BrowserRouter;
+const PlayerPage = lazy(async () => {
+  const module = await import("../pages/PlayerPage");
+  return { default: module.PlayerPage };
+});
+const SettingsPage = lazy(async () => {
+  const module = await import("../pages/SettingsPage");
+  return { default: module.SettingsPage };
+});
 
 // Static object — same reference on every render, so React's style diffing is a no-op
 // when visibility doesn't change.
@@ -69,7 +70,7 @@ const AppRouterInner = () => {
           PersistentPlayer (memo) skips re-render on route change — only the wrapper div's
           style prop is updated (a fast direct DOM write, not a React subtree reconciliation). */}
       {hasMedia && (
-        <Suspense fallback={null}>
+        <Suspense fallback={isOnPlayer ? ROUTE_FALLBACK : null}>
           <div style={isOnPlayer ? undefined : HIDDEN_STYLE}>
             <PersistentPlayer />
           </div>

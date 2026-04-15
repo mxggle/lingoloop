@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   usePlayerStore,
   type MediaHistoryItem,
@@ -38,6 +38,17 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Input } from "../ui/input";
+
+type HistoryTab = "all" | "files" | "youtube";
+type HistorySortBy = "date" | "name" | "type";
+type HistorySortOrder = "asc" | "desc";
+
+const HISTORY_SORT_FIELDS: readonly HistorySortBy[] = ["date", "name", "type"];
+const HISTORY_SORT_ORDERS: readonly HistorySortOrder[] = ["asc", "desc"];
+const HISTORY_TABS: readonly HistoryTab[] = ["all", "files", "youtube"];
+
+const isHistoryTab = (value: string): value is HistoryTab =>
+  HISTORY_TABS.includes(value as HistoryTab);
 
 // Folder item component for displaying folders in the main area
 interface FolderItemProps {
@@ -296,9 +307,7 @@ export const MediaHistory = ({
 }) => {
   const { t } = useTranslation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"all" | "files" | "youtube">(
-    "all"
-  );
+  const [activeTab, setActiveTab] = useState<HistoryTab>("all");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [hoveredFolder, setHoveredFolder] = useState<
     string | "unfiled" | "all" | null
@@ -379,7 +388,7 @@ export const MediaHistory = ({
 
   const canNavigateUp = currentFolderId !== null;
 
-  const sortHistoryItems = (items: MediaHistoryItem[]) => {
+  const sortHistoryItems = useCallback((items: MediaHistoryItem[]) => {
     const dir = historySortOrder === "asc" ? 1 : -1;
     return items.slice().sort((a, b) => {
       if (historySortBy === "date") {
@@ -401,7 +410,7 @@ export const MediaHistory = ({
       }
       return 0;
     });
-  };
+  }, [historySortBy, historySortOrder]);
 
   // Toggle drawer (no-op in embedded mode)
   const toggleDrawer = () => {
@@ -419,7 +428,7 @@ export const MediaHistory = ({
         document.body.style.overflow = original;
       };
     }
-  }, [isDrawerOpen]);
+  }, [embedded, isDrawerOpen]);
 
   const byTab = useMemo(() => {
     return mediaHistory.filter((item) => {
@@ -440,7 +449,7 @@ export const MediaHistory = ({
 
   const sortedHistory = useMemo(
     () => sortHistoryItems(byFolder),
-    [byFolder, historySortBy, historySortOrder]
+    [byFolder, sortHistoryItems]
   );
 
   const currentFolderHistory = useMemo(() => {
@@ -449,7 +458,7 @@ export const MediaHistory = ({
       targetFolderId ? item.folderId === targetFolderId : !item.folderId
     );
     return sortHistoryItems(filtered);
-  }, [byTab, currentFolderId, historySortBy, historySortOrder]);
+  }, [byTab, currentFolderId, sortHistoryItems]);
 
   const displayedHistory =
     historyFolderFilter === "all" ? sortedHistory : currentFolderHistory;
@@ -536,17 +545,17 @@ export const MediaHistory = ({
                         {t("history.sortBy")}
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {["date", "name", "type"].map((k) => (
+                        {HISTORY_SORT_FIELDS.map((k) => (
                           <Button
                             key={k}
                             variant={
-                              historySortBy === (k as any)
+                              historySortBy === k
                                 ? "default"
                                 : "outline"
                             }
                             size="sm"
                             onClick={() =>
-                              setHistorySort(k as any, historySortOrder)
+                              setHistorySort(k, historySortOrder)
                             }
                           >
                             {t(`history.${k}`)}
@@ -557,17 +566,17 @@ export const MediaHistory = ({
                         {t("history.order")}
                       </div>
                       <div className="flex gap-2">
-                        {["asc", "desc"].map((o) => (
+                        {HISTORY_SORT_ORDERS.map((o) => (
                           <Button
                             key={o}
                             variant={
-                              historySortOrder === (o as any)
+                              historySortOrder === o
                                 ? "default"
                                 : "outline"
                             }
                             size="sm"
                             onClick={() =>
-                              setHistorySort(historySortBy, o as any)
+                              setHistorySort(historySortBy, o)
                             }
                           >
                             {t(`history.${o}`)}
@@ -596,17 +605,17 @@ export const MediaHistory = ({
                           {t("history.sortBy")}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {["date", "name", "type"].map((k) => (
+                          {HISTORY_SORT_FIELDS.map((k) => (
                             <Button
                               key={k}
                               variant={
-                                historySortBy === (k as any)
+                                historySortBy === k
                                   ? "default"
                                   : "outline"
                               }
                               size="sm"
                               onClick={() =>
-                                setHistorySort(k as any, historySortOrder)
+                                setHistorySort(k, historySortOrder)
                               }
                             >
                               {t(`history.${k}`)}
@@ -617,17 +626,17 @@ export const MediaHistory = ({
                           {t("history.order")}
                         </div>
                         <div className="flex gap-2">
-                          {["asc", "desc"].map((o) => (
+                          {HISTORY_SORT_ORDERS.map((o) => (
                             <Button
                               key={o}
                               variant={
-                                historySortOrder === (o as any)
+                                historySortOrder === o
                                   ? "default"
                                   : "outline"
                               }
                               size="sm"
                               onClick={() =>
-                                setHistorySort(historySortBy, o as any)
+                                setHistorySort(historySortBy, o)
                               }
                             >
                               {t(`history.${o}`)}
@@ -655,7 +664,11 @@ export const MediaHistory = ({
                 <Tabs
                   defaultValue="all"
                   value={activeTab}
-                  onValueChange={(value) => setActiveTab(value as any)}
+                  onValueChange={(value) => {
+                    if (isHistoryTab(value)) {
+                      setActiveTab(value);
+                    }
+                  }}
                   className="w-full"
                 >
                   <div className="px-4 pt-2">
@@ -852,17 +865,17 @@ export const MediaHistory = ({
                           {t("history.sortBy")}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {["date", "name", "type"].map((k) => (
+                          {HISTORY_SORT_FIELDS.map((k) => (
                             <Button
                               key={k}
                               variant={
-                                historySortBy === (k as any)
+                                historySortBy === k
                                   ? "default"
                                   : "outline"
                               }
                               size="sm"
                               onClick={() =>
-                                setHistorySort(k as any, historySortOrder)
+                                setHistorySort(k, historySortOrder)
                               }
                             >
                               {k}
@@ -873,17 +886,17 @@ export const MediaHistory = ({
                           {t("history.order")}
                         </div>
                         <div className="flex gap-2">
-                          {["asc", "desc"].map((o) => (
+                          {HISTORY_SORT_ORDERS.map((o) => (
                             <Button
                               key={o}
                               variant={
-                                historySortOrder === (o as any)
+                                historySortOrder === o
                                   ? "default"
                                   : "outline"
                               }
                               size="sm"
                               onClick={() =>
-                                setHistorySort(historySortBy, o as any)
+                                setHistorySort(historySortBy, o)
                               }
                             >
                               {o}
@@ -912,17 +925,17 @@ export const MediaHistory = ({
                             {t("history.sortBy")}
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {["date", "name", "type"].map((k) => (
+                            {HISTORY_SORT_FIELDS.map((k) => (
                               <Button
                                 key={k}
                                 variant={
-                                  historySortBy === (k as any)
+                                  historySortBy === k
                                     ? "default"
                                     : "outline"
                                 }
                                 size="sm"
                                 onClick={() =>
-                                  setHistorySort(k as any, historySortOrder)
+                                  setHistorySort(k, historySortOrder)
                                 }
                               >
                                 {t(`history.${k}`)}
@@ -933,17 +946,17 @@ export const MediaHistory = ({
                             {t("history.order")}
                           </div>
                           <div className="flex gap-2">
-                            {["asc", "desc"].map((o) => (
+                            {HISTORY_SORT_ORDERS.map((o) => (
                               <Button
                                 key={o}
                                 variant={
-                                  historySortOrder === (o as any)
+                                  historySortOrder === o
                                     ? "default"
                                     : "outline"
                                 }
                                 size="sm"
                                 onClick={() =>
-                                  setHistorySort(historySortBy, o as any)
+                                  setHistorySort(historySortBy, o)
                                 }
                               >
                                 {t(`history.${o}`)}

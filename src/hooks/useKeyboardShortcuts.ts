@@ -239,6 +239,11 @@ export const useKeyboardShortcuts = () => {
     currentFile,
     currentYouTube,
     storeAddBookmark,
-    getCurrentMediaBookmarks
+    getCurrentMediaBookmarks,
+    deleteBookmark,
+    seekSmallStepSeconds,
+    seekStepSeconds,
+    t,
+    toggleLooping
   ])
 }

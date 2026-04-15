@@ -1,33 +1,14 @@
-import { createContext, useContext, useState, type Dispatch, type SetStateAction, type ReactNode } from "react";
-
-export interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
-
-interface LayoutSettingsContextValue {
-  layoutSettings: LayoutSettings;
-  setLayoutSettings: Dispatch<SetStateAction<LayoutSettings>>;
-}
-
-const defaultSettings: LayoutSettings = {
-  showPlayer: true,
-  showWaveform: true,
-  showTranscript: true,
-  showControls: true,
-};
-
-export const LayoutSettingsContext = createContext<LayoutSettingsContextValue>({
-  layoutSettings: defaultSettings,
-  setLayoutSettings: () => {},
-});
-
-export const useLayoutSettings = () => useContext(LayoutSettingsContext);
+import { useState, type ReactNode } from "react";
+import {
+  LayoutSettingsContext,
+  defaultLayoutSettings,
+  type LayoutSettings,
+} from "./layoutSettings";
 
 export const LayoutSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(defaultSettings);
+  const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(
+    defaultLayoutSettings
+  );
   return (
     <LayoutSettingsContext.Provider value={{ layoutSettings, setLayoutSettings }}>
       {children}

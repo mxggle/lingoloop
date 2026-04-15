@@ -73,6 +73,48 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     [setIsPlaying]
   );
 
+  const syncCurrentTime = useCallback(
+    (
+      time: number,
+      options?: {
+        forceStoreWrite?: boolean;
+      }
+    ) => {
+      setCurrentTimeExternal(time);
+
+      const currentStoreTime = usePlayerStore.getState().currentTime;
+      const storeDrift = Math.abs(currentStoreTime - time);
+
+      if (options?.forceStoreWrite) {
+        lastReportedTimeRef.current = time;
+        if (storeDrift >= 0.001) {
+          lastZustandWriteRef.current = performance.now();
+          setCurrentTime(time);
+        }
+        return;
+      }
+
+      if (Math.abs(time - lastReportedTimeRef.current) < 1 / 30) {
+        return;
+      }
+
+      lastReportedTimeRef.current = time;
+
+      if (storeDrift < 0.001) {
+        return;
+      }
+
+      const now = performance.now();
+      if (now - lastZustandWriteRef.current < 250) {
+        return;
+      }
+
+      lastZustandWriteRef.current = now;
+      setCurrentTime(time);
+    },
+    [setCurrentTime]
+  );
+
   // Reset pending play when the media source changes
   useEffect(() => {
     pendingPlayRef.current = false;
@@ -221,34 +263,23 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       : audioRef.current;
     if (!mediaElement) return;
 
-    // Add listener for manual seeking from UI controls
     const handleUserSeeking = () => {
-      if (document.body.classList.contains("user-seeking")) {
-        // Cancel any active delay
-        isDelayingRef.current = false;
+      if (!document.body.classList.contains("user-seeking")) return;
 
-        // Update the media element's time to the current value from the store
-        const storeTime = usePlayerStore.getState().currentTime;
+      isDelayingRef.current = false;
+
+      const storeTime = currentTime;
+      if (Math.abs(mediaElement.currentTime - storeTime) > 0.5) {
         mediaElement.currentTime = storeTime;
+      }
+      syncCurrentTime(storeTime, { forceStoreWrite: true });
 
-        // For mobile devices, ensure play state is maintained
-        if (isPlaying && mediaElement.paused) {
-          mediaElement.play().catch((error) => {
-            console.error("Error playing after seek:", error);
-          });
-        }
+      if (isPlaying && mediaElement.paused) {
+        mediaElement.play().catch((error) => {
+          console.error("Error playing after seek:", error);
+        });
       }
     };
-
-    // Create a direct subscription to time changes for more responsive mobile seeking
-    const unsubscribe = usePlayerStore.subscribe((state) => {
-      const newTime = state.currentTime;
-      if (document.body.classList.contains("user-seeking")) {
-        if (Math.abs(mediaElement.currentTime - newTime) > 0.5) {
-          mediaElement.currentTime = newTime;
-        }
-      }
-    });
 
     // Listen for manual seek class changes
     const observer = new MutationObserver((mutations) => {
@@ -260,12 +291,12 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     });
 
     observer.observe(document.body, { attributes: true });
+    handleUserSeeking();
 
     return () => {
       observer.disconnect();
-      unsubscribe();
     };
-  }, [currentFile, isPlaying]);
+  }, [currentFile, currentTime, isPlaying, syncCurrentTime]);
 
   // Handle A-B loop
   useEffect(() => {
@@ -276,17 +307,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     const handleTimeUpdate = () => {
       const currentTimeValue = mediaElement.currentTime;
-      // Always push to the lightweight external store at full rate
-      setCurrentTimeExternal(currentTimeValue);
-      if (Math.abs(currentTimeValue - lastReportedTimeRef.current) >= 0.05) {
-        lastReportedTimeRef.current = currentTimeValue;
-        // Throttle Zustand writes to ~4Hz to avoid subscriber storm
-        const now = performance.now();
-        if (now - lastZustandWriteRef.current >= 250) {
-          lastZustandWriteRef.current = now;
-          setCurrentTime(currentTimeValue);
-        }
-      }
+      syncCurrentTime(currentTimeValue);
 
       // Handle A-B looping
       if (isLooping && loopStart !== null && loopEnd !== null) {
@@ -379,7 +400,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("timeupdate", handleTimeUpdate);
     };
-  }, [currentFile, isLooping, loopStart, loopEnd, setCurrentTime]);
+  }, [currentFile, isLooping, loopStart, loopEnd, syncCurrentTime]);
 
   useEffect(() => {
     const mediaElement = currentFile?.type.includes("video")
@@ -396,36 +417,23 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     if (!isPlaying) {
       const pausedTime = mediaElement.currentTime;
-      lastReportedTimeRef.current = pausedTime;
-      setCurrentTimeExternal(pausedTime);
-      setCurrentTime(pausedTime);
+      syncCurrentTime(pausedTime, { forceStoreWrite: true });
       stopSync();
       return stopSync;
     }
 
-    const syncCurrentTime = () => {
+    const syncPlaybackFrame = () => {
       if (!mediaElement.paused && !mediaElement.ended && !mediaElement.seeking) {
-        const mediaTime = mediaElement.currentTime;
-        // Always push to lightweight store at full rAF rate
-        setCurrentTimeExternal(mediaTime);
-        if (Math.abs(mediaTime - lastReportedTimeRef.current) >= 1 / 30) {
-          lastReportedTimeRef.current = mediaTime;
-          // Throttle Zustand writes to ~4Hz
-          const now = performance.now();
-          if (now - lastZustandWriteRef.current >= 250) {
-            lastZustandWriteRef.current = now;
-            setCurrentTime(mediaTime);
-          }
-        }
+        syncCurrentTime(mediaElement.currentTime);
       }
 
-      playbackSyncFrameRef.current = window.requestAnimationFrame(syncCurrentTime);
+      playbackSyncFrameRef.current = window.requestAnimationFrame(syncPlaybackFrame);
     };
 
-    playbackSyncFrameRef.current = window.requestAnimationFrame(syncCurrentTime);
+    playbackSyncFrameRef.current = window.requestAnimationFrame(syncPlaybackFrame);
 
     return stopSync;
-  }, [currentFile, isPlaying, setCurrentTime]);
+  }, [currentFile, isPlaying, syncCurrentTime]);
 
   // Add a listener for seeking to handle manual seeking
   useEffect(() => {
@@ -446,6 +454,8 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
           mediaElement.currentTime = loopStart;
         }
       }
+
+      syncCurrentTime(mediaElement.currentTime, { forceStoreWrite: true });
     };
 
     mediaElement.addEventListener("seeking", handleSeeking);
@@ -453,7 +463,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("seeking", handleSeeking);
     };
-  }, [currentFile, isLooping, loopStart, loopEnd]);
+  }, [currentFile, isLooping, loopStart, loopEnd, syncCurrentTime]);
 
   // Handle seeking from the store (for rewind/fast forward buttons)
   useEffect(() => {

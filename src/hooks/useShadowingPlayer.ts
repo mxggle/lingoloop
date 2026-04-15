@@ -1,49 +1,85 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShadowingStore } from "../stores/shadowingStore";
 import { retrieveMediaFile } from "../utils/mediaStorage";
+import { useShallow } from "zustand/react/shallow";
+
+type ShadowingSegmentView = {
+    id: string;
+    startTime: number;
+    duration: number;
+    storageId: string;
+    fileOffset?: number;
+};
+
+type AudioContextWindow = Window & typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+};
 
 // Stable empty array to avoid creating new [] on every render
-const EMPTY_SEGMENTS: readonly any[] = Object.freeze([]);
+const EMPTY_SEGMENTS: readonly ShadowingSegmentView[] = Object.freeze([]);
 
 // Web Audio API context standardizer
 const AudioContextClass =
-    window.AudioContext || (window as any).webkitAudioContext;
+    window.AudioContext || (window as AudioContextWindow).webkitAudioContext;
 
 export const useShadowingPlayer = () => {
     const {
         isPlaying,
         currentTime,
         playbackRate,
-    } = usePlayerStore();
+        masterVolume,
+        masterMuted,
+        mediaId,
+    } = usePlayerStore(
+        useShallow((state) => ({
+            isPlaying: state.isPlaying,
+            currentTime: state.currentTime,
+            playbackRate: state.playbackRate,
+            masterVolume: state.volume,
+            masterMuted: state.muted,
+            mediaId: state.getCurrentMediaId(),
+        }))
+    );
 
     const {
         volume,
         muted,
-    } = useShadowingStore();
-
-    // Get master volume and muted state reactively
-    const masterVolume = usePlayerStore((state) => state.volume);
-    const masterMuted = usePlayerStore((state) => state.muted);
+    } = useShadowingStore(
+        useShallow((state) => ({
+            volume: state.volume,
+            muted: state.muted,
+        }))
+    );
 
     const audioContextRef = useRef<AudioContext | null>(null);
     const gainNodeRef = useRef<GainNode | null>(null);
     const activeNodesRef = useRef<AudioBufferSourceNode[]>([]);
     const segmentsRef = useRef<{ start: number; duration: number; fileOffset: number; buffer: AudioBuffer }[]>([]);
-    const startTimeRef = useRef<number>(0);
-    const contextStartTimeRef = useRef<number>(0);
+    const playbackRateRef = useRef(playbackRate);
+    const currentTimeRef = useRef(currentTime);
 
     // Track loaded state to preventing trying to play before ready
     const [isLoaded, setIsLoaded] = useState(false);
-
-    const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
     const segments = useShadowingStore((state) => {
-        if (!mediaId) return EMPTY_SEGMENTS as any[];
-        return state.sessions[mediaId]?.segments || (EMPTY_SEGMENTS as any[]);
+        if (!mediaId) return EMPTY_SEGMENTS;
+        return state.sessions[mediaId]?.segments || EMPTY_SEGMENTS;
     });
-    const segmentsLoadKey = segments
-        .map((seg) => `${seg.id}:${seg.storageId}:${seg.startTime}:${seg.duration}:${seg.fileOffset || 0}`)
-        .join("|");
+    const segmentsLoadKey = useMemo(
+        () =>
+            segments
+                .map((seg) => `${seg.id}:${seg.storageId}:${seg.startTime}:${seg.duration}:${seg.fileOffset || 0}`)
+                .join("|"),
+        [segments]
+    );
+
+    useEffect(() => {
+        playbackRateRef.current = playbackRate;
+    }, [playbackRate]);
+
+    useEffect(() => {
+        currentTimeRef.current = currentTime;
+    }, [currentTime]);
 
     // Initialize AudioContext
     useEffect(() => {
@@ -121,7 +157,7 @@ export const useShadowingPlayer = () => {
 
         loadAudio();
         return () => { active = false; };
-    }, [mediaId, segmentsLoadKey]);
+    }, [mediaId, segments, segmentsLoadKey]);
 
     // Handle Playback
     const stopAll = useCallback(() => {
@@ -154,8 +190,7 @@ export const useShadowingPlayer = () => {
         stopAll();
 
         const ctx = audioContextRef.current;
-        startTimeRef.current = time;
-        contextStartTimeRef.current = ctx.currentTime;
+        const activePlaybackRate = playbackRateRef.current;
 
         segmentsRef.current.forEach((seg) => {
             const playDuration = seg.duration || seg.buffer.duration;
@@ -167,14 +202,14 @@ export const useShadowingPlayer = () => {
 
             const source = ctx.createBufferSource();
             source.buffer = seg.buffer;
-            source.playbackRate.value = playbackRate;
+            source.playbackRate.value = activePlaybackRate;
 
             source.connect(gainNodeRef.current!);
 
             const fileOffset = seg.fileOffset || 0;
 
             if (seg.start >= time) {
-                const delay = (seg.start - time) / playbackRate;
+                const delay = (seg.start - time) / activePlaybackRate;
                 source.start(ctx.currentTime + delay, fileOffset, playDuration);
             } else {
                 const seekInSegment = (time - seg.start);
@@ -195,12 +230,12 @@ export const useShadowingPlayer = () => {
                 }
             };
         });
-    }, [isLoaded, playbackRate, stopAll]);
+    }, [isLoaded, stopAll]);
 
     // Respond to Play/Pause/Seek
     useEffect(() => {
         if (isPlaying) {
-            playAt(currentTime);
+            playAt(currentTimeRef.current);
         } else {
             stopAll();
         }
@@ -231,22 +266,19 @@ export const useShadowingPlayer = () => {
         }
     }, [volume, muted, masterVolume, masterMuted]);
 
-    // Update Playback Rate
-    // Update active nodes if rate changes live
     useEffect(() => {
         if (audioContextRef.current) {
             activeNodesRef.current.forEach(node => {
                 try {
                     node.playbackRate.setValueAtTime(playbackRate, audioContextRef.current!.currentTime);
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore nodes that are already finished or disconnected.
+                }
             });
 
-            // Note: Changing rate live might shift relative scheduling if we had future scheduled starts.
-            // It's complex to adjust on the fly precisely without restart.
-            // For now, simpler to restart if playing.
             if (isPlaying) {
-                playAt(currentTime);
+                playAt(currentTimeRef.current);
             }
         }
-    }, [playbackRate]);
+    }, [playbackRate, isPlaying, playAt]);
 };

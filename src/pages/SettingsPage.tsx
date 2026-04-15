@@ -34,7 +34,7 @@ import {
   getModelById,
   normalizeModelId,
 } from "../types/aiService";
-import { useLayoutSettings } from "../contexts/LayoutSettingsContext";
+import { useLayoutSettings } from "../contexts/layoutSettings";
 import { usePlayerStore } from "../stores/playerStore";
 
 const LANGUAGE_OPTIONS = [

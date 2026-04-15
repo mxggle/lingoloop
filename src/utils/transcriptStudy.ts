@@ -168,13 +168,13 @@ const PHRASAL_PARTICLES = new Set([
 ]);
 
 const LEVEL_COLORS: Record<TranscriptStudyLevel, string> = {
-  A1: "text-emerald-600 dark:text-emerald-400",
+  A1: "text-success-600 dark:text-success-400",
   A2: "text-teal-600 dark:text-teal-400",
   B1: "text-sky-600 dark:text-sky-400",
   B2: "text-blue-600 dark:text-blue-400",
   C1: "text-violet-600 dark:text-violet-400",
-  C2: "text-rose-600 dark:text-rose-400",
-  N5: "text-emerald-600 dark:text-emerald-400",
+  C2: "text-error-600 dark:text-error-400",
+  N5: "text-success-600 dark:text-success-400",
   N4: "text-teal-600 dark:text-teal-400",
   N3: "text-sky-600 dark:text-sky-400",
   N2: "text-blue-600 dark:text-blue-400",

@@ -251,8 +251,8 @@ export const ElectronAppLayout = ({
           {/* ─── Resize handle ───────────────────────────────────── */}
           <div
             onMouseDown={startResizing}
-            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-purple-500/30 transition-colors z-[70] ${
-              isResizing ? "bg-purple-500/50 w-1.5" : ""
+            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary-500/30 transition-colors z-[70] ${
+              isResizing ? "bg-primary-500/50 w-1.5" : ""
             }`}
           />
         </>
@@ -277,7 +277,7 @@ export const ElectronAppLayout = ({
     <div className="flex items-center gap-0.5 mr-2 shrink-0">
       <button
         onClick={navigateToHome}
-        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600 transition-colors"
+        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-600 transition-colors"
         title={t("common.home", "Home")}
       >
         <Home className="w-4 h-4" />

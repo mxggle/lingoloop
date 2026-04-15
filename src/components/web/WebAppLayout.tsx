@@ -37,7 +37,7 @@ export const WebAppLayout = ({
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 1024 1024"
-        className="h-8 sm:h-9 w-auto fill-current text-purple-600"
+        className="h-8 sm:h-9 w-auto fill-current text-primary-600"
         aria-label={t("app.logoLabel")}
       >
         <g transform="translate(0,1024) scale(0.1,-0.1)">
@@ -45,7 +45,7 @@ export const WebAppLayout = ({
           <path d="M4725 5688 c-263 -211 -602 -508 -615 -537 -9 -23 -8 -35 3 -62 8 -19 105 -132 216 -251 166 -180 208 -219 241 -229 44 -13 94 0 105 29 6 16 68 346 80 427 3 22 14 87 24 145 10 58 24 139 31 180 14 81 17 102 25 140 15 71 17 160 5 175 -21 25 -71 18 -115 -17z" />
         </g>
       </svg>
-      <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent whitespace-nowrap">
+      <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent whitespace-nowrap">
         LoopMate
       </h1>
     </button>

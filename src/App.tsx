@@ -2,16 +2,23 @@ import { useEffect } from "react";
 import { Theme } from "@radix-ui/themes";
 import { Toaster } from "react-hot-toast";
 import { usePlayerStore } from "./stores/playerStore";
+import { useThemeStore } from "./stores/themeStore";
+import { applyTheme } from "./utils/theme";
 import { AppRouter } from "./router/AppRouter";
 import "@radix-ui/themes/styles.css";
 import "./index.css";
 
 function App() {
   const { theme } = usePlayerStore();
+  const { colors } = useThemeStore();
 
   useEffect(() => {
     document.documentElement.className = theme;
   }, [theme]);
+
+  useEffect(() => {
+    applyTheme(colors);
+  }, [colors]);
 
   // Parse URL parameters for shared loop settings
   useEffect(() => {

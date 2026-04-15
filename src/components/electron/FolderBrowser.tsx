@@ -67,7 +67,7 @@ const TreeNode = ({ node, depth, onFileClick, activeFilePath }: TreeNodeProps) =
           onClick={() => onFileClick(node)}
           className={`w-full flex items-center h-[26px] text-left transition-colors group ${
             isActive
-              ? "bg-purple-500/12 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300"
+              ? "bg-primary-500/12 dark:bg-primary-500/15 text-primary-600 dark:text-primary-300"
               : "hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300"
           }`}
           style={{ paddingLeft: depth === 0 ? BASE_PX : 0 }}
@@ -75,9 +75,9 @@ const TreeNode = ({ node, depth, onFileClick, activeFilePath }: TreeNodeProps) =
           <IndentGuides depth={depth} />
           <span className="shrink-0" style={{ width: INDENT_PX }} />{/* spacer where chevron would be */}
           {isVideo ? (
-            <FileVideo className="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-indigo-500 mr-1.5" />
+            <FileVideo className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
           ) : (
-            <Music className="w-3.5 h-3.5 shrink-0 text-purple-400 dark:text-purple-500 mr-1.5" />
+            <Music className="w-3.5 h-3.5 shrink-0 text-primary-400 dark:text-primary-500 mr-1.5" />
           )}
           <span
             className={`text-xs truncate pr-2 ${
@@ -120,9 +120,9 @@ const TreeNode = ({ node, depth, onFileClick, activeFilePath }: TreeNodeProps) =
           <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
         )}
         {open ? (
-          <FolderOpen className="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-indigo-500 mr-1.5" />
+          <FolderOpen className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
         ) : (
-          <Folder className="w-3.5 h-3.5 shrink-0 text-indigo-400 dark:text-indigo-500 mr-1.5" />
+          <Folder className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
         )}
         <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate pr-2">
           {node.name}
@@ -206,9 +206,9 @@ const RootFolder = ({ path, onFileClick, onRemove, activeFilePath }: RootFolderP
             <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
           )}
           {open ? (
-            <FolderOpen className="w-4 h-4 shrink-0 text-indigo-500 dark:text-indigo-400 mr-1.5" />
+            <FolderOpen className="w-4 h-4 shrink-0 text-accent-500 dark:text-accent-400 mr-1.5" />
           ) : (
-            <Folder className="w-4 h-4 shrink-0 text-indigo-500 dark:text-indigo-400 mr-1.5" />
+            <Folder className="w-4 h-4 shrink-0 text-accent-500 dark:text-accent-400 mr-1.5" />
           )}
           <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
             {folderName}
@@ -227,7 +227,7 @@ const RootFolder = ({ path, onFileClick, onRemove, activeFilePath }: RootFolderP
         <button
           onClick={() => onRemove(path)}
           title={t("folderBrowser.removeFolder", "Remove folder")}
-          className="p-0.5 mr-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-all shrink-0 opacity-0 group-hover:opacity-100"
+          className="p-0.5 mr-1 rounded text-gray-400 hover:text-error-500 dark:hover:text-error-400 transition-all shrink-0 opacity-0 group-hover:opacity-100"
         >
           <X className="w-3.5 h-3.5" />
         </button>
@@ -306,7 +306,7 @@ export const FolderBrowser = ({ onAddFolder: _onAddFolder }: FolderBrowserProps)
         </p>
         <button
           onClick={addFolder}
-          className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline"
+          className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
         >
           {t("sidebar.addFolder", "Add folder")}
         </button>

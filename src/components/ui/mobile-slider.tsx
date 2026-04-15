@@ -129,7 +129,7 @@ export const MobileSlider = ({
       >
         {/* Filled track */}
         <div
-          className="absolute top-0 left-0 bottom-0 bg-purple-500 rounded-full"
+          className="absolute top-0 left-0 bottom-0 bg-primary-500 rounded-full"
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -138,7 +138,7 @@ export const MobileSlider = ({
       <div
         ref={thumbRef}
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 bg-white border-2 border-purple-500 rounded-full shadow-md transition-shadow",
+          "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-6 h-6 bg-white border-2 border-primary-500 rounded-full shadow-md transition-shadow",
           isDragging ? "shadow-lg scale-110" : ""
         )}
         style={{ left: `${percentage}%` }}

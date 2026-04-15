@@ -255,12 +255,12 @@ export const TranscriptSelectionPopover = ({
       )}
 
       {error && (
-        <div className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</div>
+        <div className="mt-3 text-sm text-error-600 dark:text-error-400">{error}</div>
       )}
 
       {result && (
         <div className="mt-3 space-y-2">
-          <div className="prose prose-sm max-w-none text-sm dark:prose-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0">
+          <div className="prose perror-sm max-w-none text-sm dark:perror-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0">
             <MarkdownRenderer content={result.explanation} />
           </div>
           <div className="text-[11px] text-gray-400 dark:text-gray-500">

@@ -13,6 +13,8 @@ import {
   FileText,
   Globe,
   Key,
+  Palette,
+  RotateCcw,
   Save,
   Settings,
   SlidersHorizontal,
@@ -36,6 +38,7 @@ import {
 } from "../types/aiService";
 import { useLayoutSettings } from "../contexts/layoutSettings";
 import { usePlayerStore } from "../stores/playerStore";
+import { useThemeStore, THEME_PRESETS } from "../stores/themeStore";
 
 const LANGUAGE_OPTIONS = [
   "english",
@@ -58,19 +61,19 @@ const LANGUAGE_VALUES: Record<(typeof LANGUAGE_OPTIONS)[number], string> = {
 };
 
 const providerSurfaceClassName: Record<AIProvider, string> = {
-  openai: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  openai: "bg-success-100 text-success-700 dark:bg-success-950/40 dark:text-success-300",
   gemini: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
-  grok: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  ollama: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300",
+  grok: "bg-warning-100 text-warning-700 dark:bg-warning-950/40 dark:text-warning-300",
+  ollama: "bg-primary-100 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300",
 };
 
 const statusToneClassName = {
   success:
-    "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300",
+    "border border-success-200 bg-success-50 text-success-700 dark:border-success-900/60 dark:bg-success-950/40 dark:text-success-300",
   warning:
-    "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300",
+    "border border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-900/60 dark:bg-warning-950/40 dark:text-warning-300",
   error:
-    "border border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300",
+    "border border-error-200 bg-red-50 text-error-700 dark:border-error-900/60 dark:bg-red-950/40 dark:text-error-300",
   neutral:
     "border border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300",
 };
@@ -94,6 +97,7 @@ export const SettingsPage: React.FC = () => {
     return params.get("tab") === "ai" ? "ai" : "general";
   });
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
+  const { colors, setColors, resetColors } = useThemeStore();
 
   const {
     seekStepSeconds,
@@ -239,9 +243,9 @@ export const SettingsPage: React.FC = () => {
   const getConnectionStatusIcon = (provider: AIProvider) => {
     switch (connectionStatus[provider]) {
       case "success":
-        return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+        return <CheckCircle className="h-4 w-4 text-success-500" />;
       case "error":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-error-500" />;
       default:
         return null;
     }
@@ -287,7 +291,7 @@ export const SettingsPage: React.FC = () => {
   const layoutOptions = [
     { key: "showWaveform" as const, label: t("settings.waveformDisplay"), icon: <Waves className="h-4 w-4 text-teal-500" /> },
     { key: "showTranscript" as const, label: t("settings.transcriptPanel"), icon: <FileText className="h-4 w-4 text-orange-500" /> },
-    { key: "showControls" as const, label: t("settings.playbackControls"), icon: <SlidersHorizontal className="h-4 w-4 text-rose-500" /> },
+    { key: "showControls" as const, label: t("settings.playbackControls"), icon: <SlidersHorizontal className="h-4 w-4 text-error-500" /> },
   ];
 
   const AI_SUB_TABS = [
@@ -398,7 +402,7 @@ export const SettingsPage: React.FC = () => {
                       className={cn(
                         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
                         layoutSettings[option.key]
-                          ? "bg-purple-600"
+                          ? "bg-primary-600"
                           : "bg-gray-200 dark:bg-gray-600"
                       )}
                       aria-label={option.label}
@@ -412,6 +416,92 @@ export const SettingsPage: React.FC = () => {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Theme */}
+            <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+              <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    {t("settingsPage.theme", "Theme")}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    {t("settingsPage.themeHelp", "Customize your interface colors")}
+                  </p>
+                </div>
+                <button
+                  onClick={resetColors}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title={t("settingsPage.resetTheme", "Reset to default")}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="px-5 py-5 space-y-6">
+                {/* Presets */}
+                <div className="grid grid-cols-6 gap-3">
+                  {Object.entries(THEME_PRESETS).map(([name, themeColors]) => (
+                    <button
+                      key={name}
+                      onClick={() => setColors(themeColors)}
+                      className={cn(
+                        "group relative flex flex-col items-center gap-2 transition-all",
+                        colors.primary === themeColors.primary ? "scale-105" : "hover:scale-105"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-10 w-10 rounded-full border-2 transition-all",
+                          colors.primary === themeColors.primary
+                            ? "border-gray-900 ring-2 ring-gray-900/10 dark:border-white ring-offset-2 dark:ring-white/20"
+                            : "border-transparent"
+                        )}
+                        style={{ backgroundColor: themeColors.primary }}
+                      />
+                      <span className="text-[10px] font-medium capitalize text-gray-500 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                        {name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Picker */}
+                <div className="pt-2">
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    {t("settingsPage.customPrimaryColor", "Custom Primary Color")}
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-10 w-10 shrink-0">
+                      <input
+                        type="color"
+                        value={colors.primary}
+                        onChange={(e) => setColors({ primary: e.target.value })}
+                        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      />
+                      <div
+                        className="h-full w-full rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+                        style={{ backgroundColor: colors.primary }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        value={colors.primary.toUpperCase()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (/^#[0-9A-F]{6}$/i.test(val)) {
+                            setColors({ primary: val });
+                          }
+                        }}
+                        placeholder="#8B5CF6"
+                        className="h-9 font-mono text-xs uppercase"
+                        maxLength={7}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -769,7 +859,7 @@ export const SettingsPage: React.FC = () => {
                                   placeholder={t("aiSettingsPage.apiKeyPlaceholderLabel", { provider: providerName })}
                                   className={cn(
                                     "h-9 pr-9 font-mono text-sm",
-                                    apiKey && !isValidKey && "border-red-300 dark:border-red-700"
+                                    apiKey && !isValidKey && "border-error-300 dark:border-error-700"
                                   )}
                                 />
                                 <button
@@ -798,17 +888,17 @@ export const SettingsPage: React.FC = () => {
                               </Button>
                             </div>
                             {apiKey && !isValidKey && (
-                              <p className="text-xs text-red-600 dark:text-red-400">
+                              <p className="text-xs text-error-600 dark:text-error-400">
                                 {t("aiSettingsPage.invalidApiKeyFormat")}
                               </p>
                             )}
                             {connectionStatus[provider] === "success" && (
-                              <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                              <p className="text-xs text-success-600 dark:text-success-400">
                                 {t("aiSettingsPage.status.testPassed")}
                               </p>
                             )}
                             {connectionStatus[provider] === "error" && (
-                              <p className="text-xs text-red-600 dark:text-red-400">
+                              <p className="text-xs text-error-600 dark:text-error-400">
                                 {t("aiSettingsPage.status.testFailed")}
                               </p>
                             )}

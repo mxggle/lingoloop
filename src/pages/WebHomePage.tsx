@@ -13,15 +13,15 @@ export const WebHomePage = ({ handleVideoIdSubmit }: WebHomePageProps) => {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Input Sections: File Uploader and YouTube Input */}
-      <div className="relative bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10 p-4 sm:p-8 rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6 border border-purple-100/50 dark:border-purple-800/20 overflow-hidden flex-shrink-0 mt-4 sm:mt-8">
+      <div className="relative bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/10 dark:to-accent-900/10 p-4 sm:p-8 rounded-xl sm:rounded-2xl shadow-sm mb-4 sm:mb-6 border border-primary-100/50 dark:border-primary-800/20 overflow-hidden flex-shrink-0 mt-4 sm:mt-8">
         {/* Background decorative elements */}
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-br from-purple-200/30 to-indigo-200/30 dark:from-purple-700/10 dark:to-indigo-700/10 rounded-full blur-xl"></div>
-        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-tl from-purple-200/30 to-indigo-200/30 dark:from-purple-700/10 dark:to-indigo-700/10 rounded-full blur-xl"></div>
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-br from-primary-200/30 to-accent-200/30 dark:from-primary-700/10 dark:to-accent-700/10 rounded-full blur-xl"></div>
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-gradient-to-tl from-primary-200/30 to-accent-200/30 dark:from-primary-700/10 dark:to-accent-700/10 rounded-full blur-xl"></div>
 
         {/* Content container with z-index to appear above decorative elements */}
         <div className="relative z-10">
           {/* Section title */}
-          <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 bg-gradient-to-r from-purple-700 to-indigo-700 dark:from-purple-400 dark:to-indigo-400 bg-clip-text text-transparent">
+          <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 bg-gradient-to-r from-primary-700 to-accent-700 dark:from-primary-400 dark:to-accent-400 bg-clip-text text-transparent">
             {t("home.chooseMediaSource")}
           </h2>
 
@@ -33,9 +33,9 @@ export const WebHomePage = ({ handleVideoIdSubmit }: WebHomePageProps) => {
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                   {t("home.youtubeVideo")}
                 </h3>
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-full">
                   <svg
-                    className="w-5 h-5 text-purple-600 dark:text-purple-400"
+                    className="w-5 h-5 text-primary-600 dark:text-primary-400"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -52,9 +52,9 @@ export const WebHomePage = ({ handleVideoIdSubmit }: WebHomePageProps) => {
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                   {t("home.localMedia")}
                 </h3>
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                <div className="p-2 bg-accent-100 dark:bg-accent-900/30 rounded-full">
                   <svg
-                    className="w-5 h-5 text-indigo-600 dark:text-indigo-400"
+                    className="w-5 h-5 text-accent-600 dark:text-accent-400"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"

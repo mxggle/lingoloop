@@ -142,8 +142,8 @@ export const TranscriptSegmentItem = memo(
                   onClick={shouldShowPauseButton ? handlePausePlayback : handleJumpToTime}
                   className={`p-1.5 rounded-full transition-colors ${
                     isActive
-                      ? "text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/30"
-                      : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "text-primary-600 dark:text-primary-400 bg-primary-100/50 dark:bg-primary-900/30"
+                      : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                   title={t(
                     shouldShowPauseButton
@@ -162,8 +162,8 @@ export const TranscriptSegmentItem = memo(
                   onClick={handleToggleLoop}
                   className={`p-1.5 rounded-full transition-colors ${
                     isCurrentlyLooping
-                      ? "text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/30"
-                      : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "text-primary-600 dark:text-primary-400 bg-primary-100/50 dark:bg-primary-900/30"
+                      : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                   title={t(
                     isCurrentlyLooping
@@ -181,8 +181,8 @@ export const TranscriptSegmentItem = memo(
                   onClick={handleToggleBookmark}
                   className={`p-1.5 rounded-full transition-colors ${
                     isBookmarked
-                      ? "text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/30"
-                      : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                      ? "text-primary-600 dark:text-primary-400 bg-primary-100/50 dark:bg-primary-900/30"
+                      : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                   title={t(
                     isBookmarked

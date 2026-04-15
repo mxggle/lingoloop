@@ -48,13 +48,13 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               whileHover={{ y: -5 }}
               className="group relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-purple-500/30 group-hover:shadow-2xl group-hover:shadow-purple-500/5">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 to-primary-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
+              <div className="relative bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-primary-500/30 group-hover:shadow-2xl group-hover:shadow-primary-500/5">
                 <div className="mb-6 flex items-center justify-between">
-                  <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 bg-accent-50 dark:bg-accent-900/30 rounded-2xl flex items-center justify-center text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform">
                     <FileAudio className="w-6 h-6" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-indigo-500 transition-colors">{t("home.localFile")}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-accent-500 transition-colors">{t("home.localFile")}</span>
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-gray-800 dark:text-white">
                   {t("home.localMedia")}
@@ -72,13 +72,13 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               whileHover={{ y: -5 }}
               className="group relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-orange-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-red-500/30 group-hover:shadow-2xl group-hover:shadow-red-500/5">
+              <div className="absolute inset-0 bg-gradient-to-br from-error-500/10 to-orange-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
+              <div className="relative bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-error-500/30 group-hover:shadow-2xl group-hover:shadow-error-500/5">
                 <div className="mb-6 flex items-center justify-between">
-                  <div className="w-12 h-12 bg-red-50 dark:bg-red-900/30 rounded-2xl flex items-center justify-center text-red-600 dark:text-red-400 group-hover:scale-110 transition-transform">
+                  <div className="w-12 h-12 bg-red-50 dark:bg-error-900/30 rounded-2xl flex items-center justify-center text-error-600 dark:text-error-400 group-hover:scale-110 transition-transform">
                     <Youtube className="w-6 h-6" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-red-500 transition-colors">{t("home.cloudStream")}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-error-500 transition-colors">{t("home.cloudStream")}</span>
                 </div>
                 <h3 className="text-xl font-bold mb-3 text-gray-800 dark:text-white">
                   {t("home.youtubeVideo")}
@@ -99,8 +99,8 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
             transition={{ delay: 0.6 }}
             className="flex items-center gap-6 border-t border-gray-200 dark:border-gray-800 pt-8"
           >
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-              <FolderSearch className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-xl">
+              <FolderSearch className="w-5 h-5 text-primary-600 dark:text-primary-400" />
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">

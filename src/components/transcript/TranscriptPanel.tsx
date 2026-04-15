@@ -1169,7 +1169,7 @@ export const TranscriptPanel = () => {
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-[#0a0a0a] shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-[#0a0a0a] shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         title={t("transcript.toggleSidebar")}
       >
         <Sidebar size={16} />
@@ -1218,7 +1218,7 @@ export const TranscriptPanel = () => {
           <button
             onClick={() => handleTabSelect(null)}
             className={`w-full text-left px-3 py-2 rounded text-sm transition-colors whitespace-nowrap overflow-hidden text-ellipsis ${activeTabId === null
-              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium"
+              ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 font-medium"
               : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
           >
@@ -1236,14 +1236,14 @@ export const TranscriptPanel = () => {
               key={b.id}
               onClick={() => handleTabSelect(b.id)}
               className={`group w-full text-left px-3 py-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between ${activeTabId === b.id
-                ? "bg-purple-100 dark:bg-purple-900/30"
+                ? "bg-primary-100 dark:bg-primary-900/30"
                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
               title={b.name}
             >
               <div className="flex-1 min-w-0 mr-2 overflow-hidden">
                 <div className={`truncate font-medium ${activeTabId === b.id
-                  ? "text-purple-700 dark:text-purple-300"
+                  ? "text-primary-700 dark:text-primary-300"
                   : "text-gray-700 dark:text-gray-300"
                   }`}>
                   {b.name}
@@ -1257,7 +1257,7 @@ export const TranscriptPanel = () => {
               <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity space-x-1 shrink-0">
                 <button
                   onClick={(e) => handlePlayBookmark(e, b.id)}
-                  className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/50 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
+                  className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/50 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
                   title={t("player.play")}
                 >
                   <PlayCircle size={16} />
@@ -1271,7 +1271,7 @@ export const TranscriptPanel = () => {
                 </button>
                 <button
                   onClick={(e) => handleDeleteBookmark(e, b.id)}
-                  className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/50 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                  className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/50 text-gray-500 hover:text-error-600 dark:text-gray-400 dark:hover:text-error-400"
                   title={t("bookmarks.deleteBookmark")}
                 >
                   <Trash size={14} />
@@ -1306,7 +1306,7 @@ export const TranscriptPanel = () => {
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
-                ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
+                ? "bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               title={t("transcript.levelToggle")}
@@ -1353,7 +1353,7 @@ export const TranscriptPanel = () => {
                             type="checkbox"
                             checked={isLevelActive(level)}
                             onChange={() => toggleLevel(level)}
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                           />
                         </label>
                       ))}
@@ -1367,7 +1367,7 @@ export const TranscriptPanel = () => {
               <select
                 value={transcriptLanguage}
                 onChange={(e) => setTranscriptLanguage(e.target.value)}
-                className="appearance-none rounded-md border border-gray-300 bg-white px-2 py-1 pr-6 text-xs text-gray-700 outline-none transition focus:border-purple-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                className="appearance-none rounded-md border border-gray-300 bg-white px-2 py-1 pr-6 text-xs text-gray-700 outline-none transition focus:border-primary-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
               >
                 {LANGUAGE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -1411,7 +1411,7 @@ export const TranscriptPanel = () => {
             <button
               onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
               className={`p-1.5 rounded-full transition-colors ${autoScrollEnabled
-                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               title={t("transcript.autoScroll")}
@@ -1474,7 +1474,7 @@ export const TranscriptPanel = () => {
           )}
 
           {errorMessage && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 rounded-md">
+            <div className="p-3 bg-red-50 dark:bg-error-900/20 text-error-800 dark:text-error-200 rounded-md">
               {errorMessage}
             </div>
           )}
@@ -1509,7 +1509,7 @@ export const TranscriptPanel = () => {
                 filteredSegments.length === 0 ? (
                   <div className="mx-auto flex min-h-[240px] max-w-md items-center justify-center py-6">
                     <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-6 py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
-                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
                         <Bookmark size={18} />
                       </div>
                       <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -1521,7 +1521,7 @@ export const TranscriptPanel = () => {
                       <div className="mt-4 flex justify-center">
                         <button
                           onClick={handleTranscribeBookmark}
-                          className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                          className="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                         >
                           <FileAudio size={16} />
                           {t("transcript.transcribeBookmarkButton")}
@@ -1535,7 +1535,7 @@ export const TranscriptPanel = () => {
                 transcriptSegments.length === 0 ? (
                   <div className="mx-auto flex min-h-[260px] max-w-lg items-center justify-center py-6">
                     <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-6 py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
-                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
                         <FileAudio size={18} />
                       </div>
                       <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -1551,7 +1551,7 @@ export const TranscriptPanel = () => {
                           <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
                             <button
                               onClick={handleTranscribeDefault}
-                              className="inline-flex items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
+                              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                             >
                               <FileAudio size={16} />
                               {loopStart !== null && loopEnd !== null
@@ -1564,7 +1564,7 @@ export const TranscriptPanel = () => {
                             .srt / .vtt / .txt
                           </div>
                           {loopStart !== null && loopEnd !== null && (
-                            <div className="text-xs text-purple-600 dark:text-purple-400">
+                            <div className="text-xs text-primary-600 dark:text-primary-400">
                               {t("transcript.transcribeLoopRangeButton")}
                             </div>
                           )}

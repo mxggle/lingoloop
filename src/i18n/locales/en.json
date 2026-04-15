@@ -98,6 +98,10 @@
     "appearance": "Appearance",
     "interfaceLayout": "Interface Layout",
     "interfaceLayoutHelp": "Show or hide sections in the player view.",
+    "theme": "Theme",
+    "themeHelp": "Customize your interface colors",
+    "resetTheme": "Reset to default",
+    "customPrimaryColor": "Custom Primary Color",
     "playback": "Playback",
     "seekStep": "Seek Step",
     "smallStep": "Small Step"

@@ -120,7 +120,7 @@ export const PlaybackControls = () => {
           
           <button
             onClick={togglePlayPause}
-            className="p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700"
+            className="p-3 bg-primary-600 rounded-full text-white hover:bg-primary-700"
             aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} />}

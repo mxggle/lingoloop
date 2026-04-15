@@ -107,11 +107,11 @@ export const AppLayoutBase = ({
             <div className="flex-1 flex justify-center px-2 sm:px-4 overflow-hidden min-w-0">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 max-w-full transition-all hover:bg-white dark:hover:bg-gray-800">
                 {currentYouTube ? (
-                  <Youtube className="h-3 w-3 text-red-500 shrink-0" />
+                  <Youtube className="h-3 w-3 text-error-500 shrink-0" />
                 ) : currentFile?.type.includes("video") ? (
                   <Video className="h-3 w-3 text-blue-500 shrink-0" />
                 ) : (
-                  <Music className="h-3 w-3 text-purple-500 shrink-0" />
+                  <Music className="h-3 w-3 text-primary-500 shrink-0" />
                 )}
                 <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[350px]">
                   {currentYouTube
@@ -169,7 +169,7 @@ export const AppLayoutBase = ({
                             }
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                               layoutSettings[key]
-                                ? "bg-purple-600"
+                                ? "bg-primary-600"
                                 : "bg-gray-200 dark:bg-gray-600"
                             }`}
                           >
@@ -261,7 +261,7 @@ export const AppLayoutBase = ({
                     </div>
                   </div>
                   <Dialog.Close asChild>
-                    <button className="mt-6 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 w-full font-medium shadow-sm transition-colors">
+                    <button className="mt-6 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 w-full font-medium shadow-sm transition-colors">
                       {t("common.close")}
                     </button>
                   </Dialog.Close>

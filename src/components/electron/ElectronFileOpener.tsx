@@ -63,16 +63,16 @@ export const ElectronFileOpener = () => {
       {/* Native open-file button */}
       <button
         onClick={handleOpenFile}
-        className="w-full flex flex-col items-center justify-center gap-3 p-6 border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-800 rounded-xl shadow-sm text-center cursor-pointer transition-all duration-200 hover:bg-purple-50/50 dark:hover:bg-purple-900/10 hover:shadow-md hover:-translate-y-0.5"
+        className="w-full flex flex-col items-center justify-center gap-3 p-6 border-2 border-primary-100 dark:border-primary-900/30 bg-white dark:bg-gray-800 rounded-xl shadow-sm text-center cursor-pointer transition-all duration-200 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 hover:shadow-md hover:-translate-y-0.5"
       >
-        <div className="flex justify-center items-center p-4 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-full shadow-inner">
-          <FolderOpen className="h-10 w-10 text-purple-500 dark:text-purple-400 drop-shadow-md" />
+        <div className="flex justify-center items-center p-4 bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-900/20 dark:to-accent-900/20 rounded-full shadow-inner">
+          <FolderOpen className="h-10 w-10 text-primary-500 dark:text-primary-400 drop-shadow-md" />
         </div>
         <div>
           <p className="text-base font-medium text-gray-800 dark:text-gray-100 mb-1">
             {t("upload.openFile", "Open File")}
           </p>
-          <p className="text-xs text-purple-500 dark:text-purple-400 font-medium">
+          <p className="text-xs text-primary-500 dark:text-primary-400 font-medium">
             {t("upload.supportedFormats")}
           </p>
         </div>
@@ -83,8 +83,8 @@ export const ElectronFileOpener = () => {
         {...getRootProps()}
         className={`w-full p-3 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors text-sm ${
           isDragActive
-            ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-            : "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:border-purple-300 dark:hover:border-purple-700"
+            ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400"
+            : "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:border-primary-300 dark:hover:border-primary-700"
         }`}
       >
         <input {...getInputProps()} />

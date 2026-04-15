@@ -79,7 +79,7 @@ export const PlayerPage = () => {
           isLoadingMedia && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
                 <p className="text-lg text-gray-600 dark:text-gray-300">
                   {t("common.loading")}
                 </p>
@@ -131,7 +131,7 @@ export const PlayerPage = () => {
           (currentFile?.type.includes("audio") || currentFile?.type.includes("video") || youtubeId) &&
           showWaveform &&
           layoutSettings.showWaveform && (
-            <div className="shrink-0 sm:mt-4 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-gradient-to-r sm:from-purple-50/50 sm:to-indigo-50/50 sm:dark:from-purple-900/10 sm:dark:to-indigo-900/10 sm:p-4">
+            <div className="shrink-0 sm:mt-4 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-gradient-to-r sm:from-primary-50/50 sm:to-accent-50/50 sm:dark:from-primary-900/10 sm:dark:to-accent-900/10 sm:p-4">
               <WaveformVisualizer />
             </div>
           )

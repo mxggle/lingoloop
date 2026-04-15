@@ -28,6 +28,8 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { useThemeStore } from "../../stores/themeStore";
+import { hexToRgba } from "../../utils/theme";
 import { checkAudioRecordingSupport, getRecordingUnsupportedMessage } from "../../utils/browserCheck";
 import { useShadowingRecorder } from "../../hooks/useShadowingRecorder";
 import {
@@ -104,6 +106,7 @@ const formatTime = (time: number): string => {
 
 export const WaveformVisualizer = () => {
   const { t } = useTranslation();
+  const { colors } = useThemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Track clickable bookmark lane rects (CSS pixel units)
@@ -783,7 +786,7 @@ export const WaveformVisualizer = () => {
       canvasLoopStart >= 0 &&
       canvasLoopEnd <= canvas.width
     ) {
-      ctx.fillStyle = "rgba(139, 92, 246, 0.2)"; // Purple with opacity
+      ctx.fillStyle = hexToRgba(colors.primary, 0.2); // Theme primary with opacity
       ctx.fillRect(
         canvasLoopStart,
         0,
@@ -804,7 +807,7 @@ export const WaveformVisualizer = () => {
         const w = x2 - x1;
 
         if (w > 0) {
-          ctx.fillStyle = "rgba(139, 92, 246, 0.4)"; // Stronger purple for active selection
+          ctx.fillStyle = hexToRgba(colors.primary, 0.4); // Stronger primary for active selection
           ctx.fillRect(x1, 0, w, canvas.height);
         }
       }
@@ -818,7 +821,7 @@ export const WaveformVisualizer = () => {
       mainWaveformHeight - mainWaveformPadding * 2
     );
 
-    ctx.fillStyle = "#8B5CF6"; // Purple
+    ctx.fillStyle = colors.primary; // Theme primary
 
     // Correct slice width calculation based on total valid data vs visible window
     // Do NOT rely on clamped indices for scale, or it stretches at the ends
@@ -867,9 +870,8 @@ export const WaveformVisualizer = () => {
 
       // Draw separator
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(139, 92, 246, 0.3)";
-      ctx.lineWidth = 1 * dpr;
-      ctx.moveTo(0, shadowTop);
+      ctx.strokeStyle = hexToRgba(colors.primary, 0.3); // Theme primary with opacity
+      ctx.lineWidth = 1 * dpr;      ctx.moveTo(0, shadowTop);
       ctx.lineTo(canvas.width, shadowTop);
       ctx.stroke();
 
@@ -898,7 +900,7 @@ export const WaveformVisualizer = () => {
         const segEnd = seg.start + seg.duration;
         if (segEnd < startOffset || seg.start > endOffset) return;
 
-        ctx.fillStyle = "#10B981"; // Emerald/Green for user audio
+        ctx.fillStyle = colors.success; // Theme success color for user audio
 
         const sampleDuration = seg.duration / seg.data.length;
 
@@ -959,12 +961,12 @@ export const WaveformVisualizer = () => {
         const elapsed = performance.now() - fadingRecording.startedAt;
         const alpha = Math.max(0, 1 - elapsed / 350);
         if (alpha > 0) {
-          drawRecordingOverlay(fadingRecording, "#EF4444", alpha);
+          drawRecordingOverlay(fadingRecording, colors.error, alpha);
         }
       }
 
       if (currentRecording) {
-        drawRecordingOverlay(currentRecording, "#EF4444");
+        drawRecordingOverlay(currentRecording, colors.error);
       }
       ctx.restore();
     }
@@ -1748,26 +1750,26 @@ export const WaveformVisualizer = () => {
 
   return (
     <>
-      <div className="mt-2 backdrop-blur-sm rounded-lg overflow-hidden border border-purple-500/30 relative">
+      <div className="mt-2 backdrop-blur-sm rounded-lg overflow-hidden border border-primary-500/30 relative">
         {/* Zoom controls - moved to top-left; hidden on mobile (use pinch) */}
         {/* {!isMobile && (
         <div className={`absolute top-1 left-1 z-10 flex items-center gap-1 bg-gray-900/60 backdrop-blur rounded-full ring-1 ring-white/10 shadow-md px-1.5 py-1`}>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleZoomIn}
             title={t("waveform.zoomIn")}
           >
             <PlusIcon className="h-3.5 w-3.5" />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleZoomOut}
             title={t("waveform.zoomOut")}
           >
             <MinusIcon className="h-3.5 w-3.5" />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleResetZoom}
             title={t("waveform.resetZoom")}
           >
@@ -1961,7 +1963,7 @@ export const WaveformVisualizer = () => {
           {/* Visual indicator for dragging selection */}
           {isDragging && dragStart !== null && dragEnd !== null && (
             <div
-              className="absolute bg-purple-500/30 border border-purple-500 pointer-events-none"
+              className="absolute bg-primary-500/30 border border-primary-500 pointer-events-none"
               style={{
                 left: `${timeToPosition(Math.min(dragStart, dragEnd))}%`,
                 width: `${timeToPosition(Math.max(dragStart, dragEnd)) -
@@ -2022,8 +2024,8 @@ export const WaveformVisualizer = () => {
 
           {/* Playhead time code - Video editing app style, moved to bottom */}
           <div
-            className={`absolute bottom-0 mb-1 bg-red-600 text-white font-mono font-bold px-2 py-0.5 rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.4)] pointer-events-none z-[25] ${isMobile ? "text-[11px]" : "text-[10px]"
-              } border border-red-500/20`}
+            className={`absolute bottom-0 mb-1 bg-error-600 text-white font-mono font-bold px-2 py-0.5 rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.4)] pointer-events-none z-[25] ${isMobile ? "text-[11px]" : "text-[10px]"
+              } border border-error-500/20`}
             style={{
               left: `${timeToPosition(currentTime)}%`,
               transform: "translateX(-50%)",
@@ -2031,7 +2033,7 @@ export const WaveformVisualizer = () => {
           >
             {formatTime(currentTime)}
             {/* Tip pointer at bottom pointing UP */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-red-600"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-error-600"></div>
           </div>
 
           {(shadowingSegments.length > 0 || canRecord) && (
@@ -2050,13 +2052,13 @@ export const WaveformVisualizer = () => {
                   aria-pressed={isShadowingMode}
                   aria-label={isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
                   title={!canRecord ? getRecordingUnsupportedMessage(recordingCapabilities) : isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
-                  className={`group relative inline-flex shrink-0 justify-center rounded-full border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400/70 ${
+                  className={`group relative inline-flex shrink-0 justify-center rounded-full border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-error-400/70 ${
                     !canRecord
                       ? "cursor-not-allowed border-white/8 bg-white/5"
                       : isRecording
-                        ? "border-red-500/70 bg-gradient-to-b from-red-700 to-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                        ? "border-error-500/70 bg-gradient-to-b from-error-700 to-error-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
                         : isShadowingMode
-                          ? "border-amber-400/50 bg-amber-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-amber-500/28"
+                          ? "border-warning-400/50 bg-warning-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-warning-500/28"
                           : "border-white/12 bg-white/8 hover:bg-white/13"
                   }`}
                 >
@@ -2077,9 +2079,9 @@ export const WaveformVisualizer = () => {
                       }`}
                     >
                       {isRecording ? (
-                        <Radio size={isMobile ? 9 : 8} className="animate-pulse text-red-500" />
+                        <Radio size={isMobile ? 9 : 8} className="animate-pulse text-error-500" />
                       ) : isShadowingMode ? (
-                        <Mic size={isMobile ? 9 : 8} className="text-amber-600" />
+                        <Mic size={isMobile ? 9 : 8} className="text-warning-600" />
                       ) : (
                         <Mic size={isMobile ? 9 : 8} className="text-slate-500/80" />
                       )}
@@ -2090,7 +2092,7 @@ export const WaveformVisualizer = () => {
                 {shadowingSegments.length > 0 && (
                   !isConfirmingDelete ? (
                     <button
-                      className={`shrink-0 rounded-full text-white/35 hover:text-red-400 hover:bg-white/8 transition-colors ${
+                      className={`shrink-0 rounded-full text-white/35 hover:text-error-400 hover:bg-white/8 transition-colors ${
                         isMobile ? "p-1.5" : "p-1"
                       }`}
                       onClick={() => setIsConfirmingDelete(true)}
@@ -2100,7 +2102,7 @@ export const WaveformVisualizer = () => {
                     </button>
                   ) : (
                     <button
-                      className="px-2 py-1 text-[10px] bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors leading-none"
+                      className="px-2 py-1 text-[10px] bg-error-600 text-white rounded-full hover:bg-error-700 transition-colors leading-none"
                       onClick={async () => {
                         if (mediaId) {
                           await useShadowingStore.getState().deleteAllSegments(mediaId);
@@ -2152,7 +2154,7 @@ export const WaveformVisualizer = () => {
                   {formatTime(loopStart)} - {formatTime(loopEnd)}
                 </span>
                 <button
-                  className={`bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded ${isMobile ? "text-sm px-3 py-1 ml-2" : "text-xs px-2 py-0.5"
+                  className={`bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded ${isMobile ? "text-sm px-3 py-1 ml-2" : "text-xs px-2 py-0.5"
                     }`}
                   onClick={handleLoopSelection}
                   title={
@@ -2168,7 +2170,7 @@ export const WaveformVisualizer = () => {
                   </span>
                 </button>
                 <button
-                  className={`bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded ${isMobile ? "text-sm px-2 py-1 ml-1" : "text-xs px-1.5 py-0.5 ml-1"
+                  className={`bg-error-600 hover:bg-error-700 active:bg-error-800 text-white rounded ${isMobile ? "text-sm px-2 py-1 ml-1" : "text-xs px-1.5 py-0.5 ml-1"
                     }`}
                   onClick={() => {
                     setLoopPoints(null, null);
@@ -2214,9 +2216,9 @@ export const WaveformVisualizer = () => {
         >
           <button
             className={`${isLooping
-              ? "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white"
+              ? "bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white"
               : "text-white hover:bg-white/10 active:bg-white/20"
-              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => setIsLooping(!isLooping)}
             title={isLooping ? t("loop.disableLoop") : t("loop.enableLoop")}
@@ -2226,9 +2228,9 @@ export const WaveformVisualizer = () => {
           </button>
           <button
             className={`${autoAdvanceBookmarks
-              ? "bg-purple-600 text-white"
+              ? "bg-primary-600 text-white"
               : "text-white hover:bg-white/10 active:bg-white/20"
-              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => setAutoAdvanceBookmarks(!autoAdvanceBookmarks)}
             title={
@@ -2241,7 +2243,7 @@ export const WaveformVisualizer = () => {
             <ChevronsRight size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               if (duration === 0) return;
@@ -2259,7 +2261,7 @@ export const WaveformVisualizer = () => {
             <AlignStartHorizontal size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               if (duration === 0) return;
@@ -2275,7 +2277,7 @@ export const WaveformVisualizer = () => {
             <AlignEndHorizontal size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               setLoopPoints(null, null);
@@ -2287,7 +2289,7 @@ export const WaveformVisualizer = () => {
             <X size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => goToBookmark("prev")}
             title={t("player.previousBookmark")}
@@ -2297,7 +2299,7 @@ export const WaveformVisualizer = () => {
             <ChevronLeft size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => goToBookmark("next")}
             title={t("player.nextBookmark")}
@@ -2307,12 +2309,12 @@ export const WaveformVisualizer = () => {
             <ChevronRight size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               } ${selectedBookmarkId
-                ? "bg-purple-700 hover:bg-red-500/80 active:bg-red-500/90" // Active/Delete mode
+                ? "bg-primary-700 hover:bg-error-500/80 active:bg-error-500/90" // Active/Delete mode
                 : loopStart !== null && loopEnd !== null
-                  ? "bg-purple-600/50 hover:bg-purple-700 active:bg-purple-800" // Add mode
-                  : "bg-purple-600/40 cursor-not-allowed" // Disabled
+                  ? "bg-primary-600/50 hover:bg-primary-700 active:bg-primary-800" // Add mode
+                  : "bg-primary-600/40 cursor-not-allowed" // Disabled
               }`}
             onClick={() => {
               if (selectedBookmarkId) {

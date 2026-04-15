@@ -88,6 +88,10 @@
     "appearance": "外観",
     "interfaceLayout": "インターフェースレイアウト",
     "interfaceLayoutHelp": "プレーヤービューのセクションを表示または非表示にします。",
+    "theme": "テーマカラー",
+    "themeHelp": "インターフェースの色をカスタマイズします",
+    "resetTheme": "デフォルトに戻す",
+    "customPrimaryColor": "カスタムプライマリカラー",
     "playback": "再生",
     "seekStep": "シークステップ",
     "smallStep": "小ステップ"

@@ -51,20 +51,20 @@ const LANGUAGE_VALUES: Record<(typeof LANGUAGE_OPTIONS)[number], string> = {
 };
 
 const providerSurfaceClassName: Record<AIProvider, string> = {
-  openai: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+  openai: "bg-success-100 text-success-700 dark:bg-success-950/40 dark:text-success-300",
   gemini: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
-  grok: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
-  ollama: "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300",
+  grok: "bg-warning-100 text-warning-700 dark:bg-warning-950/40 dark:text-warning-300",
+  ollama: "bg-primary-100 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300",
 };
 
 
 const statusToneClassName = {
   success:
-    "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300",
+    "border border-success-200 bg-success-50 text-success-700 dark:border-success-900/60 dark:bg-success-950/40 dark:text-success-300",
   warning:
-    "border border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300",
+    "border border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-900/60 dark:bg-warning-950/40 dark:text-warning-300",
   error:
-    "border border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300",
+    "border border-error-200 bg-red-50 text-error-700 dark:border-error-900/60 dark:bg-red-950/40 dark:text-error-300",
   neutral:
     "border border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300",
 };
@@ -295,9 +295,9 @@ export const AISettingsPage: React.FC = () => {
   const getConnectionStatusIcon = (provider: AIProvider) => {
     switch (connectionStatus[provider]) {
       case "success":
-        return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+        return <CheckCircle className="h-4 w-4 text-success-500" />;
       case "error":
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-error-500" />;
       default:
         return null;
     }
@@ -670,7 +670,7 @@ export const AISettingsPage: React.FC = () => {
                               placeholder={t("aiSettingsPage.apiKeyPlaceholderLabel", { provider: providerName })}
                               className={cn(
                                 "h-9 pr-9 font-mono text-sm",
-                                apiKey && !isValidKey && "border-red-300 dark:border-red-700"
+                                apiKey && !isValidKey && "border-error-300 dark:border-error-700"
                               )}
                             />
                             <button
@@ -698,13 +698,13 @@ export const AISettingsPage: React.FC = () => {
                           </Button>
                         </div>
                         {apiKey && !isValidKey && (
-                          <p className="text-xs text-red-600 dark:text-red-400">{t("aiSettingsPage.invalidApiKeyFormat")}</p>
+                          <p className="text-xs text-error-600 dark:text-error-400">{t("aiSettingsPage.invalidApiKeyFormat")}</p>
                         )}
                         {connectionStatus[provider] === "success" && (
-                          <p className="text-xs text-emerald-600 dark:text-emerald-400">{t("aiSettingsPage.status.testPassed")}</p>
+                          <p className="text-xs text-success-600 dark:text-success-400">{t("aiSettingsPage.status.testPassed")}</p>
                         )}
                         {connectionStatus[provider] === "error" && (
-                          <p className="text-xs text-red-600 dark:text-red-400">{t("aiSettingsPage.status.testFailed")}</p>
+                          <p className="text-xs text-error-600 dark:text-error-400">{t("aiSettingsPage.status.testFailed")}</p>
                         )}
                       </div>
 

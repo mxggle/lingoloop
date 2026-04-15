@@ -91,15 +91,15 @@ export const PlayHistory = () => {
               onClick={() => loadFromHistory(item.id)}
               className={`w-full flex items-center h-[28px] px-2 text-left transition-colors group ${
                 active
-                  ? "bg-purple-500/12 dark:bg-purple-500/15 text-purple-600 dark:text-purple-300"
+                  ? "bg-primary-500/12 dark:bg-primary-500/15 text-primary-600 dark:text-primary-300"
                   : "hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300"
               }`}
             >
               {/* Icon */}
               {item.type === "youtube" ? (
-                <Youtube className="w-3.5 h-3.5 shrink-0 text-red-400 dark:text-red-500 mr-1.5" />
+                <Youtube className="w-3.5 h-3.5 shrink-0 text-error-400 dark:text-error-500 mr-1.5" />
               ) : (
-                <Music className="w-3.5 h-3.5 shrink-0 text-purple-400 dark:text-purple-500 mr-1.5" />
+                <Music className="w-3.5 h-3.5 shrink-0 text-primary-400 dark:text-primary-500 mr-1.5" />
               )}
 
               {/* Name */}
@@ -137,7 +137,7 @@ export const PlayHistory = () => {
                 tabIndex={-1}
                 onClick={(e) => handleRemove(e, item.id)}
                 title={t("sidebar.removeItem", "Remove")}
-                className="hidden group-hover:flex items-center justify-center p-0.5 ml-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors shrink-0"
+                className="hidden group-hover:flex items-center justify-center p-0.5 ml-1 rounded text-gray-400 hover:text-error-500 dark:hover:text-error-400 transition-colors shrink-0"
               >
                 <X className="w-3 h-3" />
               </span>
@@ -146,7 +146,7 @@ export const PlayHistory = () => {
             {/* Subtext line */}
             <div
               className={`flex items-center h-[16px] px-2 pl-[30px] ${
-                active ? "text-purple-400/70 dark:text-purple-400/50" : "text-gray-400 dark:text-gray-500"
+                active ? "text-primary-400/70 dark:text-primary-400/50" : "text-gray-400 dark:text-gray-500"
               }`}
             >
               <span className="text-[10px] font-mono truncate">{getSubtext(item)}</span>

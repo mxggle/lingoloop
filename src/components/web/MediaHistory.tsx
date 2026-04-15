@@ -81,7 +81,7 @@ const FolderItem = ({
       onDrop={onDrop}
       className={cn(
         "flex items-center gap-3 p-4 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 mb-2 group border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800",
-        isHovered ? "ring-2 ring-purple-500" : ""
+        isHovered ? "ring-2 ring-primary-500" : ""
       )}
     >
       <div className="shrink-0">
@@ -214,7 +214,7 @@ const HistoryList = ({
             {item.type === "file" ? (
               <FileAudio size={24} className="text-blue-500" />
             ) : (
-              <Youtube size={24} className="text-red-500" />
+              <Youtube size={24} className="text-error-500" />
             )}
           </div>
 
@@ -285,7 +285,7 @@ const HistoryList = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-red-600"
+              className="h-8 w-8 text-error-600"
               onClick={(e) => onRemoveItem(item.id, e)}
               title={t("history.removeFromHistory")}
             >
@@ -972,7 +972,7 @@ export const MediaHistory = ({
                     size="icon"
                     onClick={handleClearHistory}
                     title={t("history.clearAllHistory")}
-                    className="text-gray-500 hover:text-red-500"
+                    className="text-gray-500 hover:text-error-500"
                   >
                     <Trash2 size={18} />
                   </Button>
@@ -1365,7 +1365,7 @@ function DeleteFolderButton({ folderId }: { folderId: string }) {
               Cancel
             </Button>
             <Button
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-error-600 hover:bg-error-700"
               onClick={() => {
                 deleteMediaFolder(folderId);
                 setOpen(false);
@@ -1404,7 +1404,7 @@ function ConfirmClearDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
-          <Button className="bg-red-600 hover:bg-red-700" onClick={onConfirm}>
+          <Button className="bg-error-600 hover:bg-error-700" onClick={onConfirm}>
             {t("common.clear")}
           </Button>
         </DialogFooter>
@@ -1438,7 +1438,7 @@ function ConfirmDeleteDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("common.cancel")}
           </Button>
-          <Button className="bg-red-600 hover:bg-red-700" onClick={onConfirm}>
+          <Button className="bg-error-600 hover:bg-error-700" onClick={onConfirm}>
             {t("history.removeFromHistory")}
           </Button>
         </DialogFooter>

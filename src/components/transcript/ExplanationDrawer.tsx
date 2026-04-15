@@ -206,12 +206,12 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         )}
 
         {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-error-600 dark:text-error-400">{error}</p>
         )}
 
         {explanation && (
           <div>
-            <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-sm [&_p]:mb-2 [&_li]:text-sm">
+            <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-sm [&_p]:mb-2 [&_li]:text-sm">
               <MarkdownRenderer content={explanation.explanation} />
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">

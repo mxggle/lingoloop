@@ -90,7 +90,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     {
       key: "showControls",
       label: t("settings.playbackControls"),
-      icon: <SlidersHorizontal className="h-5 w-5 mr-3 text-rose-500" />,
+      icon: <SlidersHorizontal className="h-5 w-5 mr-3 text-error-500" />,
     },
   ];
 
@@ -122,7 +122,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           {/* Drawer Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold flex items-center">
-              <LayoutDashboard className="h-5 w-5 mr-2 text-purple-500" />
+              <LayoutDashboard className="h-5 w-5 mr-2 text-primary-500" />
               {t("settings.title")}
             </h2>
             <Button
@@ -189,7 +189,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                     <select
                       value={maxLoops}
                       onChange={(e) => setMaxLoops(Number(e.target.value))}
-                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800"
+                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                     >
                       <option value={0}>∞ {t("loop.infinite")}</option>
                       <option value={1}>1{t("loop.times")}</option>
@@ -210,7 +210,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                     <select
                       value={loopDelay}
                       onChange={(e) => setLoopDelay(Number(e.target.value))}
-                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800"
+                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                     >
                       <option value={0}>{t("loop.none")}</option>
                       <option value={0.5}>0.5{t("common.seconds")}</option>
@@ -247,7 +247,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                           [option.key]: !prev[option.key as keyof LayoutSettings],
                         }))
                       }
-                      className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       {option.icon}
                       <span className="flex-grow text-left">{option.label}</span>
@@ -272,7 +272,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 onClick={handleOpenAISettings}
                 className="w-full justify-start text-sm"
               >
-                <Brain className="h-5 w-5 mr-3 text-purple-500" />
+                <Brain className="h-5 w-5 mr-3 text-primary-500" />
                 {t("settings.aiSettings")}
               </Button>
             </div>
@@ -287,7 +287,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 onClick={handleOpenHistory}
                 className="w-full justify-start text-sm"
               >
-                <HistoryIcon className="h-5 w-5 mr-3 text-indigo-500" />
+                <HistoryIcon className="h-5 w-5 mr-3 text-accent-500" />
                 {t("settings.viewMediaHistory")}
               </Button>
             </div>

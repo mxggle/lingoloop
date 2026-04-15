@@ -13,7 +13,7 @@ export const TranscriptToggle = () => {
       disabled={!hasTranscriptData}
       className={`p-1.5 rounded-full ${
         showTranscript
-          ? "bg-purple-100 text-purple-600 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+          ? "bg-primary-100 text-primary-600 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50"
           : hasTranscriptData
           ? "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
           : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
@@ -35,7 +35,7 @@ export const TranscriptToggle = () => {
     >
       <Subtitles size={16} />
       {hasTranscriptData && !showTranscript && (
-        <span className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 bg-primary-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
           {transcriptSegments.length > 9 ? "9+" : transcriptSegments.length}
         </span>
       )}

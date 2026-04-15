@@ -308,7 +308,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
 
             <button
               onClick={togglePlayPause}
-              className="p-2 sm:p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700 shadow-md transition-all duration-150 active:scale-95"
+              className="p-2 sm:p-3 bg-primary-600 rounded-full text-white hover:bg-primary-700 shadow-md transition-all duration-150 active:scale-95"
               aria-label={isPlaying ? t("player.pause") : t("player.play")}
             >
               {isPlaying ? (
@@ -380,7 +380,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                     <select
                       value={maxLoops}
                       onChange={(e) => setMaxLoops(Number(e.target.value))}
-                      className="h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-1 text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700"
+                      className="h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-1 text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
                     >
                       <option value={0}>∞</option>
                       <option value={1}>1{t("loop.times")}</option>
@@ -395,7 +395,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                     <select
                       value={loopDelay}
                       onChange={(e) => setLoopDelay(Number(e.target.value))}
-                      className="h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-1 text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700"
+                      className="h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-1 text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
                     >
                       <option value={0}>0{t("loop.seconds")}</option>
                       <option value={0.5}>0.5{t("loop.seconds")}</option>
@@ -431,7 +431,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                       step={0.1}
                       value={seekStepSeconds}
                       onChange={(e) => setSeekStepSeconds(parseFloat(e.target.value) || 0)}
-                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700"
+                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2">
@@ -443,7 +443,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                       step={0.05}
                       value={seekSmallStepSeconds}
                       onChange={(e) => setSeekSmallStepSeconds(parseFloat(e.target.value) || 0)}
-                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700"
+                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
                     />
                   </div>
                 </div>
@@ -486,7 +486,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                 size="sm"
                 onClick={setLoopStartAtCurrentTime}
                 aria-label={t("loop.setStart")}
-                className="py-1 px-3 h-8 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                className="py-1 px-3 h-8 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30"
               >
                 <AlignStartHorizontal
                   size={14}
@@ -500,7 +500,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                 size="sm"
                 onClick={setLoopEndAtCurrentTime}
                 aria-label={t("loop.setEnd")}
-                className="py-1 px-3 h-8 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                className="py-1 px-3 h-8 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30"
               >
                 <AlignEndHorizontal
                   size={14}
@@ -544,7 +544,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                 size="sm"
                 onClick={clearLoopPoints}
                 disabled={loopStart === null && loopEnd === null}
-                className="py-1 px-2 sm:px-3 h-7 sm:h-8 text-xs font-medium text-red-600 dark:text-red-400 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:hover:bg-transparent"
+                className="py-1 px-2 sm:px-3 h-7 sm:h-8 text-xs font-medium text-error-600 dark:text-error-400 border-error-200 dark:border-error-900 hover:bg-red-50 dark:hover:bg-error-900/20 disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 {t("loop.clearLoopPoints")}
               </Button>

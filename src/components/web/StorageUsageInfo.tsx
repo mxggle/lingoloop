@@ -87,7 +87,7 @@ export const StorageUsageInfo = () => {
             onClick={() => setConfirmOpen(true)}
             disabled={isLoading || storageInfo.used === 0}
             title={t('storage.clearAllStoredMediaTitle')}
-            className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 h-8 px-2"
+            className="text-error-500 hover:text-error-600 hover:bg-red-50 dark:hover:bg-error-900/20 h-8 px-2"
           >
             <Trash2 size={14} className="mr-1" />
             <span className="text-xs">{t('storage.clearStorage')}</span>
@@ -107,7 +107,7 @@ export const StorageUsageInfo = () => {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>{t('common.cancel')}</Button>
-            <Button className="bg-red-600 hover:bg-red-700" onClick={() => { setConfirmOpen(false); handleClearStorage(); }}>{t('player.clear')}</Button>
+            <Button className="bg-error-600 hover:bg-error-700" onClick={() => { setConfirmOpen(false); handleClearStorage(); }}>{t('player.clear')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

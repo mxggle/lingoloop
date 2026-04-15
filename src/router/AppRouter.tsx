@@ -28,7 +28,7 @@ const HIDDEN_STYLE: React.CSSProperties = {
 
 const ROUTE_FALLBACK = (
   <div className="flex min-h-[24rem] items-center justify-center" aria-label="Loading page">
-    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600 dark:border-gray-700 dark:border-t-purple-400" />
+    <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-primary-600 dark:border-gray-700 dark:border-t-primary-400" />
   </div>
 );
 

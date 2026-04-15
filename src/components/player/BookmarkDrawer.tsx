@@ -459,7 +459,7 @@ export const BookmarkDrawer = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                      className="h-7 w-7 text-error-500 hover:text-error-600 hover:bg-red-50 dark:hover:bg-red-950/20"
                       onClick={() => handleDeleteBookmark(bookmark.id)}
                       aria-label={t("bookmarks.deleteBookmark")}
                     >

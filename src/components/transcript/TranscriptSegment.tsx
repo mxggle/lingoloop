@@ -209,7 +209,7 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
       case "completed":
         return <CheckCircle className="text-green-600" size={12} />;
       case "error":
-        return <Brain className="text-red-600" size={12} />;
+        return <Brain className="text-error-600" size={12} />;
       default:
         return <Brain size={12} />;
     }
@@ -224,7 +224,7 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
       case "completed":
         return `${baseClass} text-green-600 bg-green-100 dark:bg-green-900/30`;
       case "error":
-        return `${baseClass} text-red-600 bg-red-100 dark:bg-red-900/30`;
+        return `${baseClass} text-error-600 bg-error-100 dark:bg-error-900/30`;
       default:
         return `${baseClass} text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400`;
     }
@@ -247,7 +247,7 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
     <div
       className={`p-3 rounded-lg border transition-all duration-200 ${
         isCurrentSegment
-          ? "bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-700"
+          ? "bg-primary-50 border-primary-200 dark:bg-primary-900/20 dark:border-primary-700"
           : "bg-white border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-750"
       }`}
     >
@@ -269,8 +269,8 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
             onClick={handlePlay}
             className={`p-1 rounded transition-colors ${
               isCurrentSegment
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
+                ? "text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30"
+                : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
             }`}
             title={t("transcript.playSegment")}
           >
@@ -285,8 +285,8 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
             onClick={handleToggleLoop}
             className={`p-1 rounded transition-colors ${
               isCurrentlyLooping
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
+                ? "text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30"
+                : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
             }`}
             title={
               isCurrentlyLooping
@@ -304,8 +304,8 @@ export const TranscriptSegment = ({ segment }: TranscriptSegmentProps) => {
             onClick={handleToggleBookmark}
             className={`p-1 rounded transition-colors ${
               isBookmarked
-                ? "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                : "text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
+                ? "text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30"
+                : "text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
             }`}
             title={
               isBookmarked

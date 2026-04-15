@@ -88,6 +88,10 @@
     "appearance": "外观",
     "interfaceLayout": "界面布局",
     "interfaceLayoutHelp": "显示或隐藏播放器中的各个区域。",
+    "theme": "主题颜色",
+    "themeHelp": "自定义界面颜色",
+    "resetTheme": "恢复默认",
+    "customPrimaryColor": "自定义主色调",
     "playback": "播放",
     "seekStep": "跳转步长",
     "smallStep": "小步长"

@@ -15,6 +15,8 @@ import {
   PanelLeftClose,
   Download,
   Upload,
+  Locate,
+  LocateFixed,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { transcriptionService } from "../../services/transcriptionService";
@@ -23,6 +25,7 @@ import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
 import { useNavigate } from "react-router-dom";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
+import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
 import type {
@@ -124,6 +127,10 @@ export const TranscriptPanel = () => {
     return localStorage.getItem("transcript_study_enabled") !== "false";
   });
   const [activeLevels, setActiveLevels] = useState<Set<TranscriptStudyLevel> | null>(null);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("transcript_auto_scroll") === "true";
+  });
 
   const LANGUAGE_OPTIONS = [
     { value: "en-US", label: t("transcript.languages.en-US") },
@@ -207,6 +214,12 @@ export const TranscriptPanel = () => {
     }
     localStorage.setItem("transcript_study_enabled", String(highlightsEnabled));
   }, [highlightsEnabled]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transcript_auto_scroll", String(autoScrollEnabled));
+    }
+  }, [autoScrollEnabled]);
 
   useEffect(() => {
     setActiveSelection(null);
@@ -448,6 +461,57 @@ export const TranscriptPanel = () => {
   const handleOpenAISettings = () => {
     navigate("/settings?tab=ai");
   };
+
+  const scrollToActiveSegment = useCallback(() => {
+    const time = getCurrentTime();
+    const index = filteredSegments.findIndex(
+      (s) => time >= s.startTime && time <= s.endTime
+    );
+
+    if (index !== -1) {
+      virtualizer.scrollToIndex(index, { align: "center", behavior: "smooth" });
+    } else {
+      toast.error(t("transcript.segmentNotFound"));
+    }
+  }, [filteredSegments, virtualizer, t]);
+
+  const currentSegmentIndexRef = useRef<number>(-1);
+
+  useEffect(() => {
+    if (!autoScrollEnabled) {
+      return undefined;
+    }
+
+    const unsubscribe = subscribeCurrentTime(() => {
+      const time = getCurrentTime();
+      const segments = filteredSegments;
+      if (segments.length === 0) return;
+
+      const currentIndex = currentSegmentIndexRef.current;
+      const currentSegment = segments[currentIndex];
+
+      if (
+        currentSegment &&
+        time >= currentSegment.startTime &&
+        time <= currentSegment.endTime
+      ) {
+        return;
+      }
+
+      const nextIndex = segments.findIndex(
+        (s) => time >= s.startTime && time <= s.endTime
+      );
+
+      if (nextIndex !== -1 && nextIndex !== currentIndex) {
+        currentSegmentIndexRef.current = nextIndex;
+        virtualizer.scrollToIndex(nextIndex, { align: "center", behavior: "smooth" });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [autoScrollEnabled, filteredSegments, virtualizer]);
 
   type TimeRange = { start: number; end: number };
 
@@ -1295,6 +1359,27 @@ export const TranscriptPanel = () => {
                 </>
               )}
             </div>
+
+            <button
+              onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
+              className={`p-1.5 rounded-full transition-colors ${
+                autoScrollEnabled
+                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              }`}
+              title={t("transcript.autoScroll")}
+            >
+              <LocateFixed size={16} className={autoScrollEnabled ? "fill-current" : ""} />
+            </button>
+
+            <button
+              onClick={scrollToActiveSegment}
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40"
+              title={t("transcript.scrollToCurrent")}
+              disabled={filteredSegments.length === 0}
+            >
+              <Locate size={16} />
+            </button>
 
             <button
               onClick={handleOpenAISettings}

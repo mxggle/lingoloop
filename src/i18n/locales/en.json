@@ -454,6 +454,8 @@
       "expression": "Expression"
     },
     "dropdownArrow": "▾",
+    "scrollToCurrent": "Locate active sentence",
+    "autoScroll": "Auto-scroll to current",
     "languages": {
       "en-US": "English (US)",
       "en-GB": "English (UK)",

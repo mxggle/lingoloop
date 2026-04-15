@@ -426,6 +426,8 @@
     "dropdownArrow": "▾",
     "generateTranscript": "トランスクリプトを生成",
     "exportTranscript": "トランスクリプトをエクスポート",
+    "scrollToCurrent": "再生中の文章を表示",
+    "autoScroll": "自動スクロール",
     "languages": {
       "en-US": "英語 (米国)",
       "en-GB": "英語 (英国)",

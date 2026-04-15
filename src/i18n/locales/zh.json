@@ -425,6 +425,8 @@
     "dropdownArrow": "▾",
     "generateTranscript": "生成转录",
     "exportTranscript": "导出转录",
+    "scrollToCurrent": "定位当前句子",
+    "autoScroll": "自动滚动",
     "languages": {
       "en-US": "英语 (美国)",
       "en-GB": "英语 (英国)",

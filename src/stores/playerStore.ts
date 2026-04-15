@@ -104,6 +104,13 @@ export interface MediaTranscriptStudies {
   [mediaId: string]: MediaTranscriptStudy;
 }
 
+type PersistedPlayerStoreState = {
+  mediaFolders?: Record<string, { parentId?: string | null }>;
+  historyFolderFilter?: string;
+  sourceFolder?: string;
+  sourceFolders?: string[];
+};
+
 export interface PlayerState {
   // Media state
   currentFile: MediaFile | null;
@@ -1940,49 +1947,41 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       name: "abloop-player-storage",
       storage: createJSONStorage(() => electronStorage),
       version: 3,
-      migrate: (
-        persistedState: {
-          mediaFolders?: Record<string, { parentId?: string | null }>;
-          historyFolderFilter?: string;
-          sourceFolder?: string;
-          sourceFolders?: string[];
-        } | undefined,
-        version
-      ) => {
-        if (!persistedState) return persistedState;
+      migrate: (persistedState: unknown, version) => {
+        const state = persistedState as PersistedPlayerStoreState | undefined;
 
-        if (version < 2 && persistedState.mediaFolders) {
-          persistedState.mediaFolders = Object.fromEntries(
-            Object.entries(persistedState.mediaFolders).map(
-              ([id, folder]) => [
-                id,
-                {
-                  ...folder,
-                  parentId:
-                    folder && "parentId" in folder ? folder.parentId ?? null : null,
-                },
-              ]
-            )
+        if (!state) return state;
+
+        if (version < 2 && state.mediaFolders) {
+          state.mediaFolders = Object.fromEntries(
+            Object.entries(state.mediaFolders).map(([id, folder]) => [
+              id,
+              {
+                ...folder,
+                parentId:
+                  folder && "parentId" in folder ? folder.parentId ?? null : null,
+              },
+            ])
           );
         }
 
         if (version < 2) {
-          if (persistedState.historyFolderFilter === "all") {
-            persistedState.historyFolderFilter = "unfiled";
+          if (state.historyFolderFilter === "all") {
+            state.historyFolderFilter = "unfiled";
           }
         }
 
         // v2 → v3: migrate single sourceFolder to sourceFolders array
         if (version < 3) {
-          if (persistedState.sourceFolder) {
-            persistedState.sourceFolders = [persistedState.sourceFolder];
+          if (state.sourceFolder) {
+            state.sourceFolders = [state.sourceFolder];
           } else {
-            persistedState.sourceFolders = [];
+            state.sourceFolders = [];
           }
-          delete persistedState.sourceFolder;
+          delete state.sourceFolder;
         }
 
-        return persistedState;
+        return state;
       },
       onRehydrateStorage: () => (state, error) => {
         if (error || !state?.mediaTranscripts) {

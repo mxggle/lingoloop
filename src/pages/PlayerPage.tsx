@@ -15,7 +15,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
 import { AppLayout } from "../components/layout/AppLayout";
-import { useLayoutSettings } from "../contexts/LayoutSettingsContext";
+import { useLayoutSettings } from "../contexts/layoutSettings";
 
 export const PlayerPage = () => {
   const { t } = useTranslation();
@@ -59,13 +59,13 @@ export const PlayerPage = () => {
         setLayoutSettings((prev) => ({ ...prev, showPlayer: !isAudio }));
       }
     }
-  }, [currentFile]);
+  }, [currentFile, setLayoutSettings]);
 
   useEffect(() => {
     if (youtubeId && !currentFile) {
       setLayoutSettings((prev) => ({ ...prev, showPlayer: true }));
     }
-  }, [youtubeId, currentFile]);
+  }, [youtubeId, currentFile, setLayoutSettings]);
 
   return (
     <AppLayout

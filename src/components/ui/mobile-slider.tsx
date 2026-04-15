@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "../../lib/utils";
 
 interface MobileSliderProps {
@@ -57,7 +57,7 @@ export const MobileSlider = ({
   };
 
   // Handle touch move
-  const handleTouchMove = (e: TouchEvent) => {
+  const handleTouchMove = useCallback((e: TouchEvent) => {
     if (isDragging && trackRef.current) {
       const touchX = e.touches[0].clientX;
       const touchDelta = touchX - touchStartX;
@@ -76,16 +76,16 @@ export const MobileSlider = ({
       
       onChange(steppedValue);
     }
-  };
+  }, [initialValue, isDragging, max, min, onChange, step, touchStartX]);
 
   // Handle touch end
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
     
     // Remove global event listeners
     document.removeEventListener("touchmove", handleTouchMove);
     document.removeEventListener("touchend", handleTouchEnd);
-  };
+  }, [handleTouchMove]);
 
   // Cleanup event listeners on unmount
   useEffect(() => {

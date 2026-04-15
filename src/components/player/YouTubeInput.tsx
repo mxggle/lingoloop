@@ -68,7 +68,7 @@ export const YouTubeInput = ({ onVideoIdSubmit }: YouTubeInputProps) => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={t("youtube.enterUrl")}
-          className="w-full h-12 px-12 rounded-xl border-2 border-primary-100 dark:border-primary-900/30 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 outline-none text-sm"
+          className="w-full h-12 px-12 rounded-xl border border-primary-200 dark:border-primary-800/30 bg-transparent text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200 outline-none text-sm"
           whileFocus={{ scale: 1.01 }}
         />
         <Youtube

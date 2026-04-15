@@ -24,7 +24,8 @@
     "showInFinder": "Finderで表示",
     "showInExplorer": "Windows Explorerで表示",
     "showInFileManager": "ファイルマネージャーで表示",
-    "failedToOpenLocation": "場所を開けませんでした"
+    "failedToOpenLocation": "場所を開けませんでした",
+    "comingSoon": "近日公開"
   },
   "shadowing": {
     "title": "シャドーイング",
@@ -213,7 +214,8 @@
     "startPracticing": "練習を開始",
     "studioDesc": "ローカルメディアファイルを開くか、YouTubeからストリーミングして、言語習得セッションを開始してください。",
     "proTip": "プロのヒント：バッチ練習",
-    "electronHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。"
+    "electronHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。",
+    "podcasts": "ポッドキャストとRSS"
   },
   "player": {
     "play": "再生",

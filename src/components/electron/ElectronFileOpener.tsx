@@ -59,17 +59,17 @@ export const ElectronFileOpener = () => {
   });
 
   return (
-    <div className="flex flex-col gap-3 h-full justify-center items-center">
+    <div className="flex flex-col gap-2 h-full justify-center items-center">
       {/* Native open-file button */}
       <button
         onClick={handleOpenFile}
-        className="w-full flex flex-col items-center justify-center gap-3 p-6 border-2 border-primary-100 dark:border-primary-900/30 bg-white dark:bg-gray-800 rounded-xl shadow-sm text-center cursor-pointer transition-all duration-200 hover:bg-primary-50/50 dark:hover:bg-primary-900/10 hover:shadow-md hover:-translate-y-0.5"
+        className="w-full flex flex-col items-center justify-center gap-2 p-4 border-2 border-primary-100/50 dark:border-primary-900/20 bg-transparent rounded-xl text-center cursor-pointer transition-all duration-200 hover:bg-black/5 dark:hover:bg-white/5 hover:-translate-y-0.5"
       >
-        <div className="flex justify-center items-center p-4 bg-gradient-to-r from-primary-100 to-accent-100 dark:from-primary-900/20 dark:to-accent-900/20 rounded-full shadow-inner">
-          <FolderOpen className="h-10 w-10 text-primary-500 dark:text-primary-400 drop-shadow-md" />
+        <div className="flex justify-center items-center p-3 bg-gradient-to-r from-primary-100/50 to-accent-100/50 dark:from-primary-900/10 dark:to-accent-900/10 rounded-full">
+          <FolderOpen className="h-8 w-8 text-primary-500 dark:text-primary-400 drop-shadow-sm" />
         </div>
         <div>
-          <p className="text-base font-medium text-gray-800 dark:text-gray-100 mb-1">
+          <p className="text-base font-medium text-gray-800 dark:text-gray-100 mb-0.5">
             {t("upload.openFile", "Open File")}
           </p>
           <p className="text-xs text-primary-500 dark:text-primary-400 font-medium">
@@ -81,10 +81,10 @@ export const ElectronFileOpener = () => {
       {/* Drag-and-drop fallback (e.g. drag from Finder) */}
       <div
         {...getRootProps()}
-        className={`w-full p-3 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors text-sm ${
+        className={`w-full p-2 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors text-sm ${
           isDragActive
-            ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400"
-            : "border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 hover:border-primary-300 dark:hover:border-primary-700"
+            ? "border-primary-500/50 bg-primary-50/30 dark:bg-primary-900/10 text-primary-600 dark:text-primary-400"
+            : "border-gray-200/50 dark:border-gray-800/50 text-gray-400/80 dark:text-gray-500/80 hover:border-primary-300/50 dark:hover:border-primary-700/50"
         }`}
       >
         <input {...getInputProps()} />

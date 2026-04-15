@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homepage Redesign Mockup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #030712; color: white; font-family: sans-serif; height: 100vh; overflow: hidden; }
+        .card { background-color: rgba(17, 24, 39, 0.6); border: 1px solid rgba(31, 41, 55, 1); transition: all 0.3s; }
+        .card:hover { border-color: rgba(59, 130, 246, 0.5); transform: translateY(-4px); box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.2); }
+        .inner-box { background: transparent !important; border-color: rgba(31, 41, 55, 0.5) !important; }
+        .primary-btn { background: linear-gradient(to right, #2563eb, #7c3aed); }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-8">
+    <div class="max-w-5xl w-full space-y-8 text-center">
+        <div>
+            <h1 class="text-4xl font-black tracking-tight mb-2">Start Practicing</h1>
+            <p class="text-gray-400">Choose a source to begin your language mastery session.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Local Media -->
+            <div class="card p-6 rounded-3xl flex flex-col items-center text-center space-y-4">
+                <div class="w-12 h-12 bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold">Local Media</h3>
+                <div class="w-full space-y-3">
+                    <div class="inner-box border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-white/5 transition-colors">
+                        <div class="w-8 h-8 mx-auto mb-2 text-blue-400">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9l-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <p class="text-sm font-medium">Open File</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YouTube -->
+            <div class="card p-6 rounded-3xl flex flex-col items-center text-center space-y-4">
+                <div class="w-12 h-12 bg-red-900/30 rounded-2xl flex items-center justify-center text-red-400">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold">YouTube Video</h3>
+                <div class="w-full space-y-3">
+                    <input type="text" placeholder="URL or ID" class="w-full h-10 px-4 rounded-xl bg-transparent border-2 border-gray-700 focus:border-red-500 outline-none text-sm text-center">
+                    <button class="w-full h-10 primary-btn rounded-xl font-medium text-sm shadow-lg">Load Video</button>
+                </div>
+            </div>
+
+            <!-- Future: Podcasts -->
+            <div class="card p-6 rounded-3xl flex flex-col items-center text-center space-y-4 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 cursor-help">
+                <div class="w-12 h-12 bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold">Podcasts</h3>
+                <p class="text-xs text-gray-500">Coming Soon</p>
+                <div class="w-full h-24 border-2 border-dashed border-gray-800 rounded-xl flex items-center justify-center">
+                    <span class="text-gray-700 text-xs">RSS / Link Support</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="pt-8 border-t border-gray-800 flex justify-center gap-12 text-sm text-gray-500">
+            <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-500 rounded-full"></div> Offline Ready</div>
+            <div class="flex items-center gap-2"><div class="w-2 h-2 bg-blue-500 rounded-full"></div> Cloud Sync</div>
+            <div class="flex items-center gap-2"><div class="w-2 h-2 bg-purple-500 rounded-full"></div> AI Powered</div>
+        </div>
+    </div>
+</body>
+</html>

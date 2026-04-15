@@ -24,7 +24,8 @@
     "showInFinder": "在 Finder 中显示",
     "showInExplorer": "在 Windows Explorer 中显示",
     "showInFileManager": "在文件管理器中显示",
-    "failedToOpenLocation": "无法打开位置"
+    "failedToOpenLocation": "无法打开位置",
+    "comingSoon": "即将推出"
   },
   "shadowing": {
     "title": "跟读",
@@ -213,7 +214,8 @@
     "startPracticing": "开始练习",
     "studioDesc": "打开本地媒体文件或从YouTube流媒体，开始您的语言学习会话。",
     "proTip": "专业提示：批量练习",
-    "electronHint": "将文件夹拖到侧边栏，即可立即映射所有媒体，进行结构化的跟读练习。"
+    "electronHint": "将文件夹拖到侧边栏，即可立即映射所有媒体，进行结构化的跟读练习。",
+    "podcasts": "播客与RSS"
   },
   "player": {
     "play": "播放",

@@ -26,7 +26,8 @@
     "showInFinder": "Show in Finder",
     "showInExplorer": "Show in Windows Explorer",
     "showInFileManager": "Show in file manager",
-    "failedToOpenLocation": "Failed to open location"
+    "failedToOpenLocation": "Failed to open location",
+    "comingSoon": "Coming Soon"
   },
   "shadowing": {
     "title": "Shadowing",
@@ -235,7 +236,8 @@
     "startPracticing": "Start Practicing",
     "studioDesc": "Open a local media file or stream from YouTube to begin your language mastery session.",
     "proTip": "Pro Tip: Batch Practice",
-    "electronHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session."
+    "electronHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
+    "podcasts": "Podcasts & RSS"
   },
   "player": {
     "play": "Play",

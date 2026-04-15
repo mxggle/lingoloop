@@ -22,6 +22,7 @@ node_modules
 .yarn/install-state.gz
 .pnp.*
 *.tsbuildinfo
+src-tauri
 
 # Environment variables
 .env
@@ -71,6 +72,7 @@ Desktop.ini
 # Tooling
 .vercel
 /local
+.worktrees/
 
 # Test coverage
 coverage

@@ -86,11 +86,11 @@ export const AppLayoutBase = ({
   const youtubeId = currentYouTube?.id;
 
   return (
-    <div className={`flex min-h-screen w-full bg-white dark:bg-gray-900 ${containerClassName} ${bottomPaddingClassName} px-2 sm:px-4`}>
+    <div className={`flex h-screen w-full overflow-hidden bg-white dark:bg-gray-900 ${containerClassName} ${bottomPaddingClassName} px-2 sm:px-4`}>
       {sidebar}
 
       <div
-        className="flex flex-col flex-1 min-w-0"
+        className="flex flex-col flex-1 min-w-0 h-full"
         style={{ paddingLeft: contentPaddingLeft }}
       >
         {/* Spacer for fixed header */}
@@ -276,7 +276,7 @@ export const AppLayoutBase = ({
           </div>
         </header>
 
-        <main className="flex flex-1 min-h-0 w-full flex-col">{children}</main>
+        <main className="flex flex-1 min-h-0 w-full flex-col overflow-y-auto">{children}</main>
       </div>
     </div>
   );

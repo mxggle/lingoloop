@@ -213,3 +213,14 @@ body {
     color: #e2e8f0;
     border-color: #64748b;
 }
+
+/* Custom text selection */
+::selection {
+    background-color: rgba(139, 92, 246, 0.2);
+    color: inherit;
+}
+
+.dark ::selection {
+    background-color: rgba(167, 139, 250, 0.3);
+    color: #fff;
+}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { setCurrentTime as setCurrentTimeExternal } from "../../stores/currentTimeStore";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
@@ -72,6 +73,7 @@ export const YouTubePlayer = ({
   const lastSeekTime = useRef<number>(0);
   const playbackSyncFrameRef = useRef<number | null>(null);
   const lastReportedTimeRef = useRef(0);
+  const lastZustandWriteRef = useRef(0);
 
   const {
     isPlaying,
@@ -265,7 +267,14 @@ export const YouTubePlayer = ({
       // This prevents overwriting the optimistic store update with the old player time
       if (!isSeeking && Math.abs(playerTime - lastReportedTimeRef.current) >= 1 / 30) {
         lastReportedTimeRef.current = playerTime;
-        setCurrentTime(playerTime);
+        // Always push to lightweight external store at full rAF rate
+        setCurrentTimeExternal(playerTime);
+        // Throttle Zustand writes to ~4Hz
+        const now = performance.now();
+        if (now - lastZustandWriteRef.current >= 250) {
+          lastZustandWriteRef.current = now;
+          setCurrentTime(playerTime);
+        }
       }
 
       // Don't enforce loop boundaries if user is currently seeking

@@ -15,7 +15,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
 import { AppLayout } from "../components/layout/AppLayout";
-import { useLayoutSettings } from "../contexts/LayoutSettingsContext";
+import { useLayoutSettings } from "../contexts/layoutSettings";
 
 export const PlayerPage = () => {
   const { t } = useTranslation();
@@ -59,13 +59,13 @@ export const PlayerPage = () => {
         setLayoutSettings((prev) => ({ ...prev, showPlayer: !isAudio }));
       }
     }
-  }, [currentFile]);
+  }, [currentFile, setLayoutSettings]);
 
   useEffect(() => {
     if (youtubeId && !currentFile) {
       setLayoutSettings((prev) => ({ ...prev, showPlayer: true }));
     }
-  }, [youtubeId, currentFile]);
+  }, [youtubeId, currentFile, setLayoutSettings]);
 
   return (
     <AppLayout
@@ -73,7 +73,7 @@ export const PlayerPage = () => {
       setLayoutSettings={setLayoutSettings}
       bottomPaddingClassName="pb-28 sm:pb-28"
     >
-      <div className="flex flex-1 min-h-0 flex-col">
+      <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
         {/* Show loading message if media is being loaded */}
         {
           isLoadingMedia && (

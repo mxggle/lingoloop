@@ -5,7 +5,7 @@ import {
   storeMediaFile,
   retrieveMediaFile,
   deleteMediaFile,
-  getStoredTranscript,
+  getStoredTranscriptRecord,
   setStoredTranscript,
   deleteStoredTranscript,
   clearAllStoredTranscripts,
@@ -13,6 +13,12 @@ import {
 import { nativePathToUrl } from "../utils/platform";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
+import type { MediaTranscriptStudy } from "../types/transcriptStudy";
+import {
+  buildSegmentTranscriptStudy,
+  buildTranscriptStudy,
+  inferTranscriptLevelSystem,
+} from "../utils/transcriptStudy";
 
 // Prevent noisy duplicate toasts for existing A–B ranges
 let lastDuplicateToastAt = 0;
@@ -94,6 +100,17 @@ export interface MediaTranscripts {
   [mediaId: string]: TranscriptSegment[];
 }
 
+export interface MediaTranscriptStudies {
+  [mediaId: string]: MediaTranscriptStudy;
+}
+
+type PersistedPlayerStoreState = {
+  mediaFolders?: Record<string, { parentId?: string | null }>;
+  historyFolderFilter?: string;
+  sourceFolder?: string;
+  sourceFolders?: string[];
+};
+
 export interface PlayerState {
   // Media state
   currentFile: MediaFile | null;
@@ -133,6 +150,7 @@ export interface PlayerState {
 
   // Transcript state
   mediaTranscripts: MediaTranscripts; // Changed from transcriptSegments array to media-scoped object
+  mediaTranscriptStudy: MediaTranscriptStudies;
   isTranscriptLoading: boolean;
   showTranscript: boolean;
   isTranscribing: boolean;
@@ -295,6 +313,7 @@ const initialState: PlayerState = {
   mediaBookmarks: {},
   selectedBookmarkId: null,
   mediaTranscripts: {},
+  mediaTranscriptStudy: {},
   isTranscriptLoading: false,
   showTranscript: false,
   isTranscribing: false,
@@ -327,16 +346,36 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       async loadTranscriptForMedia(mediaId: string) {
         set({ isTranscriptLoading: true });
 
-        const segments = await getStoredTranscript(mediaId);
+        const transcriptRecord = await getStoredTranscriptRecord(mediaId);
+        const segments = transcriptRecord?.segments || [];
+        const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
+        const studyBySegment =
+          transcriptRecord?.studyBySegment &&
+          Object.keys(transcriptRecord.studyBySegment).length > 0
+            ? transcriptRecord.studyBySegment
+            : buildTranscriptStudy(segments, levelSystem);
+
+        if (
+          transcriptRecord &&
+          Object.keys(transcriptRecord.studyBySegment).length === 0 &&
+          segments.length > 0
+        ) {
+          void setStoredTranscript(mediaId, segments, studyBySegment);
+        }
 
         set((state) => {
           const nextTranscripts = {
             ...state.mediaTranscripts,
             [mediaId]: segments,
           };
+          const nextTranscriptStudy = {
+            ...state.mediaTranscriptStudy,
+            [mediaId]: studyBySegment,
+          };
 
           return {
             mediaTranscripts: nextTranscripts,
+            mediaTranscriptStudy: nextTranscriptStudy,
             isTranscriptLoading:
               state.getCurrentMediaId() === mediaId ? false : state.isTranscriptLoading,
           };
@@ -891,7 +930,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
               ...existingItem,
               accessedAt: timestamp,
               // Preserve existing name (keep user renames)
-              name: existingItem.name || (item as any).name,
+              name: existingItem.name || item.name,
               // Update storageId if the new item has one
               ...(item.storageId && !existingItem.storageId
                 ? { storageId: item.storageId }
@@ -1114,10 +1153,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         set((state) => {
           const nextBookmarks = { ...state.mediaBookmarks };
           const nextTranscripts = { ...state.mediaTranscripts };
+          const nextTranscriptStudy = { ...state.mediaTranscriptStudy };
 
           if (derivedMediaId) {
             delete nextBookmarks[derivedMediaId];
             delete nextTranscripts[derivedMediaId];
+            delete nextTranscriptStudy[derivedMediaId];
           }
 
           return {
@@ -1126,6 +1167,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
             ),
             mediaBookmarks: nextBookmarks,
             mediaTranscripts: nextTranscripts,
+            mediaTranscriptStudy: nextTranscriptStudy,
             ...(isDeletingCurrentMedia
               ? {
                   currentFile: null,
@@ -1186,6 +1228,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           mediaHistory: [],
           mediaBookmarks: {},
           mediaTranscripts: {},
+          mediaTranscriptStudy: {},
           currentFile: null,
           currentYouTube: null,
           isPlaying: false,
@@ -1350,6 +1393,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         if (!mediaId) return;
 
         let updatedSegments: TranscriptSegment[] | null = null;
+        let updatedStudyBySegment: MediaTranscriptStudy | null = null;
 
         set((state) => {
           const currentSegments = state.mediaTranscripts[mediaId] || [];
@@ -1364,17 +1408,28 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           updatedSegments = [...currentSegments, newSegment].sort(
             (a, b) => a.startTime - b.startTime
           );
+          updatedStudyBySegment = {
+            ...(state.mediaTranscriptStudy[mediaId] || {}),
+            [newSegment.id]: buildSegmentTranscriptStudy(
+              newSegment.text,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            ),
+          };
 
           return {
             mediaTranscripts: {
               ...state.mediaTranscripts,
               [mediaId]: updatedSegments,
             },
+            mediaTranscriptStudy: {
+              ...state.mediaTranscriptStudy,
+              [mediaId]: updatedStudyBySegment,
+            },
           };
         });
 
-        if (updatedSegments) {
-          void setStoredTranscript(mediaId, updatedSegments);
+        if (updatedSegments && updatedStudyBySegment) {
+          void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
         }
       },
 
@@ -1384,21 +1439,37 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         if (!mediaId) return;
 
         let updatedSegments: TranscriptSegment[] = [];
+        let updatedStudyBySegment: MediaTranscriptStudy = {};
 
         set((state) => {
           updatedSegments = (state.mediaTranscripts[mediaId] || []).map((segment) =>
             segment.id === id ? { ...segment, ...changes } : segment
           );
+          updatedStudyBySegment = {
+            ...(state.mediaTranscriptStudy[mediaId] || {}),
+          };
+
+          const updatedSegment = updatedSegments.find((segment) => segment.id === id);
+          if (updatedSegment) {
+            updatedStudyBySegment[id] = buildSegmentTranscriptStudy(
+              updatedSegment.text,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            );
+          }
 
           return {
             mediaTranscripts: {
               ...state.mediaTranscripts,
               [mediaId]: updatedSegments,
             },
+            mediaTranscriptStudy: {
+              ...state.mediaTranscriptStudy,
+              [mediaId]: updatedStudyBySegment,
+            },
           };
         });
 
-        void setStoredTranscript(mediaId, updatedSegments);
+        void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
       },
 
       clearTranscript() {
@@ -1410,6 +1481,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           mediaTranscripts: {
             ...state.mediaTranscripts,
             [mediaId]: [],
+          },
+          mediaTranscriptStudy: {
+            ...state.mediaTranscriptStudy,
+            [mediaId]: {},
           },
         }));
 
@@ -1872,41 +1947,41 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       name: "abloop-player-storage",
       storage: createJSONStorage(() => electronStorage),
       version: 3,
-      migrate: (persistedState: any, version) => {
-        if (!persistedState) return persistedState;
+      migrate: (persistedState: unknown, version) => {
+        const state = persistedState as PersistedPlayerStoreState | undefined;
 
-        if (version < 2 && persistedState.mediaFolders) {
-          persistedState.mediaFolders = Object.fromEntries(
-            Object.entries(persistedState.mediaFolders).map(
-              ([id, folder]: [string, any]) => [
-                id,
-                {
-                  ...folder,
-                  parentId:
-                    folder && "parentId" in folder ? folder.parentId ?? null : null,
-                },
-              ]
-            )
+        if (!state) return state;
+
+        if (version < 2 && state.mediaFolders) {
+          state.mediaFolders = Object.fromEntries(
+            Object.entries(state.mediaFolders).map(([id, folder]) => [
+              id,
+              {
+                ...folder,
+                parentId:
+                  folder && "parentId" in folder ? folder.parentId ?? null : null,
+              },
+            ])
           );
         }
 
         if (version < 2) {
-          if (persistedState.historyFolderFilter === "all") {
-            persistedState.historyFolderFilter = "unfiled";
+          if (state.historyFolderFilter === "all") {
+            state.historyFolderFilter = "unfiled";
           }
         }
 
         // v2 → v3: migrate single sourceFolder to sourceFolders array
         if (version < 3) {
-          if (persistedState.sourceFolder) {
-            persistedState.sourceFolders = [persistedState.sourceFolder];
+          if (state.sourceFolder) {
+            state.sourceFolders = [state.sourceFolder];
           } else {
-            persistedState.sourceFolders = [];
+            state.sourceFolders = [];
           }
-          delete persistedState.sourceFolder;
+          delete state.sourceFolder;
         }
 
-        return persistedState;
+        return state;
       },
       onRehydrateStorage: () => (state, error) => {
         if (error || !state?.mediaTranscripts) {
@@ -1916,7 +1991,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         const legacyTranscripts = state.mediaTranscripts;
 
         Object.entries(legacyTranscripts).forEach(([mediaId, segments]) => {
-          void setStoredTranscript(mediaId, segments);
+          const studyBySegment =
+            state.mediaTranscriptStudy?.[mediaId] ||
+            buildTranscriptStudy(
+              segments,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            );
+          void setStoredTranscript(mediaId, segments, studyBySegment);
         });
       },
       partialize: (state) => ({

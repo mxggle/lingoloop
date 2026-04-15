@@ -1,6 +1,7 @@
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
 import type { TranscriptSegment } from "../stores/playerStore";
+import type { MediaTranscriptStudy } from "../types/transcriptStudy";
 
 // Default limits (can be made configurable in settings)
 const DEFAULT_MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
@@ -32,6 +33,14 @@ interface StoredMedia {
 interface StoredTranscript {
   mediaId: string;
   segments: TranscriptSegment[];
+  studyBySegment?: MediaTranscriptStudy;
+  updatedAt: number;
+}
+
+export interface StoredTranscriptRecord {
+  mediaId: string;
+  segments: TranscriptSegment[];
+  studyBySegment: MediaTranscriptStudy;
   updatedAt: number;
 }
 
@@ -531,6 +540,13 @@ export const getCachedWaveform = async (
 export const getStoredTranscript = async (
   mediaId: string
 ): Promise<TranscriptSegment[]> => {
+  const record = await getStoredTranscriptRecord(mediaId);
+  return record?.segments || [];
+};
+
+export const getStoredTranscriptRecord = async (
+  mediaId: string
+): Promise<StoredTranscriptRecord | null> => {
   try {
     const db = await initDB();
 
@@ -545,16 +561,26 @@ export const getStoredTranscript = async (
       }
     );
 
-    return storedTranscript?.segments || [];
+    if (!storedTranscript) {
+      return null;
+    }
+
+    return {
+      mediaId: storedTranscript.mediaId,
+      segments: storedTranscript.segments || [],
+      studyBySegment: storedTranscript.studyBySegment || {},
+      updatedAt: storedTranscript.updatedAt,
+    };
   } catch (error) {
     console.error("Error loading transcript", error);
-    return [];
+    return null;
   }
 };
 
 export const setStoredTranscript = async (
   mediaId: string,
-  segments: TranscriptSegment[]
+  segments: TranscriptSegment[],
+  studyBySegment: MediaTranscriptStudy = {}
 ): Promise<void> => {
   try {
     const db = await initDB();
@@ -565,6 +591,7 @@ export const setStoredTranscript = async (
       const request = store.put({
         mediaId,
         segments,
+        studyBySegment,
         updatedAt: Date.now(),
       });
 

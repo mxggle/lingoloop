@@ -440,7 +440,22 @@
     "transcribeBookmarkButton": "Transcribe Bookmark",
     "noTranscriptForBookmark": "No transcript available for this bookmark range.",
     "toggleSidebar": "Toggle Sidebar",
+    "selectionContext": "Context",
+    "selectionKnownItem": "{{type}} · {{level}}",
+    "selectionFreeform": "Free text selection",
+    "explainSelection": "Explain in context",
+    "levelToggle": "Toggle transcript levels",
+    "levelsOn": "Levels On",
+    "levelsOff": "Levels Off",
+    "levelFilter": "Level Filter",
+    "levelFilterAll": "Show all levels",
+    "studyType": {
+      "word": "Word",
+      "expression": "Expression"
+    },
     "dropdownArrow": "▾",
+    "scrollToCurrent": "Locate active sentence",
+    "autoScroll": "Auto-scroll to current",
     "languages": {
       "en-US": "English (US)",
       "en-GB": "English (UK)",

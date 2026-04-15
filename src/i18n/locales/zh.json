@@ -411,7 +411,6 @@
     "toggleSidebar": "切换侧边栏",
     "selectionContext": "语境",
     "selectionKnownItem": "{{type}} · {{level}}",
-    "selectionFreeform": "自由选择文本",
     "explainSelection": "结合语境解释",
     "levelToggle": "切换等级显示",
     "levelsOn": "等级开启",

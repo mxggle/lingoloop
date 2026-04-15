@@ -216,16 +216,12 @@ export const TranscriptSelectionPopover = ({
             {t("transcript.selectionContext")}
           </div>
           <div className="mt-1 truncate text-sm font-semibold">“{selection.text}”</div>
-          {selection.matchedItem ? (
+          {selection.matchedItem && (
             <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               {t("transcript.selectionKnownItem", {
                 type: t(`transcript.studyType.${selection.matchedItem.type}`),
                 level: selection.matchedItem.level,
               })}
-            </div>
-          ) : (
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {t("transcript.selectionFreeform")}
             </div>
           )}
         </div>

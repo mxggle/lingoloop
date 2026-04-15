@@ -73,12 +73,7 @@ const HeaderAction = ({
 );
 
 /* ── Layout settings ────────────────────────────────────────────── */
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 interface ElectronAppLayoutProps {
   children: React.ReactNode;

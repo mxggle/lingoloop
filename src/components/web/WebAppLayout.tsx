@@ -4,12 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
 
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 interface WebAppLayoutProps {
   children: React.ReactNode;

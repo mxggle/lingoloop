@@ -412,7 +412,6 @@
     "toggleSidebar": "サイドバーの切り替え",
     "selectionContext": "文脈",
     "selectionKnownItem": "{{type}} ・ {{level}}",
-    "selectionFreeform": "自由選択テキスト",
     "explainSelection": "文脈で説明",
     "levelToggle": "レベル表示の切り替え",
     "levelsOn": "レベル表示 ON",

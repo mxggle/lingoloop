@@ -10,12 +10,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 export interface AppLayoutBaseProps {
   children: React.ReactNode;

@@ -1,7 +1,6 @@
 import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Suspense, lazy, memo } from "react";
 import { HomePage } from "../pages";
-import { LayoutSettingsProvider } from "../contexts/LayoutSettingsContext";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { isElectron } from "../utils/platform";
@@ -83,9 +82,7 @@ const AppRouterInner = () => {
 export const AppRouter = () => {
   return (
     <Router>
-      <LayoutSettingsProvider>
-        <AppRouterInner />
-      </LayoutSettingsProvider>
+      <AppRouterInner />
     </Router>
   );
 };

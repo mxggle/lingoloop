@@ -442,7 +442,6 @@
     "toggleSidebar": "Toggle Sidebar",
     "selectionContext": "Context",
     "selectionKnownItem": "{{type}} · {{level}}",
-    "selectionFreeform": "Free text selection",
     "explainSelection": "Explain in context",
     "levelToggle": "Toggle transcript levels",
     "levelsOn": "Levels On",

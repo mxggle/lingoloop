@@ -81,6 +81,7 @@ export const TranscriptPanel = () => {
     loopEnd,
     importBookmarks: storeImportBookmarks,
     isTranscriptLoading,
+    isPlaying,
     transcriptLanguage,
     setTranscriptLanguage,
   } = usePlayerStore(
@@ -102,6 +103,7 @@ export const TranscriptPanel = () => {
       loopEnd: state.loopEnd,
       importBookmarks: state.importBookmarks,
       isTranscriptLoading: state.isTranscriptLoading,
+      isPlaying: state.isPlaying,
       transcriptLanguage: state.transcriptLanguage,
       setTranscriptLanguage: state.setTranscriptLanguage,
     }))
@@ -118,6 +120,7 @@ export const TranscriptPanel = () => {
 
   const [exportOpen, setExportOpen] = useState(false);
   const [activeSelection, setActiveSelection] = useState<TranscriptSelectionState | null>(null);
+  const [wasPlayingBeforeSelection, setWasPlayingBeforeSelection] = useState(false);
   const [selectionEnabled, setSelectionEnabled] = useState(false);
   const [levelFilterOpen, setLevelFilterOpen] = useState(false);
   const [highlightsEnabled, setHighlightsEnabled] = useState<boolean>(() => {
@@ -224,6 +227,23 @@ export const TranscriptPanel = () => {
   useEffect(() => {
     setActiveSelection(null);
   }, [mediaId, activeTabId]);
+
+  // Handle auto-pause on selection and auto-resume on dismissal
+  useEffect(() => {
+    if (activeSelection) {
+      // If a selection is made and media is playing, pause it and remember the state
+      if (!wasPlayingBeforeSelection && isPlaying) {
+        setWasPlayingBeforeSelection(true);
+        setIsPlaying(false);
+      }
+    } else {
+      // If selection is dismissed and we had paused the media, resume it
+      if (wasPlayingBeforeSelection) {
+        setIsPlaying(true);
+        setWasPlayingBeforeSelection(false);
+      }
+    }
+  }, [activeSelection, isPlaying, setIsPlaying, wasPlayingBeforeSelection]);
 
   useEffect(() => {
     const transcriptNode = transcriptRef.current;
@@ -469,7 +489,18 @@ export const TranscriptPanel = () => {
     );
 
     if (index !== -1) {
-      virtualizer.scrollToIndex(index, { align: "center", behavior: "smooth" });
+      const containerHeight = transcriptRef.current?.clientHeight || 0;
+      // Position the segment at roughly 35% from the top (optical center)
+      // instead of dead center (50%) for better readability.
+      const item = virtualizer.getVirtualItems().find((v) => v.index === index);
+      if (item) {
+        virtualizer.scrollToOffset(item.start - containerHeight * 0.15, {
+          behavior: "smooth",
+        });
+      } else {
+        // Fallback to center if item not yet measured
+        virtualizer.scrollToIndex(index, { align: "center", behavior: "smooth" });
+      }
     } else {
       toast.error(t("transcript.segmentNotFound"));
     }
@@ -504,7 +535,15 @@ export const TranscriptPanel = () => {
 
       if (nextIndex !== -1 && nextIndex !== currentIndex) {
         currentSegmentIndexRef.current = nextIndex;
-        virtualizer.scrollToIndex(nextIndex, { align: "center", behavior: "smooth" });
+        const containerHeight = transcriptRef.current?.clientHeight || 0;
+        const item = virtualizer.getVirtualItems().find((v) => v.index === nextIndex);
+        if (item) {
+          virtualizer.scrollToOffset(item.start - containerHeight * 0.15, {
+            behavior: "smooth",
+          });
+        } else {
+          virtualizer.scrollToIndex(nextIndex, { align: "center", behavior: "smooth" });
+        }
       }
     });
 
@@ -1105,7 +1144,17 @@ export const TranscriptPanel = () => {
   // State and handlers moved to top level of component
 
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("transcript_sidebar_open") === "true";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("transcript_sidebar_open", String(isSidebarOpen));
+    }
+  }, [isSidebarOpen]);
+
 
   const handleDeleteBookmark = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -1257,8 +1306,8 @@ export const TranscriptPanel = () => {
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
-                  ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                ? "bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               title={t("transcript.levelToggle")}
             >
@@ -1362,8 +1411,8 @@ export const TranscriptPanel = () => {
             <button
               onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
               className={`p-1.5 rounded-full transition-colors ${autoScrollEnabled
-                  ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               title={t("transcript.autoScroll")}
             >

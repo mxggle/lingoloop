@@ -1,32 +1,13 @@
-import {
-  createContext,
-  useContext,
-  type Dispatch,
-  type SetStateAction,
-} from "react";
+import { useShallow } from "zustand/react/shallow";
+import { useLayoutStore, type LayoutSettings } from "../stores/layoutStore";
 
-export interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+export type { LayoutSettings };
 
-export interface LayoutSettingsContextValue {
-  layoutSettings: LayoutSettings;
-  setLayoutSettings: Dispatch<SetStateAction<LayoutSettings>>;
-}
-
-export const defaultLayoutSettings: LayoutSettings = {
-  showPlayer: true,
-  showWaveform: true,
-  showTranscript: true,
-  showControls: true,
+export const useLayoutSettings = () => {
+  return useLayoutStore(
+    useShallow((state) => ({
+      layoutSettings: state.layoutSettings,
+      setLayoutSettings: state.setLayoutSettings,
+    }))
+  );
 };
-
-export const LayoutSettingsContext = createContext<LayoutSettingsContextValue>({
-  layoutSettings: defaultLayoutSettings,
-  setLayoutSettings: () => {},
-});
-
-export const useLayoutSettings = () => useContext(LayoutSettingsContext);

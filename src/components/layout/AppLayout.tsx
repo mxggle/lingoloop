@@ -12,12 +12,7 @@ import { isElectron } from "../../utils/platform";
 import { ElectronAppLayout } from "../electron/ElectronAppLayout";
 import { WebAppLayout } from "../web/WebAppLayout";
 
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 interface AppLayoutProps {
   children: React.ReactNode;

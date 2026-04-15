@@ -18,12 +18,7 @@ import {
 import { Input } from "../ui/input";
 import { LanguageSelector } from "../ui/LanguageSelector";
 
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 interface SettingsDrawerProps {
   isOpen: boolean;

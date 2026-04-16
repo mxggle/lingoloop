@@ -111,7 +111,14 @@
     "playback": "Playback",
     "seekMode": "Seek Mode",
     "seekStep": "Seek Step",
-    "smallStep": "Small Step"
+    "smallStep": "Small Step",
+    "status": {
+      "ready": "All Systems Ready"
+    },
+    "footer": {
+      "autoSaved": "Settings are auto-saved to your device",
+      "tagline": "LoopMate v1.2.0 • Made with ❤️ for Language Learners"
+    }
   },
   "loop": {
     "controlsTitle": "Loop Settings",

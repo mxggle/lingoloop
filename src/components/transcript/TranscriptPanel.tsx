@@ -56,14 +56,22 @@ const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
 const EMPTY_STUDY: MediaTranscriptStudy = {};
 const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
+const BOOKMARK_MATCH_TOLERANCE_SECONDS = 0.5;
 
 // WhisperSegment/WhisperResponse types moved to transcriptionService.ts
 
-const getSegmentBookmarkKey = (startTime: number, endTime: number) =>
-  `${Math.round(startTime * 10)}:${Math.round(endTime * 10)}`;
-
 const isTimeWithinSegment = (time: number, segment: TranscriptSegmentType) =>
   time >= segment.startTime && time <= segment.endTime;
+
+const findMatchingBookmarkId = (
+  segment: TranscriptSegmentType,
+  bookmarks: LoopBookmark[]
+) =>
+  bookmarks.find(
+    (bookmark) =>
+      Math.abs(bookmark.start - segment.startTime) < BOOKMARK_MATCH_TOLERANCE_SECONDS &&
+      Math.abs(bookmark.end - segment.endTime) < BOOKMARK_MATCH_TOLERANCE_SECONDS
+  )?.id ?? null;
 
 const findSegmentIndexAtTime = (
   segments: TranscriptSegmentType[],
@@ -362,12 +370,15 @@ export const TranscriptPanel = () => {
   const segmentBookmarkLookup = useMemo(() => {
     const lookup = new Map<string, string>();
 
-    bookmarks.forEach((bookmark) => {
-      lookup.set(getSegmentBookmarkKey(bookmark.start, bookmark.end), bookmark.id);
+    filteredSegments.forEach((segment) => {
+      const bookmarkId = findMatchingBookmarkId(segment, bookmarks);
+      if (bookmarkId) {
+        lookup.set(segment.id, bookmarkId);
+      }
     });
 
     return lookup;
-  }, [bookmarks]);
+  }, [bookmarks, filteredSegments]);
 
   const levelSystem: TranscriptLevelSystem = useMemo(
     () => inferTranscriptLevelSystem(transcriptLanguage),
@@ -1677,11 +1688,7 @@ export const TranscriptPanel = () => {
                   >
                     <TranscriptSegmentItem
                       segment={segment}
-                      matchedBookmarkId={
-                        segmentBookmarkLookup.get(
-                          getSegmentBookmarkKey(segment.startTime, segment.endTime)
-                        ) ?? null
-                      }
+                      matchedBookmarkId={segmentBookmarkLookup.get(segment.id) ?? null}
                       study={displayTranscriptStudy[segment.id]}
                       highlightsEnabled={highlightsEnabled}
                       activeLevels={activeLevels}

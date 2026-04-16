@@ -42,8 +42,6 @@ import { useLayoutSettings } from "../contexts/layoutSettings";
 import { usePlayerStore } from "../stores/playerStore";
 import { useThemeStore, THEME_PRESETS } from "../stores/themeStore";
 
-import { isElectron } from "../utils/platform";
-
 const LANGUAGE_OPTIONS = [
   "english",
   "spanish",
@@ -102,8 +100,9 @@ export const SettingsPage: React.FC = () => {
   });
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
   const { colors, setColors, resetColors } = useThemeStore();
-  const isLoadedRef = useRef(false);
-  const isMac = typeof window !== "undefined" && navigator.userAgent.includes("Mac OS X");
+  const hasHydratedAiSettingsRef = useRef(false);
+  const pendingAiSettingsSaveRef = useRef<number | null>(null);
+  const lastSavedAiSettingsRef = useRef<string | null>(null);
 
   const {
     seekStepSeconds,
@@ -164,68 +163,142 @@ export const SettingsPage: React.FC = () => {
 
   const [aiSubTab, setAiSubTab] = useState<"defaults" | "providers" | "transcription">("defaults");
 
+  const currentAiSettingsSnapshot = JSON.stringify({
+    openaiApiKey,
+    geminiApiKey,
+    grokApiKey,
+    groqApiKey,
+    openaiModel,
+    geminiModel,
+    grokModel,
+    ollamaBaseUrl,
+    ollamaModel,
+    localWhisperUrl,
+    localWhisperModel,
+    preferredProvider,
+    preferredTranscriptionProvider,
+    targetLanguage,
+    temperature,
+    maxTokens,
+  });
+
   useEffect(() => {
-    setOpenaiApiKey(localStorage.getItem("openai_api_key") || "");
-    setGeminiApiKey(localStorage.getItem("gemini_api_key") || "");
-    setGrokApiKey(localStorage.getItem("grok_api_key") || "");
-    setGroqApiKey(localStorage.getItem("groq_api_key") || "");
-    setPreferredProvider(
-      (localStorage.getItem("preferred_ai_provider") as AIProvider) || "openai"
-    );
-    setPreferredTranscriptionProvider(
-      (localStorage.getItem("preferred_transcription_provider") as TranscriptionProvider) || "openai"
-    );
-    setTargetLanguage(localStorage.getItem("target_language") || "English");
+    const loadedOpenaiApiKey = localStorage.getItem("openai_api_key") || "";
+    const loadedGeminiApiKey = localStorage.getItem("gemini_api_key") || "";
+    const loadedGrokApiKey = localStorage.getItem("grok_api_key") || "";
+    const loadedGroqApiKey = localStorage.getItem("groq_api_key") || "";
+    const loadedPreferredProvider =
+      (localStorage.getItem("preferred_ai_provider") as AIProvider) || "openai";
+    const loadedPreferredTranscriptionProvider =
+      (localStorage.getItem("preferred_transcription_provider") as TranscriptionProvider) || "openai";
+    const loadedTargetLanguage = localStorage.getItem("target_language") || "English";
     const savedTemp = parseFloat(localStorage.getItem("ai_temperature") || "0.7");
-    setTemperature(Number.isFinite(savedTemp) ? savedTemp : 0.7);
+    const loadedTemperature = Number.isFinite(savedTemp) ? savedTemp : 0.7;
     const savedTokens = parseInt(localStorage.getItem("ai_max_tokens") || "1000", 10);
-    setMaxTokens(Number.isFinite(savedTokens) ? savedTokens : 1000);
-    setOpenaiModel(normalizeModelId("openai", localStorage.getItem("openai_model")));
-    setGeminiModel(normalizeModelId("gemini", localStorage.getItem("gemini_model")));
-    setGrokModel(normalizeModelId("grok", localStorage.getItem("grok_model")));
-    setOllamaBaseUrl(localStorage.getItem("ollama_base_url") || "http://localhost:11434");
-    setOllamaModel(normalizeModelId("ollama", localStorage.getItem("ollama_model")));
-    setLocalWhisperUrl(localStorage.getItem("local_whisper_url") || "http://localhost:8000");
-    setLocalWhisperModel(
-      localStorage.getItem("local_whisper_model") || "Systran/faster-whisper-large-v3"
-    );
-    
-    // Mark as loaded to enable auto-save
-    setTimeout(() => {
-      isLoadedRef.current = true;
-    }, 100);
+    const loadedMaxTokens = Number.isFinite(savedTokens) ? savedTokens : 1000;
+    const loadedOpenaiModel = normalizeModelId("openai", localStorage.getItem("openai_model"));
+    const loadedGeminiModel = normalizeModelId("gemini", localStorage.getItem("gemini_model"));
+    const loadedGrokModel = normalizeModelId("grok", localStorage.getItem("grok_model"));
+    const loadedOllamaBaseUrl = localStorage.getItem("ollama_base_url") || "http://localhost:11434";
+    const loadedOllamaModel = normalizeModelId("ollama", localStorage.getItem("ollama_model"));
+    const loadedLocalWhisperUrl =
+      localStorage.getItem("local_whisper_url") || "http://localhost:8000";
+    const loadedLocalWhisperModel =
+      localStorage.getItem("local_whisper_model") || "Systran/faster-whisper-large-v3";
+
+    setOpenaiApiKey(loadedOpenaiApiKey);
+    setGeminiApiKey(loadedGeminiApiKey);
+    setGrokApiKey(loadedGrokApiKey);
+    setGroqApiKey(loadedGroqApiKey);
+    setPreferredProvider(loadedPreferredProvider);
+    setPreferredTranscriptionProvider(loadedPreferredTranscriptionProvider);
+    setTargetLanguage(loadedTargetLanguage);
+    setTemperature(loadedTemperature);
+    setMaxTokens(loadedMaxTokens);
+    setOpenaiModel(loadedOpenaiModel);
+    setGeminiModel(loadedGeminiModel);
+    setGrokModel(loadedGrokModel);
+    setOllamaBaseUrl(loadedOllamaBaseUrl);
+    setOllamaModel(loadedOllamaModel);
+    setLocalWhisperUrl(loadedLocalWhisperUrl);
+    setLocalWhisperModel(loadedLocalWhisperModel);
+
+    lastSavedAiSettingsRef.current = JSON.stringify({
+      openaiApiKey: loadedOpenaiApiKey,
+      geminiApiKey: loadedGeminiApiKey,
+      grokApiKey: loadedGrokApiKey,
+      groqApiKey: loadedGroqApiKey,
+      openaiModel: loadedOpenaiModel,
+      geminiModel: loadedGeminiModel,
+      grokModel: loadedGrokModel,
+      ollamaBaseUrl: loadedOllamaBaseUrl,
+      ollamaModel: loadedOllamaModel,
+      localWhisperUrl: loadedLocalWhisperUrl,
+      localWhisperModel: loadedLocalWhisperModel,
+      preferredProvider: loadedPreferredProvider,
+      preferredTranscriptionProvider: loadedPreferredTranscriptionProvider,
+      targetLanguage: loadedTargetLanguage,
+      temperature: loadedTemperature,
+      maxTokens: loadedMaxTokens,
+    });
+    hasHydratedAiSettingsRef.current = true;
+
+    return () => {
+      if (pendingAiSettingsSaveRef.current !== null) {
+        window.clearTimeout(pendingAiSettingsSaveRef.current);
+      }
+    };
   }, []);
 
-  // Auto-save effect
   useEffect(() => {
-    if (!isLoadedRef.current) return;
+    if (!hasHydratedAiSettingsRef.current) {
+      return;
+    }
 
-    localStorage.setItem("openai_api_key", openaiApiKey);
-    localStorage.setItem("gemini_api_key", geminiApiKey);
-    localStorage.setItem("grok_api_key", grokApiKey);
-    localStorage.setItem("groq_api_key", groqApiKey);
-    localStorage.setItem("openai_model", openaiModel);
-    localStorage.setItem("gemini_model", geminiModel);
-    localStorage.setItem("grok_model", grokModel);
-    localStorage.setItem("ollama_base_url", ollamaBaseUrl);
-    localStorage.setItem("ollama_model", ollamaModel);
-    localStorage.setItem("local_whisper_url", localWhisperUrl);
-    localStorage.setItem("local_whisper_model", localWhisperModel);
-    localStorage.setItem("preferred_ai_provider", preferredProvider);
-    localStorage.setItem("preferred_transcription_provider", preferredTranscriptionProvider);
-    localStorage.setItem("target_language", targetLanguage);
-    localStorage.setItem("ai_temperature", temperature.toString());
-    localStorage.setItem("ai_max_tokens", maxTokens.toString());
+    if (currentAiSettingsSnapshot === lastSavedAiSettingsRef.current) {
+      return;
+    }
 
-    window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
-    window.dispatchEvent(new CustomEvent("ai-settings-updated"));
+    if (pendingAiSettingsSaveRef.current !== null) {
+      window.clearTimeout(pendingAiSettingsSaveRef.current);
+    }
+
+    pendingAiSettingsSaveRef.current = window.setTimeout(() => {
+      localStorage.setItem("openai_api_key", openaiApiKey);
+      localStorage.setItem("gemini_api_key", geminiApiKey);
+      localStorage.setItem("grok_api_key", grokApiKey);
+      localStorage.setItem("groq_api_key", groqApiKey);
+      localStorage.setItem("openai_model", openaiModel);
+      localStorage.setItem("gemini_model", geminiModel);
+      localStorage.setItem("grok_model", grokModel);
+      localStorage.setItem("ollama_base_url", ollamaBaseUrl);
+      localStorage.setItem("ollama_model", ollamaModel);
+      localStorage.setItem("local_whisper_url", localWhisperUrl);
+      localStorage.setItem("local_whisper_model", localWhisperModel);
+      localStorage.setItem("preferred_ai_provider", preferredProvider);
+      localStorage.setItem("preferred_transcription_provider", preferredTranscriptionProvider);
+      localStorage.setItem("target_language", targetLanguage);
+      localStorage.setItem("ai_temperature", temperature.toString());
+      localStorage.setItem("ai_max_tokens", maxTokens.toString());
+
+      lastSavedAiSettingsRef.current = currentAiSettingsSnapshot;
+      pendingAiSettingsSaveRef.current = null;
+      window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
+      window.dispatchEvent(new CustomEvent("ai-settings-updated"));
+    }, 400);
+
+    return () => {
+      if (pendingAiSettingsSaveRef.current !== null) {
+        window.clearTimeout(pendingAiSettingsSaveRef.current);
+      }
+    };
   }, [
     openaiApiKey, geminiApiKey, grokApiKey, groqApiKey,
     openaiModel, geminiModel, grokModel,
     ollamaBaseUrl, ollamaModel,
     localWhisperUrl, localWhisperModel,
     preferredProvider, preferredTranscriptionProvider,
-    targetLanguage, temperature, maxTokens
+    targetLanguage, temperature, maxTokens, currentAiSettingsSnapshot
   ]);
 
   const providerConfigs: ProviderConfig[] = [
@@ -331,8 +404,7 @@ export const SettingsPage: React.FC = () => {
     <div className="flex h-screen w-full overflow-hidden bg-gray-50/30 dark:bg-[#020617]">
       {/* Sidebar Navigation - Desktop */}
       <aside className={cn(
-        "hidden md:flex w-64 flex-col border-r border-black/5 dark:border-white/5 bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl",
-        isElectron() && isMac && "pt-12"
+        "hidden md:flex w-64 flex-col border-r border-black/5 dark:border-white/5 bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl"
       )}>
         <div className="p-6">
           <button
@@ -369,7 +441,9 @@ export const SettingsPage: React.FC = () => {
             <h4 className="text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400 mb-1">Status</h4>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">All Systems Ready</span>
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                {t("settingsPage.status.ready")}
+              </span>
             </div>
           </div>
         </div>
@@ -380,7 +454,7 @@ export const SettingsPage: React.FC = () => {
         {/* Mobile Header */}
         <header className={cn(
           "md:hidden sticky top-0 z-20 flex items-center px-4 border-b border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-xl",
-          isElectron() && isMac ? "h-24 pt-8" : "h-16"
+          "h-16"
         )}>
           <button
             onClick={() => navigate(hasMedia ? "/player" : "/")}
@@ -1057,10 +1131,12 @@ export const SettingsPage: React.FC = () => {
             <footer className="pt-10 pb-20 border-t border-black/5 dark:border-white/5 flex flex-col items-center gap-4 text-center">
               <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-black/5 dark:border-white/5">
                 <Shield className="h-3.5 w-3.5 text-green-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Settings are auto-saved to your device</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                  {t("settingsPage.footer.autoSaved")}
+                </span>
               </div>
               <p className="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-medium">
-                LoopMate v1.2.0 • Made with ❤️ for Language Learners
+                {t("settingsPage.footer.tagline")}
               </p>
             </footer>
           </div>

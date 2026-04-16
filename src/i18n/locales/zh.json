@@ -101,7 +101,14 @@
     "playback": "播放",
     "seekMode": "跳转模式",
     "seekStep": "跳转步长",
-    "smallStep": "小步长"
+    "smallStep": "小步长",
+    "status": {
+      "ready": "系统一切正常"
+    },
+    "footer": {
+      "autoSaved": "设置会自动保存到此设备",
+      "tagline": "LoopMate v1.2.0 • 为语言学习者打造"
+    }
   },
   "loop": {
     "controlsTitle": "循环设置",

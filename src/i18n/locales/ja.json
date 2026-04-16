@@ -101,7 +101,14 @@
     "playback": "再生",
     "seekMode": "シークモード",
     "seekStep": "シークステップ",
-    "smallStep": "小ステップ"
+    "smallStep": "小ステップ",
+    "status": {
+      "ready": "すべて正常です"
+    },
+    "footer": {
+      "autoSaved": "設定はこのデバイスに自動保存されます",
+      "tagline": "LoopMate v1.2.0 • 言語学習者のために作られました"
+    }
   },
   "loop": {
     "controlsTitle": "ループ設定",

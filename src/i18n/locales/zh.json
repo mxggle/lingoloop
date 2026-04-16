@@ -66,6 +66,11 @@
   "settings": {
     "title": "设置",
     "playback": "播放",
+    "seekMode": "跳转模式",
+    "seekModeHelp": "选择按时间跳转或按句子跳转",
+    "seekModeSeconds": "按秒跳转",
+    "seekModeSentence": "按句子跳转",
+    "seekModeSentenceShort": "句子",
     "seekStep": "跳转步长（秒）",
     "smallStep": "小步长（Shift + 方向键）",
     "interfaceLayout": "界面布局",
@@ -94,6 +99,7 @@
     "resetTheme": "恢复默认",
     "customPrimaryColor": "自定义主色调",
     "playback": "播放",
+    "seekMode": "跳转模式",
     "seekStep": "跳转步长",
     "smallStep": "小步长"
   },

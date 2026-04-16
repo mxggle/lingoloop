@@ -66,6 +66,11 @@
   "settings": {
     "title": "設定",
     "playback": "再生",
+    "seekMode": "シークモード",
+    "seekModeHelp": "時間ベースまたは文章ベースのシークを選択します",
+    "seekModeSeconds": "時間ベース",
+    "seekModeSentence": "1文章ごと",
+    "seekModeSentenceShort": "文章",
     "seekStep": "シークステップ（秒）",
     "smallStep": "小ステップ（Shift + 矢印キー）",
     "interfaceLayout": "インターフェースレイアウト",
@@ -94,6 +99,7 @@
     "resetTheme": "デフォルトに戻す",
     "customPrimaryColor": "カスタムプライマリカラー",
     "playback": "再生",
+    "seekMode": "シークモード",
     "seekStep": "シークステップ",
     "smallStep": "小ステップ"
   },

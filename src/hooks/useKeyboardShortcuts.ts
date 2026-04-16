@@ -42,6 +42,8 @@ export const useKeyboardShortcuts = () => {
     getCurrentMediaBookmarks,
     seekStepSeconds,
     seekSmallStepSeconds,
+    seekForward,
+    seekBackward,
     toggleLooping,
   } = usePlayerStore()
 
@@ -96,7 +98,6 @@ export const useKeyboardShortcuts = () => {
         case 'l':
         case 'L':
           e.preventDefault()
-          e.preventDefault()
           toggleLooping()
           break
 
@@ -112,11 +113,11 @@ export const useKeyboardShortcuts = () => {
         case 'ArrowLeft':
           e.preventDefault()
           if (e.shiftKey) {
-            // Shift + Left = small step
+            // Shift + Left = small step (always seconds)
             setCurrentTime(Math.max(0, currentTime - seekSmallStepSeconds))
           } else {
-            // Left = configured step
-            setCurrentTime(Math.max(0, currentTime - seekStepSeconds))
+            // Left = configured mode (seconds or sentence)
+            seekBackward(seekStepSeconds)
           }
           break
 
@@ -124,11 +125,11 @@ export const useKeyboardShortcuts = () => {
         case 'ArrowRight':
           e.preventDefault()
           if (e.shiftKey) {
-            // Shift + Right = small step
+            // Shift + Right = small step (always seconds)
             setCurrentTime(Math.min(duration, currentTime + seekSmallStepSeconds))
           } else {
-            // Right = configured step
-            setCurrentTime(Math.min(duration, currentTime + seekStepSeconds))
+            // Right = configured mode (seconds or sentence)
+            seekForward(seekStepSeconds)
           }
           break
 
@@ -243,6 +244,8 @@ export const useKeyboardShortcuts = () => {
     deleteBookmark,
     seekSmallStepSeconds,
     seekStepSeconds,
+    seekForward,
+    seekBackward,
     t,
     toggleLooping
   ])

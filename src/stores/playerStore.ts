@@ -148,6 +148,7 @@ export interface PlayerState {
   // Seek configuration
   seekStepSeconds: number; // default seek step for arrows/buttons
   seekSmallStepSeconds: number; // shift+arrow small step
+  seekMode: "seconds" | "sentence";
 
   // Transcript state
   mediaTranscripts: MediaTranscripts; // Changed from transcriptSegments array to media-scoped object
@@ -220,6 +221,7 @@ export interface PlayerActions {
   // Seek settings
   setSeekStepSeconds: (seconds: number) => void;
   setSeekSmallStepSeconds: (seconds: number) => void;
+  setSeekMode: (mode: "seconds" | "sentence") => void;
 
   // Transcript actions
   startTranscribing: () => void;
@@ -328,6 +330,7 @@ const initialState: PlayerState = {
   // Defaults for seek steps
   seekStepSeconds: 5,
   seekSmallStepSeconds: 1,
+  seekMode: "seconds",
   // Library organization & sorting defaults
   mediaFolders: {},
   historySortBy: "date",
@@ -608,13 +611,43 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
       // Seek forward/backward
       seekForward: (seconds) => {
-        const { currentTime, duration } = get();
+        const { currentTime, duration, seekMode, getCurrentMediaTranscripts } = get();
+        if (seekMode === "sentence") {
+          const segments = getCurrentMediaTranscripts();
+          // Find the first segment that starts after current time
+          const nextSegment = segments.find((s) => s.startTime > currentTime + 0.05);
+          if (nextSegment) {
+            set({ currentTime: nextSegment.startTime });
+            return;
+          }
+        }
         const newTime = Math.min(currentTime + seconds, duration);
         set({ currentTime: newTime });
       },
 
       seekBackward: (seconds) => {
-        const { currentTime } = get();
+        const { currentTime, seekMode, getCurrentMediaTranscripts } = get();
+        if (seekMode === "sentence") {
+          const segments = getCurrentMediaTranscripts();
+          // Find segments that start before current time
+          // If we are more than 1s into a segment, jump to the start of the current segment first
+          const currentSegment = segments.find(
+            (s) => currentTime >= s.startTime && currentTime <= s.endTime
+          );
+
+          if (currentSegment && currentTime - currentSegment.startTime > 1.0) {
+            set({ currentTime: currentSegment.startTime });
+            return;
+          }
+
+          // Otherwise find the previous segment
+          const prevSegments = segments.filter((s) => s.startTime < currentTime - 0.1);
+          if (prevSegments.length > 0) {
+            const prevSegment = prevSegments[prevSegments.length - 1];
+            set({ currentTime: prevSegment.startTime });
+            return;
+          }
+        }
         const newTime = Math.max(currentTime - seconds, 0);
         set({ currentTime: newTime });
       },
@@ -747,6 +780,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         set({ seekStepSeconds: Math.max(0.1, Math.min(120, seconds)) }),
       setSeekSmallStepSeconds: (seconds: number) =>
         set({ seekSmallStepSeconds: Math.max(0.05, Math.min(10, seconds)) }),
+      setSeekMode: (seekMode) => set({ seekMode }),
 
       // Bookmark actions
       addBookmark: (bookmark) => {
@@ -2024,6 +2058,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         historyFolderFilter: state.historyFolderFilter,
         seekStepSeconds: state.seekStepSeconds,
         seekSmallStepSeconds: state.seekSmallStepSeconds,
+        seekMode: state.seekMode,
         sourceFolders: state.sourceFolders,
         isSidebarOpen: state.isSidebarOpen,
         sidebarWidth: state.sidebarWidth,

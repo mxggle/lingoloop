@@ -102,8 +102,10 @@ export const SettingsPage: React.FC = () => {
   const {
     seekStepSeconds,
     seekSmallStepSeconds,
+    seekMode,
     setSeekStepSeconds,
     setSeekSmallStepSeconds,
+    setSeekMode,
     currentFile,
     currentYouTube,
   } = usePlayerStore();
@@ -516,6 +518,26 @@ export const SettingsPage: React.FC = () => {
                 <div className="flex items-center justify-between px-5 py-3 gap-4">
                   <div>
                     <label className="text-sm text-gray-700 dark:text-gray-300">
+                      {t("settingsPage.seekMode", "Seek Mode")}
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t("settings.seekModeHelp", "Choose between time-based or sentence-based seeking")}
+                    </p>
+                  </div>
+                  <div className="w-32">
+                    <select
+                      value={seekMode}
+                      onChange={(e) => setSeekMode(e.target.value as "seconds" | "sentence")}
+                      className="h-9 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900/20 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 dark:focus:ring-gray-300/20"
+                    >
+                      <option value="seconds">{t("settings.seekModeSeconds", "Seconds")}</option>
+                      <option value="sentence">{t("settings.seekModeSentence", "One Sentence")}</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-5 py-3 gap-4">
+                  <div>
+                    <label className={cn("text-sm text-gray-700 dark:text-gray-300", seekMode === "sentence" && "opacity-50")}>
                       {t("settingsPage.seekStep")}
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -528,6 +550,7 @@ export const SettingsPage: React.FC = () => {
                       min={0.1}
                       max={120}
                       step={0.1}
+                      disabled={seekMode === "sentence"}
                       value={seekStepSeconds}
                       onChange={(e) => setSeekStepSeconds(parseFloat(e.target.value) || 0)}
                       className="h-9"

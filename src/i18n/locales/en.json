@@ -76,6 +76,11 @@
   "settings": {
     "title": "Settings",
     "playback": "Playback",
+    "seekMode": "Seek Mode",
+    "seekModeHelp": "Choose between time-based or sentence-based seeking",
+    "seekModeSeconds": "Seconds",
+    "seekModeSentence": "One Sentence",
+    "seekModeSentenceShort": "Sent",
     "seekStep": "Seek step (seconds)",
     "smallStep": "Small step (Shift + arrows)",
     "interfaceLayout": "Interface Layout",
@@ -104,6 +109,7 @@
     "resetTheme": "Reset to default",
     "customPrimaryColor": "Custom Primary Color",
     "playback": "Playback",
+    "seekMode": "Seek Mode",
     "seekStep": "Seek Step",
     "smallStep": "Small Step"
   },

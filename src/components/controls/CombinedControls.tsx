@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Slider } from "../ui/slider";
 import { Button } from "../ui/button";
+import { cn } from "../../utils/cn";
 
 interface CombinedControlsProps {
   /** When false the bar always starts at left:0 (web – no sidebar). Defaults to true. */
@@ -49,8 +50,10 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
     seekBackward: storeSeekBackward,
     seekStepSeconds,
     seekSmallStepSeconds,
+    seekMode,
     setSeekStepSeconds,
     setSeekSmallStepSeconds,
+    setSeekMode,
     maxLoops,
     setMaxLoops,
     loopDelay,
@@ -418,20 +421,32 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
                 className="gap-1 py-1 px-3 h-8 text-xs font-medium whitespace-nowrap"
                 title={t("settings.seekStep")}
               >
-                {seekStepSeconds}s
+                {seekMode === "sentence" ? t("settings.seekModeSentenceShort", "Sent") : `${seekStepSeconds}s`}
               </Button>
               {showStepDropdown && (
                 <div className="absolute right-0 bottom-full mb-1 z-[60] w-48 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-3 space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t("settingsPage.seekStep")}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t("settingsPage.seekMode")}</label>
+                    <select
+                      value={seekMode}
+                      onChange={(e) => setSeekMode(e.target.value as "seconds" | "sentence")}
+                      className="h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-1 text-[10px] font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
+                    >
+                      <option value="seconds">{t("settings.seekModeSeconds", "Seconds")}</option>
+                      <option value="sentence">{t("settings.seekModeSentence", "Sentence")}</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className={cn("text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap", seekMode === "sentence" && "opacity-50")}>{t("settingsPage.seekStep")}</label>
                     <input
                       type="number"
                       min={0.1}
                       max={120}
                       step={0.1}
+                      disabled={seekMode === "sentence"}
                       value={seekStepSeconds}
                       onChange={(e) => setSeekStepSeconds(parseFloat(e.target.value) || 0)}
-                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700"
+                      className="w-16 h-7 rounded border border-gray-200 dark:border-gray-600 bg-transparent px-2 text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 disabled:opacity-50"
                     />
                   </div>
                   <div className="flex items-center justify-between gap-2">

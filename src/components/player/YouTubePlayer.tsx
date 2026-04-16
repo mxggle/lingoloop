@@ -88,6 +88,7 @@ export const YouTubePlayer = ({
     setCurrentTime,
     setDuration,
     setIsPlaying,
+    setIsTransitioning,
   } = usePlayerStore(
     useShallow((state) => ({
       isPlaying: state.isPlaying,
@@ -102,6 +103,7 @@ export const YouTubePlayer = ({
       setCurrentTime: state.setCurrentTime,
       setDuration: state.setDuration,
       setIsPlaying: state.setIsPlaying,
+      setIsTransitioning: state.setIsTransitioning,
     }))
   );
   const { t } = useTranslation();
@@ -147,14 +149,20 @@ export const YouTubePlayer = ({
           setDuration(event.target.getDuration());
         },
         onStateChange: (event) => {
+          if (usePlayerStore.getState().isTransitioning) return;
+
           if (event.data === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
+            if (!usePlayerStore.getState().isPlaying) {
+              setIsPlaying(true);
+            }
             // User may have used YouTube controls to seek
             const currentTime = event.target.getCurrentTime();
             setCurrentTime(currentTime);
             lastSeekTime.current = Date.now();
           } else if (event.data === window.YT.PlayerState.PAUSED) {
-            setIsPlaying(false);
+            if (usePlayerStore.getState().isPlaying) {
+              setIsPlaying(false);
+            }
             // User may have paused to seek
             setIsSeeking(true);
             // Get the current time to update our UI
@@ -194,13 +202,23 @@ export const YouTubePlayer = ({
     if (!player) return;
 
     if (isPlaying) {
-      player.playVideo();
+      if (player.getPlayerState() !== window.YT.PlayerState.PLAYING) {
+        setIsTransitioning(true);
+        player.playVideo();
+        // YouTube API doesn't have a reliable callback for when play starts,
+        // but it's usually fast enough.
+        setTimeout(() => setIsTransitioning(false), 100);
+      }
       // Reset seeking state when playback resumes
       setIsSeeking(false);
     } else {
-      player.pauseVideo();
+      if (player.getPlayerState() !== window.YT.PlayerState.PAUSED) {
+        setIsTransitioning(true);
+        player.pauseVideo();
+        setIsTransitioning(false);
+      }
     }
-  }, [isPlaying, player]);
+  }, [isPlaying, player, setIsTransitioning]);
 
   // Handle volume changes
   useEffect(() => {

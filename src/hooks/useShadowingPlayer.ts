@@ -233,7 +233,11 @@ export const useShadowingPlayer = () => {
     }, [isLoaded, stopAll]);
 
     // Respond to Play/Pause/Seek
+    const lastIsPlayingRef = useRef(false);
     useEffect(() => {
+        if (isPlaying === lastIsPlayingRef.current) return;
+        lastIsPlayingRef.current = isPlaying;
+
         if (isPlaying) {
             playAt(currentTimeRef.current);
         } else {

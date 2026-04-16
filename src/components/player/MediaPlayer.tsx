@@ -35,6 +35,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     setCurrentTime,
     setDuration,
     setIsPlaying,
+    setIsTransitioning,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
@@ -50,27 +51,33 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       setCurrentTime: state.setCurrentTime,
       setDuration: state.setDuration,
       setIsPlaying: state.setIsPlaying,
+      setIsTransitioning: state.setIsTransitioning,
     }))
   );
 
   // Helper to safely play a media element
   const safePlay = useCallback(
-    (mediaElement: HTMLMediaElement) => {
+    async (mediaElement: HTMLMediaElement) => {
       // readyState >= 2 (HAVE_CURRENT_DATA) means enough data to play
       if (mediaElement.readyState >= 2) {
-        mediaElement.play().catch((err) => {
+        try {
+          setIsTransitioning(true);
+          await mediaElement.play();
+        } catch (err) {
           console.error("Error playing media:", err);
           toast.error(
             "Error playing media. The file may be corrupted or not supported."
           );
           setIsPlaying(false);
-        });
+        } finally {
+          setIsTransitioning(false);
+        }
       } else {
         // Not ready yet – mark as pending and wait for canplay
         pendingPlayRef.current = true;
       }
     },
-    [setIsPlaying]
+    [setIsPlaying, setIsTransitioning]
   );
 
   const syncCurrentTime = useCallback(
@@ -157,9 +164,12 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       // If a play was requested while we were loading, start now
       if (pendingPlayRef.current) {
         pendingPlayRef.current = false;
+        setIsTransitioning(true);
         mediaElement.play().catch((err) => {
           console.error("Error playing media after canplay:", err);
           setIsPlaying(false);
+        }).finally(() => {
+          setIsTransitioning(false);
         });
       }
     };
@@ -172,7 +182,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("canplay", handleCanPlay);
     };
-  }, [currentFile, setIsPlaying]);
+  }, [currentFile, setIsPlaying, setIsTransitioning]);
 
   // Pause playback when the component unmounts only if media has been cleared.
   // During navigation (settings → player), currentFile stays set so we preserve playback.
@@ -195,12 +205,18 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     if (isPlaying) {
       if (isDelayingRef.current) return; // Don't interfere if delaying
-      safePlay(mediaElement);
+      if (mediaElement.paused) {
+        safePlay(mediaElement);
+      }
     } else {
       pendingPlayRef.current = false;
-      mediaElement.pause();
+      if (!mediaElement.paused) {
+        setIsTransitioning(true);
+        mediaElement.pause();
+        setIsTransitioning(false);
+      }
     }
-  }, [isPlaying, currentFile, setIsPlaying, safePlay]);
+  }, [isPlaying, currentFile, setIsPlaying, safePlay, setIsTransitioning]);
 
   // Keep the global playback state aligned with actual media element state.
   // This is required for features like shadowing recording that react to store playback.
@@ -211,12 +227,14 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     if (!mediaElement) return;
 
     const handlePlay = () => {
+      if (usePlayerStore.getState().isTransitioning) return;
       if (!usePlayerStore.getState().isPlaying) {
         setIsPlaying(true);
       }
     };
 
     const handlePause = () => {
+      if (usePlayerStore.getState().isTransitioning) return;
       if (isDelayingRef.current || mediaElement.ended) return;
       if (usePlayerStore.getState().isPlaying) {
         setIsPlaying(false);

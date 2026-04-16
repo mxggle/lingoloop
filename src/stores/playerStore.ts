@@ -116,6 +116,7 @@ export interface PlayerState {
   currentFile: MediaFile | null;
   currentYouTube: YouTubeMedia | null;
   isPlaying: boolean;
+  isTransitioning: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -180,6 +181,7 @@ export interface PlayerActions {
   setCurrentFile: (file: MediaFile | null) => void;
   setCurrentYouTube: (youtube: YouTubeMedia | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  setIsTransitioning: (isTransitioning: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
@@ -291,6 +293,7 @@ const initialState: PlayerState = {
   currentFile: null,
   currentYouTube: null,
   isPlaying: false,
+  isTransitioning: false,
   currentTime: 0,
   duration: 0,
   volume: 1,
@@ -573,6 +576,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         }
       },
       setIsPlaying: (isPlaying) => set({ isPlaying }),
+      setIsTransitioning: (isTransitioning) => set({ isTransitioning }),
       setCurrentTime: (currentTime) => set({ currentTime }),
       setDuration: (duration) => set({ duration }),
       setVolume: (volume) => set({ volume }),

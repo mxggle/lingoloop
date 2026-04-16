@@ -15,13 +15,10 @@ import {
   Key,
   Palette,
   RotateCcw,
-  Settings,
   SlidersHorizontal,
   TestTube,
   Waves,
   Layout,
-  Music,
-  User,
   Shield,
   Clock,
   ChevronRight,
@@ -237,10 +234,6 @@ export const SettingsPage: React.FC = () => {
     { provider: "grok", apiKey: grokApiKey, setApiKey: setGrokApiKey, model: grokModel, setModel: setGrokModel },
     { provider: "ollama", apiKey: "", setApiKey: () => {}, model: ollamaModel, setModel: setOllamaModel },
   ];
-
-  const configuredProvidersCount = providerConfigs.filter(({ provider, apiKey }) =>
-    isOllama(provider) || aiService.validateApiKey(provider, apiKey)
-  ).length;
 
   function isOllama(provider: AIProvider): provider is "ollama" {
     return provider === "ollama";
@@ -730,7 +723,7 @@ export const SettingsPage: React.FC = () => {
                           <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{t("aiSettingsPage.preferredProvider")}</h3>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-3">
-                          {providerConfigs.map(({ provider, apiKey, model }) => {
+                          {providerConfigs.map(({ provider, apiKey }) => {
                             const status = getProviderSetupStatus(provider, apiKey);
                             const isActive = preferredProvider === provider;
                             return (
@@ -1076,4 +1069,3 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
-

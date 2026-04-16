@@ -55,8 +55,63 @@ import {
 const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
 const EMPTY_STUDY: MediaTranscriptStudy = {};
+const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
 
 // WhisperSegment/WhisperResponse types moved to transcriptionService.ts
+
+const getSegmentBookmarkKey = (startTime: number, endTime: number) =>
+  `${Math.round(startTime * 10)}:${Math.round(endTime * 10)}`;
+
+const isTimeWithinSegment = (time: number, segment: TranscriptSegmentType) =>
+  time >= segment.startTime && time <= segment.endTime;
+
+const findSegmentIndexAtTime = (
+  segments: TranscriptSegmentType[],
+  time: number,
+  hintIndex = -1
+) => {
+  if (segments.length === 0) {
+    return -1;
+  }
+
+  if (hintIndex >= 0 && hintIndex < segments.length) {
+    if (isTimeWithinSegment(time, segments[hintIndex])) {
+      return hintIndex;
+    }
+
+    const nextIndex = hintIndex + 1;
+    if (nextIndex < segments.length && isTimeWithinSegment(time, segments[nextIndex])) {
+      return nextIndex;
+    }
+
+    const previousIndex = hintIndex - 1;
+    if (previousIndex >= 0 && isTimeWithinSegment(time, segments[previousIndex])) {
+      return previousIndex;
+    }
+  }
+
+  let low = 0;
+  let high = segments.length - 1;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const segment = segments[mid];
+
+    if (time < segment.startTime) {
+      high = mid - 1;
+      continue;
+    }
+
+    if (time > segment.endTime) {
+      low = mid + 1;
+      continue;
+    }
+
+    return mid;
+  }
+
+  return -1;
+};
 
 export const TranscriptPanel = () => {
   const LARGE_TRANSCRIPTION_FILE_SIZE = 25 * 1024 * 1024;
@@ -304,6 +359,16 @@ export const TranscriptPanel = () => {
     });
   }, [activeBookmark, transcriptSegments]);
 
+  const segmentBookmarkLookup = useMemo(() => {
+    const lookup = new Map<string, string>();
+
+    bookmarks.forEach((bookmark) => {
+      lookup.set(getSegmentBookmarkKey(bookmark.start, bookmark.end), bookmark.id);
+    });
+
+    return lookup;
+  }, [bookmarks]);
+
   const levelSystem: TranscriptLevelSystem = useMemo(
     () => inferTranscriptLevelSystem(transcriptLanguage),
     [transcriptLanguage]
@@ -482,31 +547,52 @@ export const TranscriptPanel = () => {
     navigate("/settings?tab=ai");
   };
 
+  const scrollToSegmentIndex = useCallback(
+    (index: number, behavior: ScrollBehavior = "smooth") => {
+      if (index < 0 || index >= filteredSegments.length) {
+        return;
+      }
+
+      const containerHeight = transcriptRef.current?.clientHeight || 0;
+      const item = virtualizer.getVirtualItems().find((virtualItem) => virtualItem.index === index);
+
+      if (item) {
+        virtualizer.scrollToOffset(
+          Math.max(0, item.start - containerHeight * SEGMENT_SCROLL_OFFSET_RATIO),
+          { behavior }
+        );
+        return;
+      }
+
+      virtualizer.scrollToIndex(index, { align: "center", behavior });
+    },
+    [filteredSegments.length, virtualizer]
+  );
+
   const scrollToActiveSegment = useCallback(() => {
     const time = getCurrentTime();
-    const index = filteredSegments.findIndex(
-      (s) => time >= s.startTime && time <= s.endTime
+    const index = findSegmentIndexAtTime(
+      filteredSegments,
+      time,
+      currentSegmentIndexRef.current
     );
 
     if (index !== -1) {
-      const containerHeight = transcriptRef.current?.clientHeight || 0;
-      // Position the segment at roughly 35% from the top (optical center)
-      // instead of dead center (50%) for better readability.
-      const item = virtualizer.getVirtualItems().find((v) => v.index === index);
-      if (item) {
-        virtualizer.scrollToOffset(item.start - containerHeight * 0.15, {
-          behavior: "smooth",
-        });
-      } else {
-        // Fallback to center if item not yet measured
-        virtualizer.scrollToIndex(index, { align: "center", behavior: "smooth" });
-      }
+      currentSegmentIndexRef.current = index;
+      scrollToSegmentIndex(index);
     } else {
       toast.error(t("transcript.segmentNotFound"));
     }
-  }, [filteredSegments, virtualizer, t]);
+  }, [filteredSegments, scrollToSegmentIndex, t]);
 
   const currentSegmentIndexRef = useRef<number>(-1);
+
+  useEffect(() => {
+    currentSegmentIndexRef.current = findSegmentIndexAtTime(
+      filteredSegments,
+      getCurrentTime()
+    );
+  }, [filteredSegments]);
 
   useEffect(() => {
     if (!autoScrollEnabled) {
@@ -518,39 +604,27 @@ export const TranscriptPanel = () => {
       const segments = filteredSegments;
       if (segments.length === 0) return;
 
-      const currentIndex = currentSegmentIndexRef.current;
-      const currentSegment = segments[currentIndex];
+      const nextIndex = findSegmentIndexAtTime(
+        segments,
+        time,
+        currentSegmentIndexRef.current
+      );
 
-      if (
-        currentSegment &&
-        time >= currentSegment.startTime &&
-        time <= currentSegment.endTime
-      ) {
+      if (nextIndex === -1) {
+        currentSegmentIndexRef.current = -1;
         return;
       }
 
-      const nextIndex = segments.findIndex(
-        (s) => time >= s.startTime && time <= s.endTime
-      );
-
-      if (nextIndex !== -1 && nextIndex !== currentIndex) {
+      if (nextIndex !== currentSegmentIndexRef.current) {
         currentSegmentIndexRef.current = nextIndex;
-        const containerHeight = transcriptRef.current?.clientHeight || 0;
-        const item = virtualizer.getVirtualItems().find((v) => v.index === nextIndex);
-        if (item) {
-          virtualizer.scrollToOffset(item.start - containerHeight * 0.15, {
-            behavior: "smooth",
-          });
-        } else {
-          virtualizer.scrollToIndex(nextIndex, { align: "center", behavior: "smooth" });
-        }
+        scrollToSegmentIndex(nextIndex);
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [autoScrollEnabled, filteredSegments, virtualizer]);
+  }, [autoScrollEnabled, filteredSegments, scrollToSegmentIndex]);
 
   type TimeRange = { start: number; end: number };
 
@@ -1603,7 +1677,11 @@ export const TranscriptPanel = () => {
                   >
                     <TranscriptSegmentItem
                       segment={segment}
-                      bookmarks={bookmarks}
+                      matchedBookmarkId={
+                        segmentBookmarkLookup.get(
+                          getSegmentBookmarkKey(segment.startTime, segment.endTime)
+                        ) ?? null
+                      }
                       study={displayTranscriptStudy[segment.id]}
                       highlightsEnabled={highlightsEnabled}
                       activeLevels={activeLevels}

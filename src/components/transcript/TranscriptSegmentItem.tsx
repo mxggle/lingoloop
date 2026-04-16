@@ -1,9 +1,8 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { Bookmark, Brain, Pause, Play, Repeat } from "lucide-react";
 import {
-  LoopBookmark,
   TranscriptSegment as TranscriptSegmentType,
   usePlayerStore,
 } from "../../stores/playerStore";
@@ -19,7 +18,7 @@ import { TranscriptTextRenderer } from "./TranscriptTextRenderer";
 
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
-  bookmarks: LoopBookmark[];
+  matchedBookmarkId: string | null;
   study: SegmentTranscriptStudy | undefined;
   highlightsEnabled: boolean;
   activeLevels: Set<TranscriptStudyLevel> | null;
@@ -32,7 +31,7 @@ interface TranscriptSegmentItemProps {
 export const TranscriptSegmentItem = memo(
   ({
     segment,
-    bookmarks,
+    matchedBookmarkId,
     study,
     highlightsEnabled,
     activeLevels,
@@ -47,6 +46,7 @@ export const TranscriptSegmentItem = memo(
     const {
       setCurrentTime,
       createBookmarkFromTranscript,
+      deleteBookmark,
       setIsPlaying,
       setIsLooping,
       setLoopPoints,
@@ -54,6 +54,7 @@ export const TranscriptSegmentItem = memo(
       useShallow((state) => ({
         setCurrentTime: state.setCurrentTime,
         createBookmarkFromTranscript: state.createBookmarkFromTranscript,
+        deleteBookmark: state.deleteBookmark,
         setIsPlaying: state.setIsPlaying,
         setIsLooping: state.setIsLooping,
         setLoopPoints: state.setLoopPoints,
@@ -61,16 +62,7 @@ export const TranscriptSegmentItem = memo(
     );
 
     const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
-
-    const isBookmarked = useMemo(
-      () =>
-        bookmarks.some(
-          (bookmark) =>
-            Math.abs(bookmark.start - segment.startTime) < 0.5 &&
-            Math.abs(bookmark.end - segment.endTime) < 0.5
-        ),
-      [bookmarks, segment.endTime, segment.startTime]
-    );
+    const isBookmarked = matchedBookmarkId !== null;
 
     const shouldShowPauseButton = isActive && isPlaying;
 
@@ -102,15 +94,8 @@ export const TranscriptSegmentItem = memo(
 
     const handleToggleBookmark = () => {
       onClearSelection();
-      if (isBookmarked) {
-        const bookmarkToDelete = bookmarks.find(
-          (bookmark) =>
-            Math.abs(bookmark.start - segment.startTime) < 0.5 &&
-            Math.abs(bookmark.end - segment.endTime) < 0.5
-        );
-        if (bookmarkToDelete) {
-          usePlayerStore.getState().deleteBookmark(bookmarkToDelete.id);
-        }
+      if (matchedBookmarkId) {
+        deleteBookmark(matchedBookmarkId);
       } else {
         createBookmarkFromTranscript(segment.id);
       }
@@ -125,12 +110,18 @@ export const TranscriptSegmentItem = memo(
       <>
         <div
           data-transcript-row
-          className={`group relative py-6 px-4 transition-[opacity,background-color] duration-500 rounded-xl ${
+          className={`group relative overflow-hidden rounded-xl px-4 py-6 transition-[opacity,background-color,box-shadow,transform] duration-300 ease-out ${
             isActive
-              ? "opacity-100 bg-white/5 dark:bg-white/5"
-              : "opacity-40 hover:opacity-100 dark:text-gray-400"
+              ? "translate-x-[1px] bg-white/8 opacity-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] dark:bg-white/5"
+              : "bg-transparent opacity-60 hover:bg-white/4 hover:opacity-100 dark:text-gray-400 dark:hover:bg-white/3"
           }`}
         >
+          <span
+            aria-hidden="true"
+            className={`absolute inset-y-4 left-0 w-px origin-center rounded-full bg-primary-500/70 transition-[opacity,transform] duration-300 ease-out ${
+              isActive ? "scale-y-100 opacity-100" : "scale-y-50 opacity-0"
+            }`}
+          />
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
               <span className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-500 font-mono">
@@ -207,7 +198,11 @@ export const TranscriptSegmentItem = memo(
               </div>
             </div>
 
-            <div className={`transition-transform duration-500 ${isActive ? "translate-x-1" : "translate-x-0"}`}>
+            <div
+              className={`transition-transform duration-300 ease-out ${
+                isActive ? "translate-x-0.5" : "translate-x-0"
+              }`}
+            >
               <TranscriptTextRenderer
                 segmentId={segment.id}
                 text={segment.text}

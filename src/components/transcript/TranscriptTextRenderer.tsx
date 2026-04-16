@@ -142,10 +142,10 @@ export const TranscriptTextRenderer = memo(
       <p
         ref={containerRef}
         className={cn(
-          "leading-relaxed select-text whitespace-pre-wrap transition-opacity transition-transform duration-500",
+          "text-base leading-relaxed select-text whitespace-pre-wrap font-medium transition-[color,opacity] duration-300 ease-out md:text-lg",
           isActive
-            ? "text-lg md:text-xl text-gray-900 dark:text-white font-medium"
-            : "text-base md:text-lg text-gray-600 dark:text-gray-400"
+            ? "text-gray-900 opacity-100 dark:text-white"
+            : "text-gray-600 opacity-90 dark:text-gray-400"
         )}
         onMouseUp={handleSelectionCapture}
         onKeyUp={handleSelectionCapture}

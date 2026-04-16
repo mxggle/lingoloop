@@ -1165,11 +1165,11 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
+    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-[#0a0a0a] shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
+        className={`absolute z-10 top-2 left-2 p-1.5 rounded-md bg-white dark:bg-gray-900 shadow-lg border border-gray-200 dark:border-white/10 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ${isSidebarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}
         title={t("transcript.toggleSidebar")}
       >
         <Sidebar size={16} />
@@ -1177,7 +1177,7 @@ export const TranscriptPanel = () => {
 
       {/* Sidebar */}
       <div
-        className={`${isSidebarOpen ? "w-1/4 min-w-[200px] max-w-[300px] border-r" : "w-0 border-none"} transition-all duration-300 ease-in-out border-gray-100 dark:border-white/5 flex flex-col bg-gray-50 dark:bg-[#0f0f0f] overflow-hidden relative`}
+        className={`${isSidebarOpen ? "w-1/4 min-w-[200px] max-w-[300px] border-r" : "w-0 border-none"} transition-all duration-300 ease-in-out border-gray-100 dark:border-white/5 flex flex-col bg-gray-50 dark:bg-gray-950/60 overflow-hidden relative`}
       >
         <div className="p-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
           <span className="font-semibold text-[10px] text-gray-400 uppercase tracking-widest whitespace-nowrap overflow-hidden text-ellipsis">
@@ -1283,8 +1283,8 @@ export const TranscriptPanel = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-[#0a0a0a]">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-[#0a0a0a]">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md">
           <div className="flex items-center min-w-0 mr-4">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
               {activeTabId
@@ -1410,8 +1410,8 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={() => setAutoScrollEnabled(!autoScrollEnabled)}
-              className={`p-1.5 rounded-full transition-colors ${autoScrollEnabled
-                ? "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+              className={`p-1.5 rounded-full transition-all duration-200 ${autoScrollEnabled
+                ? "bg-primary-500/20 text-primary-600 dark:bg-primary-500/30 dark:text-primary-400"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
                 }`}
               title={t("transcript.autoScroll")}
@@ -1421,7 +1421,7 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={scrollToActiveSegment}
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40"
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
               title={t("transcript.scrollToCurrent")}
               disabled={filteredSegments.length === 0}
             >

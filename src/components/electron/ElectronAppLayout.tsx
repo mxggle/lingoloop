@@ -38,7 +38,7 @@ const SectionHeader = ({ title, isOpen, onToggle, actions }: SectionHeaderProps)
       ) : (
         <ChevronRight className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
       )}
-      <span className="text-[10px] font-bold tracking-[0.1em] text-gray-500/70 dark:text-gray-400/70 truncate uppercase">
+      <span className="text-[10px] font-bold tracking-[0.1em] text-gray-500/70 dark:text-gray-300/60 truncate uppercase">
         {title}
       </span>
     </button>
@@ -66,7 +66,7 @@ const HeaderAction = ({
       onClick();
     }}
     title={title}
-    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
   >
     {children}
   </button>

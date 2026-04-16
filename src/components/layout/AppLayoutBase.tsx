@@ -92,7 +92,7 @@ export const AppLayoutBase = ({
         <div className="h-[52px] sm:h-[56px]"></div>
 
         <header
-          className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl fixed top-0 right-0 z-[55] transition-[left,padding-left] duration-300 ease-in-out ${
+          className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl fixed top-0 right-0 z-[55] transition-[left,padding-left] duration-300 ease-in-out ${
             desktopMode ? "[-webkit-app-region:drag] select-none [&_button]:[-webkit-app-region:no-drag] [&_input]:[-webkit-app-region:no-drag] [&_a]:[-webkit-app-region:no-drag] [&_[role='dialog']]:[-webkit-app-region:no-drag]" : ""
           }`}
           style={{ 
@@ -105,7 +105,7 @@ export const AppLayoutBase = ({
           {/* Media title – centered */}
           {(currentFile || currentYouTube) && (
             <div className="flex-1 flex justify-center px-2 sm:px-4 overflow-hidden min-w-0">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 max-w-full transition-all hover:bg-white dark:hover:bg-gray-800">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50/80 dark:bg-white/10 backdrop-blur-sm border border-gray-200/60 dark:border-white/10 max-w-full transition-all hover:bg-white dark:hover:bg-white/15">
                 {currentYouTube ? (
                   <Youtube className="h-3 w-3 text-error-500 shrink-0" />
                 ) : currentFile?.type.includes("video") ? (
@@ -113,7 +113,7 @@ export const AppLayoutBase = ({
                 ) : (
                   <Music className="h-3 w-3 text-primary-500 shrink-0" />
                 )}
-                <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 truncate max-w-[100px] sm:max-w-[350px]">
+                <span className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-200 truncate max-w-[100px] sm:max-w-[350px]">
                   {currentYouTube
                     ? currentYouTube.title || currentYouTube.id
                     : currentFile?.name}

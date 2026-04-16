@@ -149,7 +149,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
         <div className="flex items-center gap-0.5 sm:gap-1">
           <button
             onClick={seekBackward}
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-300 active:scale-90"
+            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90"
             title={t("player.seekBackwardSeconds", { seconds: seekStepSeconds })}
           >
             <SkipBack size={18} className="sm:w-[20px] sm:h-[20px]" />
@@ -167,7 +167,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
           </button>
           <button
             onClick={seekForward}
-            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-300 active:scale-90"
+            className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90"
             title={t("player.seekForwardSeconds", { seconds: seekStepSeconds })}
           >
             <SkipForward size={18} className="sm:w-[20px] sm:h-[20px]" />
@@ -181,7 +181,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
               {currentYouTube ? <Youtube size={16} className="sm:w-[20px] sm:h-[20px]" /> : <Music size={16} className="sm:w-[20px] sm:h-[20px]" />}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[11px] sm:text-sm font-semibold truncate text-gray-900 dark:text-white leading-tight">
+              <span className="text-[11px] sm:text-sm font-semibold truncate text-gray-900 dark:text-gray-100 leading-tight">
                 {currentYouTube ? currentYouTube.title : (currentFile ? currentFile.name : t("player.noMedia"))}
               </span>
               <div className="flex items-center gap-1.5 sm:gap-2">
@@ -202,11 +202,11 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
           <div className="hidden xs:block">
             <Popover>
               <PopoverTrigger asChild>
-                <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-300 active:scale-90">
+                <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90">
                   {muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-40 p-4 backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border-black/10 dark:border-white/10 shadow-2xl rounded-xl" side="top" sideOffset={16}>
+              <PopoverContent className="w-40 p-4 backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 border-black/10 dark:border-white/10 shadow-2xl rounded-xl" side="top" sideOffset={16}>
                 <div className="flex items-center gap-3">
                   <button onClick={toggleMute} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
@@ -231,7 +231,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
               "p-2 rounded-full transition-colors active:scale-90",
               isLooping
                 ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
-                : "text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5"
+                : "text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
             )}
             title={t("player.toggleLooping")}
           >
@@ -240,11 +240,11 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
 
           <Popover>
             <PopoverTrigger asChild>
-              <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-300 active:scale-90">
+              <button className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90">
                 <MoreVertical size={18} />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-4 space-y-5 backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 border-black/10 dark:border-white/10 shadow-2xl rounded-xl" side="top" align="end" sideOffset={16}>
+            <PopoverContent className="w-72 p-4 space-y-5 backdrop-blur-xl bg-white/90 dark:bg-gray-900/90 border-black/10 dark:border-white/10 shadow-2xl rounded-xl" side="top" align="end" sideOffset={16}>
               {/* Playback Rate */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">

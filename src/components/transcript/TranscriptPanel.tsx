@@ -1165,7 +1165,7 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] rounded-xl shadow-2xl border border-gray-100 dark:border-white/5 overflow-hidden relative">
+    <div className="flex w-full flex-1 min-h-0 bg-white dark:bg-[#0a0a0a] rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1449,7 +1449,7 @@ export const TranscriptPanel = () => {
 
         <div
           ref={transcriptRef}
-          className="flex-1 min-h-0 overflow-y-auto px-6 py-12 md:px-12 lg:px-24"
+          className="flex-1 min-h-0 overflow-y-auto px-6 pt-12 pb-32 md:px-12 lg:px-24 md:pb-40"
         >
           {showApiKeyInput && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md mb-3">

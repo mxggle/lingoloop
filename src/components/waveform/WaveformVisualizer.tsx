@@ -1042,6 +1042,9 @@ export const WaveformVisualizer = () => {
     dragStart,
     dragEnd,
     isMobile,
+    colors.error,
+    colors.primary,
+    colors.success,
   ]);
 
   // Helper function to draw markers

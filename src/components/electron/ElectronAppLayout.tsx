@@ -28,17 +28,17 @@ interface SectionHeaderProps {
 }
 
 const SectionHeader = ({ title, isOpen, onToggle, actions }: SectionHeaderProps) => (
-  <div className="flex items-center h-[28px] bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700/60 select-none group">
+  <div className="flex items-center h-8 select-none group mt-2 px-2">
     <button
       onClick={onToggle}
-      className="flex-1 flex items-center min-w-0 h-full px-2 gap-1 text-left focus:outline-none"
+      className="flex-1 flex items-center min-w-0 h-7 px-2 gap-1.5 text-left focus:outline-none hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
     >
       {isOpen ? (
-        <ChevronDown className="w-3 h-3 shrink-0 text-gray-500 dark:text-gray-400" />
+        <ChevronDown className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
       ) : (
-        <ChevronRight className="w-3 h-3 shrink-0 text-gray-500 dark:text-gray-400" />
+        <ChevronRight className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
       )}
-      <span className="text-[11px] font-semibold tracking-wider text-gray-600 dark:text-gray-300 truncate uppercase">
+      <span className="text-[10px] font-bold tracking-[0.1em] text-gray-500/70 dark:text-gray-400/70 truncate uppercase">
         {title}
       </span>
     </button>
@@ -66,7 +66,7 @@ const HeaderAction = ({
       onClick();
     }}
     title={title}
-    className="p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
   >
     {children}
   </button>
@@ -171,15 +171,15 @@ export const ElectronAppLayout = ({
     <aside
       ref={sidebarRef}
       style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
-      className={`fixed left-0 top-0 bottom-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col z-[60] shrink-0 ${
-        !isSidebarOpen ? "border-none overflow-hidden" : ""
+      className={`fixed left-0 top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/75 dark:bg-gray-900/75 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
+        !isSidebarOpen ? "border-none overflow-hidden" : "shadow-xl dark:shadow-black/20"
       } transition-[width] duration-300 ease-in-out`}
     >
       {isSidebarOpen && (
         <>
           {/* Title bar spacer (macOS draggable region) */}
           <div
-            className={`w-full shrink-0 h-[52px] sm:h-[56px] border-b border-gray-200 dark:border-gray-700 ${
+            className={`w-full shrink-0 h-[52px] sm:h-[56px] ${
               isMac ? "[-webkit-app-region:drag]" : ""
             }`}
           />
@@ -197,7 +197,7 @@ export const ElectronAppLayout = ({
           />
           {sidebarSections.explorer && (
             <div className={`overflow-y-auto overflow-x-hidden overscroll-contain custom-scrollbar ${
-              sidebarSections.recent ? "flex-shrink-0 max-h-[50%]" : "flex-1 min-h-0"
+              sidebarSections.recent ? "flex-shrink-0 max-h-[45%]" : "flex-1 min-h-0"
             }`}>
               <FolderBrowser onAddFolder={handleAddFolder} />
             </div>
@@ -223,14 +223,11 @@ export const ElectronAppLayout = ({
             </div>
           )}
 
-          {/* ─── Spacer: push footer to bottom when no section content is flex-filling ── */}
-          {!sidebarSections.recent && !sidebarSections.explorer && <div className="flex-1" />}
-
-          {/* ─── Bottom bar ──────────────────────────────────────── */}
-          <div className="p-2 border-t border-gray-200 dark:border-gray-800 flex items-center justify-around bg-gray-50/50 dark:bg-gray-800/20 shrink-0">
+          {/* ─── Bottom bar (Integrated) ─────────────────────────── */}
+          <div className="mx-2 mb-2 p-1.5 flex items-center justify-around shrink-0 border-t border-black/5 dark:border-white/5">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
               title={
                 theme === "dark"
                   ? t("layout.switchToLightTheme", "Light Theme")
@@ -241,7 +238,7 @@ export const ElectronAppLayout = ({
             </button>
             <button
               onClick={() => navigate("/settings")}
-              className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
               title={t("layout.openSettings", "Open Settings")}
             >
               <Settings className="w-4 h-4" />
@@ -251,8 +248,8 @@ export const ElectronAppLayout = ({
           {/* ─── Resize handle ───────────────────────────────────── */}
           <div
             onMouseDown={startResizing}
-            className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary-500/30 transition-colors z-[70] ${
-              isResizing ? "bg-primary-500/50 w-1.5" : ""
+            className={`absolute top-0 right-0 w-[1px] h-full cursor-col-resize hover:bg-black/10 dark:hover:bg-white/10 transition-colors z-[70] ${
+              isResizing ? "bg-black/20 dark:bg-white/20 w-1" : ""
             }`}
           />
         </>
@@ -267,6 +264,25 @@ export const ElectronAppLayout = ({
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(156,163,175,0.4);
+        }
+
+        /* Force rounded corners on sidebar items */
+        .custom-scrollbar button, 
+        .custom-scrollbar .group {
+          border-radius: 0.5rem !important;
+          margin-left: 0.5rem !important;
+          margin-right: 0.5rem !important;
+          width: calc(100% - 1rem) !important;
+          transition: all 0.2s ease !important;
+        }
+        /* Override hover background with a more subtle one, except for active items */
+        .custom-scrollbar button:not([class*="bg-primary"]):hover,
+        .custom-scrollbar .group:not([class*="bg-primary"]):hover {
+          background-color: rgba(0, 0, 0, 0.05) !important;
+        }
+        .dark .custom-scrollbar button:not([class*="bg-primary"]):hover,
+        .dark .custom-scrollbar .group:not([class*="bg-primary"]):hover {
+          background-color: rgba(255, 255, 255, 0.05) !important;
         }
       `}</style>
     </aside>

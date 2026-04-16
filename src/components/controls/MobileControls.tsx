@@ -213,7 +213,7 @@ export const MobileControls = () => {
   // Note: Loop jump functions removed as they're not used in the mobile interface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-[50] pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-[60] pb-safe">
       <div className="px-3 pt-2 pb-3">
 
         {/* Main controls - reorganized for better vertical space usage */}

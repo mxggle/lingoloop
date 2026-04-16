@@ -71,7 +71,7 @@ export const PlayerPage = () => {
     <AppLayout
       layoutSettings={layoutSettings}
       setLayoutSettings={setLayoutSettings}
-      bottomPaddingClassName="pb-28 sm:pb-28"
+      bottomPaddingClassName="pb-0"
     >
       <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
         {/* Show loading message if media is being loaded */}
@@ -150,11 +150,9 @@ export const PlayerPage = () => {
                   <TranscriptPanel />
                 </div>
               )}
-              {/* Media controls (should not grow) */}
+              {/* Media controls (floating) */}
               {layoutSettings.showControls && (
-                <div className="shrink-0 bg-white dark:bg-gray-900 rounded-lg">
-                  {isMobile ? <MobileControls /> : <CombinedControls showSidebarOffset={isElectron()} />}
-                </div>
+                isMobile ? <MobileControls /> : <CombinedControls showSidebarOffset={isElectron()} />
               )}
             </div>
           )

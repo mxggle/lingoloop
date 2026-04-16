@@ -45,7 +45,7 @@ export const AppLayoutBase = ({
   contentPaddingLeft = 0,
   headerOffsetLeft = 0,
   containerClassName = "",
-  bottomPaddingClassName = "pb-20 sm:pb-40",
+  bottomPaddingClassName = "pb-24 sm:pb-32",
   desktopMode = false,
   hideThemeToggle = false,
   hideSettings = false,
@@ -81,18 +81,18 @@ export const AppLayoutBase = ({
   const youtubeId = currentYouTube?.id;
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden bg-white dark:bg-gray-900 ${containerClassName} ${bottomPaddingClassName} px-2 sm:px-4`}>
+    <div className={`flex h-screen w-full overflow-hidden bg-white dark:bg-gray-900 ${containerClassName} px-2 sm:px-4`}>
       {sidebar}
 
       <div
-        className="flex flex-col flex-1 min-w-0 h-full"
+        className="flex flex-col flex-1 min-w-0 h-full transition-[padding-left] duration-300 ease-in-out"
         style={{ paddingLeft: contentPaddingLeft }}
       >
         {/* Spacer for fixed header */}
         <div className="h-[52px] sm:h-[56px]"></div>
 
         <header
-          className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 fixed top-0 right-0 z-[55] ${
+          className={`flex items-center h-[52px] sm:h-[56px] justify-between px-2 sm:px-4 border-b border-black/5 dark:border-white/5 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl fixed top-0 right-0 z-[55] transition-[left,padding-left] duration-300 ease-in-out ${
             desktopMode ? "[-webkit-app-region:drag] select-none [&_button]:[-webkit-app-region:no-drag] [&_input]:[-webkit-app-region:no-drag] [&_a]:[-webkit-app-region:no-drag] [&_[role='dialog']]:[-webkit-app-region:no-drag]" : ""
           }`}
           style={{ 
@@ -271,7 +271,9 @@ export const AppLayoutBase = ({
           </div>
         </header>
 
-        <main className="flex flex-1 min-h-0 w-full flex-col overflow-y-auto">{children}</main>
+        <main className={`flex flex-1 min-h-0 w-full flex-col overflow-y-auto ${bottomPaddingClassName}`}>
+          {children}
+        </main>
       </div>
     </div>
   );

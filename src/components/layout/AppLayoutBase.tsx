@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
+import { cn } from "../../utils/cn";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -81,7 +82,14 @@ export const AppLayoutBase = ({
   const youtubeId = currentYouTube?.id;
 
   return (
-    <div className={`flex h-screen w-full overflow-hidden bg-white dark:bg-gray-900 ${containerClassName} px-2 sm:px-4`}>
+    <div className={cn(
+      "flex h-screen w-full overflow-hidden transition-colors duration-300",
+      desktopMode 
+        ? "bg-gray-50 dark:bg-[#020617]" 
+        : "bg-white dark:bg-gray-900",
+      containerClassName,
+      "px-2 sm:px-4"
+    )}>
       {sidebar}
 
       <div

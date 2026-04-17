@@ -1029,7 +1029,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
                 type: historyItem.fileData.type,
                 size: historyItem.fileData.size,
                 url,
-                id: `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 nativePath: historyItem.nativePath,
               };
               get().setCurrentFile(fileData);
@@ -1061,9 +1060,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
                     type: historyItem.fileData.type,
                     size: historyItem.fileData.size,
                     url: url,
-                    id: `file-${Date.now()}-${Math.random()
-                      .toString(36)
-                      .substr(2, 9)}`,
                     storageId: historyItem.storageId,
                   };
 
@@ -1095,9 +1091,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
             const fileData: MediaFile = {
               ...historyItem.fileData,
-              id: `file-${Date.now()}-${Math.random()
-                .toString(36)
-                .substr(2, 9)}`,
             };
 
             get().setCurrentFile(fileData);

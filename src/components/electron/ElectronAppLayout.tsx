@@ -171,8 +171,8 @@ export const ElectronAppLayout = ({
     <aside
       ref={sidebarRef}
       style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
-      className={`fixed left-0 top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/75 dark:bg-gray-900/75 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
-        !isSidebarOpen ? "border-none overflow-hidden" : "shadow-xl dark:shadow-black/20"
+      className={`fixed left-0 top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
+        !isSidebarOpen ? "border-none overflow-hidden" : "shadow-2xl dark:shadow-black/40"
       } transition-[width] duration-300 ease-in-out`}
     >
       {isSidebarOpen && (

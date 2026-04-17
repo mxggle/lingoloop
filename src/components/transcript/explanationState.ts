@@ -1,7 +1,29 @@
 import type { AIProvider } from "../../types/aiService";
 
+export interface JapaneseExplanation {
+  targetSentence: string;
+  senseiOverview: string;
+  translation: {
+    natural: string;
+    literal?: string;
+  };
+  breakdown: Array<{
+    item: string;
+    explanation: string;
+  }>;
+  grammarSpotlight: Array<{
+    point: string;
+    form: string;
+    meaning: string;
+    examples: string[];
+  }>;
+  logicSummary: string;
+  checklist?: string[];
+}
+
 export interface ExplanationResult {
-  explanation: string;
+  explanation: string; // Keep this for raw response or backward compatibility
+  structuredExplanation?: JapaneseExplanation;
   usage?: {
     promptTokens: number;
     completionTokens: number;

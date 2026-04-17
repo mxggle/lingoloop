@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { AI_PROMPTS } from "../../config/prompts";
 import { Loader, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
@@ -125,18 +126,14 @@ export const TranscriptSelectionPopover = ({
         apiKey,
         temperature: parseFloat(localStorage.getItem("ai_temperature") || "0.7"),
         maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "1200", 10),
-        systemPrompt: `You are a language tutor. Reply in ${targetLanguage}. Be brief and direct.`,
+        systemPrompt: AI_PROMPTS.system.languageTutorCompact(targetLanguage),
       };
 
-      const prompt =
-        `Explain the selected text inside its sentence context for a language learner.\n\n` +
-        `Sentence: "${segmentText}"\n` +
-        `Selected text: "${selection.text}"\n\n` +
-        `Return concise markdown with:\n` +
-        `1. One-sentence meaning in context\n` +
-        `2. Brief nuance or grammar note only if helpful\n` +
-        `3. One short example paraphrase if it clarifies the selection\n\n` +
-        `Keep it compact.`;
+      const prompt = AI_PROMPTS.features.selectionExplanation(
+        segmentText,
+        selection.text,
+        targetLanguage
+      );
 
       const response = await aiService.generateResponse(config, prompt);
       const explanation = {

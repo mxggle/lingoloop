@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { AI_PROMPTS } from "../../config/prompts";
+
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { Loader, X } from "lucide-react";
 import { toast } from "react-hot-toast";
@@ -16,6 +18,7 @@ import {
   explanationCache,
   setGlobalExplanationState,
   getGlobalExplanationState,
+  JapaneseExplanation,
 } from "./explanationState";
 
 interface ExplanationDrawerProps {
@@ -146,14 +149,31 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         apiKey: getApiKey(selectedProvider),
         temperature: parseFloat(localStorage.getItem("ai_temperature") || "0.7"),
         maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "2000"),
-        systemPrompt: `You are a language tutor. Reply in ${targetLanguage}. Be brief and direct — no intros, no summaries.`,
+        systemPrompt: AI_PROMPTS.system.languageTutor(targetLanguage),
       };
 
-      const prompt = `Explain this sentence for a language learner:\n"${text}"\n\nUse these section icons (no other section titles):\n💬 — overall meaning in 1 sentence\n📖 — bullet each unfamiliar word/phrase as \`word\` — meaning (part of speech, usage note if needed)\n🔤 — only non-obvious grammar patterns, 1 line each (omit if none)\n\nAll explanations in ${targetLanguage}. Skip obvious things. Be concise.`;
+      const prompt = AI_PROMPTS.features.sentenceExplanation(text, targetLanguage);
       const response = await aiService.generateResponse(config, prompt);
+      let structuredExplanation: JapaneseExplanation | undefined;
+      const cleanedContent = response.content;
+
+      try {
+        // AI might wrap JSON in markdown code blocks
+        const jsonMatch = response.content.match(/```json\n?([\s\S]*?)\n?```/) || 
+                         response.content.match(/{[\s\S]*}/);
+        
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1] || jsonMatch[0];
+          structuredExplanation = JSON.parse(jsonStr.trim());
+        }
+      } catch (parseErr) {
+        console.error("Failed to parse structured explanation:", parseErr);
+        // Fallback to treating as raw markdown if JSON parsing fails
+      }
 
       const result: ExplanationResult = {
-        explanation: response.content,
+        explanation: cleanedContent,
+        structuredExplanation,
         usage: response.usage,
         model: response.model,
         provider: response.provider,
@@ -210,11 +230,120 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         )}
 
         {explanation && (
-          <div>
-            <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-sm [&_p]:mb-2 [&_li]:text-sm">
-              <MarkdownRenderer content={explanation.explanation} />
-            </div>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+          <div className="space-y-4">
+            {explanation.structuredExplanation ? (
+              <div className="space-y-6">
+                {/* Sensei Overview */}
+                <div className="bg-blue-50/50 dark:bg-blue-900/10 rounded-lg p-3 border-l-4 border-blue-400 dark:border-blue-500">
+                  <h4 className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">
+                    <span className="text-sm">👨‍🏫</span> Sensei’s Overview
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed">
+                    "{explanation.structuredExplanation.senseiOverview}"
+                  </p>
+                </div>
+
+                {/* Translation */}
+                <div>
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                    Translation
+                  </h4>
+                  <div className="space-y-1">
+                    <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+                      {explanation.structuredExplanation.translation.natural}
+                    </p>
+                    {explanation.structuredExplanation.translation.literal && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                        (Literal: {explanation.structuredExplanation.translation.literal})
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Breakdown */}
+                <div className="grid gap-3">
+                  <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Deep-Dive Breakdown
+                  </h4>
+                  <div className="space-y-3">
+                    {explanation.structuredExplanation.breakdown.map((item, idx) => (
+                      <div key={idx} className="flex gap-3 text-sm">
+                        <span className="font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                          {item.item}
+                        </span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {item.explanation}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grammar Spotlight */}
+                {explanation.structuredExplanation.grammarSpotlight && explanation.structuredExplanation.grammarSpotlight.length > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <h4 className="flex items-center gap-2 text-xs font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
+                      <span className="text-sm">🎯</span> Grammar Spotlight
+                    </h4>
+                    {explanation.structuredExplanation.grammarSpotlight.map((gram, idx) => (
+                      <div key={idx} className="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="px-3 py-2 bg-gray-50/50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
+                          <span className="font-bold text-gray-900 dark:text-gray-100">{gram.point}</span>
+                        </div>
+                        <div className="p-3 space-y-2 text-sm">
+                          <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase mr-2">Form:</span>
+                            <code className="text-gray-800 dark:text-gray-200">{gram.form}</code>
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase mr-2">Meaning:</span>
+                            <span className="text-gray-700 dark:text-gray-300">{gram.meaning}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs font-semibold text-gray-400 uppercase">Examples:</span>
+                            <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 pl-1 space-y-1">
+                              {gram.examples.map((ex, i) => (
+                                <li key={i}>{ex}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary & Checklist */}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                  <div className="bg-green-50/30 dark:bg-green-900/10 rounded-lg p-3">
+                    <h4 className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider mb-1">
+                      Sentence Logic Summary
+                    </h4>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                      {explanation.structuredExplanation.logicSummary}
+                    </p>
+                  </div>
+                  
+                  {explanation.structuredExplanation.checklist && (
+                    <div className="px-3 py-1">
+                      <div className="flex flex-wrap gap-2">
+                        {explanation.structuredExplanation.checklist.map((tag, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full text-[10px] font-medium border border-gray-200 dark:border-gray-600">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-sm [&_p]:mb-2 [&_li]:text-sm">
+                <MarkdownRenderer content={explanation.explanation} />
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center gap-1.5 text-[10px] text-gray-400 dark:text-gray-500 pt-2 border-t border-gray-100 dark:border-gray-800">
               {t("explanation.providerInfo", {
                 provider: explanation.provider,
                 model: explanation.model,

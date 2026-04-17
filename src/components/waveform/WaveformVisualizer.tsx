@@ -19,13 +19,10 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
-  Volume2,
-  VolumeX,
   Trash2,
   Mic,
   Radio,
 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../../stores/themeStore";
@@ -169,13 +166,7 @@ export const WaveformVisualizer = () => {
     autoAdvanceBookmarks,
     setAutoAdvanceBookmarks,
     updateBookmark,
-    mediaVolume,
-    setMediaVolume,
-    previousMediaVolume,
-    setPreviousMediaVolume,
     isPlaying,
-    muted,
-    toggleMute,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
@@ -200,29 +191,17 @@ export const WaveformVisualizer = () => {
       autoAdvanceBookmarks: state.autoAdvanceBookmarks,
       setAutoAdvanceBookmarks: state.setAutoAdvanceBookmarks,
       updateBookmark: state.updateBookmark,
-      mediaVolume: state.mediaVolume,
-      setMediaVolume: state.setMediaVolume,
-      previousMediaVolume: state.previousMediaVolume,
-      setPreviousMediaVolume: state.setPreviousMediaVolume,
       isPlaying: state.isPlaying,
-      muted: state.muted,
-      toggleMute: state.toggleMute,
     }))
   );
 
   const {
-    volume: shadowVolume, setVolume: setShadowVolume,
-    muted: shadowMuted, setMuted: setShadowMuted,
     currentRecording,
     currentRecordingRevision,
     isShadowingMode, setShadowingMode,
     isRecording,
   } = useShadowingStore(
     useShallow((state) => ({
-      volume: state.volume,
-      setVolume: state.setVolume,
-      muted: state.muted,
-      setMuted: state.setMuted,
       currentRecording: state.currentRecording,
       currentRecordingRevision: state.currentRecordingRevision,
       isShadowingMode: state.isShadowingMode,

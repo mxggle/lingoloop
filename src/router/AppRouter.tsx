@@ -55,6 +55,7 @@ const AppRouterInner = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings-window" element={<SettingsPage />} />
           {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
           <Route
             path="/player"

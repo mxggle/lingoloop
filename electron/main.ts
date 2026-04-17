@@ -1,12 +1,16 @@
 import { app, BrowserWindow, shell, ipcMain, dialog, protocol } from 'electron'
 import { join, extname, sep, normalize } from 'path'
 import { Readable } from 'stream'
+import { pathToFileURL } from 'url'
 import fs from 'fs'
 import { configStore } from './configStore'
 
 const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
 const transientApprovedFolders = new Set<string>()
+let settingsWindow: BrowserWindow | null = null
+
+type SettingsWindowTab = 'general' | 'ai'
 
 // Register custom protocol for serving local media files.
 // Must be called before app.whenReady() so the scheme is available.
@@ -67,11 +71,79 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
-  if (isDev && process.env.ELECTRON_RENDERER_URL) {
-    win.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    win.loadFile(join(__dirname, '../renderer/index.html'))
+  void win.loadURL(buildRendererUrl('/'))
+}
+
+function buildRendererUrl(
+  route: string,
+  query?: Record<string, string | undefined>,
+): string {
+  const baseUrl = isDev && process.env.ELECTRON_RENDERER_URL
+    ? process.env.ELECTRON_RENDERER_URL
+    : pathToFileURL(join(__dirname, '../renderer/index.html')).toString()
+  const url = new URL(baseUrl)
+  const searchParams = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value) {
+      searchParams.set(key, value)
+    }
   }
+
+  const search = searchParams.toString()
+  url.hash = search ? `${route}?${search}` : route
+  return url.toString()
+}
+
+async function openSettingsWindow(
+  tab?: SettingsWindowTab,
+  section?: string,
+): Promise<void> {
+  const targetUrl = buildRendererUrl('/settings-window', {
+    tab,
+    section: section?.trim() || undefined,
+  })
+
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (settingsWindow.isMinimized()) {
+      settingsWindow.restore()
+    }
+
+    if (settingsWindow.webContents.getURL() !== targetUrl) {
+      await settingsWindow.loadURL(targetUrl)
+    }
+
+    settingsWindow.focus()
+    return
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 960,
+    height: 760,
+    minWidth: 720,
+    minHeight: 560,
+    title: 'Settings',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 16, y: 16 },
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+    },
+  })
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null
+  })
+
+  settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  await settingsWindow.loadURL(targetUrl)
+  settingsWindow.focus()
 }
 
 // IPC: open a single audio/video file via native OS dialog
@@ -120,6 +192,21 @@ ipcMain.handle('shell:showInFileManager', async (_event, targetPath: string) => 
     console.error('Failed to show path in file manager:', targetPath, error)
     return false
   }
+})
+
+ipcMain.handle(
+  'window:openSettings',
+  async (_event, tab?: SettingsWindowTab, section?: string) => {
+    await openSettingsWindow(tab, section)
+  },
+)
+
+ipcMain.handle('window:closeSettings', () => {
+  if (!settingsWindow || settingsWindow.isDestroyed()) {
+    return
+  }
+
+  settingsWindow.close()
 })
 
 /**

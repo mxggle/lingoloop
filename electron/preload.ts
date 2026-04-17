@@ -1,10 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+type SettingsWindowTab = 'general' | 'ai'
+
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
   platform: process.platform,
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
+  openSettingsWindow: (tab?: SettingsWindowTab, section?: string) =>
+    ipcRenderer.invoke('window:openSettings', tab, section),
+  closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings'),
   showInFileManager: (targetPath: string) =>
     ipcRenderer.invoke('shell:showInFileManager', targetPath),
   listMediaFiles: (folderPath: string) =>

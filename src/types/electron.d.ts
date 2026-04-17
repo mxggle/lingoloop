@@ -3,6 +3,8 @@ interface ElectronMediaFile {
   path: string
 }
 
+type SettingsWindowTab = 'general' | 'ai'
+
 export interface FolderTreeNode {
   name: string
   path: string
@@ -15,6 +17,8 @@ interface ElectronAPI {
   platform: string
   openFile: () => Promise<string | null>
   openFolder: () => Promise<string | null>
+  openSettingsWindow: (tab?: SettingsWindowTab, section?: string) => Promise<void>
+  closeSettingsWindow: () => Promise<void>
   showInFileManager: (targetPath: string) => Promise<boolean>
   listMediaFiles: (folderPath: string) => Promise<ElectronMediaFile[]>
   listMediaTree: (folderPath: string) => Promise<FolderTreeNode[]>

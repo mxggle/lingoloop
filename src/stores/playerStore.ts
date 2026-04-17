@@ -19,6 +19,10 @@ import {
   buildTranscriptStudy,
   inferTranscriptLevelSystem,
 } from "../utils/transcriptStudy";
+import {
+  getNextSentenceSeekTime,
+  getPreviousSentenceSeekTime,
+} from "../utils/sentenceSeek";
 
 // Prevent noisy duplicate toasts for existing A–B ranges
 let lastDuplicateToastAt = 0;
@@ -613,11 +617,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       seekForward: (seconds) => {
         const { currentTime, duration, seekMode, getCurrentMediaTranscripts } = get();
         if (seekMode === "sentence") {
-          const segments = getCurrentMediaTranscripts();
-          // Find the first segment that starts after current time
-          const nextSegment = segments.find((s) => s.startTime > currentTime + 0.05);
-          if (nextSegment) {
-            set({ currentTime: nextSegment.startTime });
+          const nextSentenceTime = getNextSentenceSeekTime(
+            getCurrentMediaTranscripts(),
+            currentTime
+          );
+          if (nextSentenceTime !== null) {
+            set({ currentTime: nextSentenceTime });
             return;
           }
         }
@@ -628,23 +633,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       seekBackward: (seconds) => {
         const { currentTime, seekMode, getCurrentMediaTranscripts } = get();
         if (seekMode === "sentence") {
-          const segments = getCurrentMediaTranscripts();
-          // Find segments that start before current time
-          // If we are more than 1s into a segment, jump to the start of the current segment first
-          const currentSegment = segments.find(
-            (s) => currentTime >= s.startTime && currentTime <= s.endTime
+          const previousSentenceTime = getPreviousSentenceSeekTime(
+            getCurrentMediaTranscripts(),
+            currentTime
           );
-
-          if (currentSegment && currentTime - currentSegment.startTime > 1.0) {
-            set({ currentTime: currentSegment.startTime });
-            return;
-          }
-
-          // Otherwise find the previous segment
-          const prevSegments = segments.filter((s) => s.startTime < currentTime - 0.1);
-          if (prevSegments.length > 0) {
-            const prevSegment = prevSegments[prevSegments.length - 1];
-            set({ currentTime: prevSegment.startTime });
+          if (previousSentenceTime !== null) {
+            set({ currentTime: previousSentenceTime });
             return;
           }
         }

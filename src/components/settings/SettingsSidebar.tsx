@@ -47,7 +47,7 @@ export function SettingsSidebar({
             key={id}
             type="button"
             onClick={() => onTabChange(id)}
-            aria-current={isActive ? "page" : undefined}
+            aria-pressed={isActive}
             className={cn(
               "transition-all duration-200",
               orientation === "vertical"

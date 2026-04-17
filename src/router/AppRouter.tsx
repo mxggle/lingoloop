@@ -14,11 +14,10 @@ const SettingsPage = lazy(async () => {
   const module = await import("../pages/SettingsPage");
   return { default: module.SettingsPage };
 });
-const SettingsWindowPage = lazy(async () => ({
-  default: function SettingsWindowPage() {
-    return <div className="min-h-screen">{ROUTE_FALLBACK}</div>;
-  },
-}));
+const SettingsWindowPage = lazy(async () => {
+  const module = await import("../pages/ElectronSettingsWindowPage");
+  return { default: module.ElectronSettingsWindowPage };
+});
 
 // Static object — same reference on every render, so React's style diffing is a no-op
 // when visibility doesn't change.

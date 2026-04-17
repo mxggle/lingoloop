@@ -40,14 +40,20 @@ export function SettingsWorkspace({
     },
   ];
 
+  if (variant === "standalone") {
+    return (
+      <div className="min-w-0">
+        {activeTab === "general" ? (
+          <GeneralSettingsPanel />
+        ) : (
+          <AISettingsPanel state={aiSettingsState} />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={
-        variant === "page"
-          ? "space-y-8"
-          : "space-y-6"
-      }
-    >
+    <div className="space-y-8">
       <SettingsSidebar
         activeTab={activeTab}
         items={navItems}
@@ -62,6 +68,7 @@ export function SettingsWorkspace({
             activeTab={activeTab}
             items={navItems}
             onTabChange={onTabChange}
+            variant="page"
           />
         </div>
 

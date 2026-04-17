@@ -59,6 +59,8 @@ export interface AiProvidersState {
   testingConnection: ProviderRecord<boolean>;
   connectionStatus: ProviderRecord<ConnectionStatus>;
   testConnection: (provider: AIProvider) => Promise<void>;
+  expandedProvider: AIProvider | null;
+  setExpandedProvider: (provider: AIProvider | null) => void;
   ollamaBaseUrl: string;
   setOllamaBaseUrl: (url: string) => void;
 }
@@ -183,6 +185,9 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
   const [showApiKeys, setShowApiKeys] =
     useState<ProviderRecord<boolean>>(DEFAULT_SHOW_API_KEYS);
   const [showGroqApiKey, setShowGroqApiKey] = useState(false);
+  const [expandedProvider, setExpandedProvider] = useState<AIProvider | null>(
+    "openai"
+  );
   const [testingConnection, setTestingConnection] = useState<
     ProviderRecord<boolean>
   >(DEFAULT_TESTING_CONNECTION);
@@ -255,6 +260,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setLocalWhisperUrl(loadedSettings.localWhisperUrl);
     setLocalWhisperModel(loadedSettings.localWhisperModel);
     setPreferredProvider(loadedSettings.preferredProvider);
+    setExpandedProvider(loadedSettings.preferredProvider);
     setPreferredTranscriptionProvider(
       loadedSettings.preferredTranscriptionProvider
     );
@@ -422,6 +428,8 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       testingConnection,
       connectionStatus,
       testConnection,
+      expandedProvider,
+      setExpandedProvider,
       ollamaBaseUrl,
       setOllamaBaseUrl,
     },

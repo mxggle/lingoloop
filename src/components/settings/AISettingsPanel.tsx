@@ -78,9 +78,6 @@ interface AISettingsPanelProps {
 export function AISettingsPanel({ state }: AISettingsPanelProps) {
   const { t } = useTranslation();
   const [aiSubTab, setAiSubTab] = useState<AiSubTab>("defaults");
-  const [expandedProvider, setExpandedProvider] = useState<AIProvider | null>(() => {
-    return (localStorage.getItem("preferred_ai_provider") as AIProvider) || "openai";
-  });
 
   const { providerConfigs, defaultsState, providersState, transcriptionState } = state;
   const {
@@ -99,6 +96,8 @@ export function AISettingsPanel({ state }: AISettingsPanelProps) {
     testingConnection,
     connectionStatus,
     testConnection,
+    expandedProvider,
+    setExpandedProvider,
     ollamaBaseUrl,
     setOllamaBaseUrl,
   } = providersState;

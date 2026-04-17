@@ -113,7 +113,7 @@ async function openSettingsWindow(
     section: section?.trim() || undefined,
   })
 
-  settingsWindow = new BrowserWindow({
+  const nextSettingsWindow = new BrowserWindow({
     width: 960,
     height: 760,
     minWidth: 720,
@@ -129,17 +129,28 @@ async function openSettingsWindow(
     },
   })
 
-  settingsWindow.on('closed', () => {
-    settingsWindow = null
+  nextSettingsWindow.on('closed', () => {
+    if (settingsWindow === nextSettingsWindow) {
+      settingsWindow = null
+    }
   })
 
-  settingsWindow.webContents.setWindowOpenHandler(({ url }) => {
+  nextSettingsWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
   })
 
-  await settingsWindow.loadURL(targetUrl)
-  settingsWindow.focus()
+  try {
+    await nextSettingsWindow.loadURL(targetUrl)
+  } catch (error) {
+    if (!nextSettingsWindow.isDestroyed()) {
+      nextSettingsWindow.destroy()
+    }
+    throw error
+  }
+
+  settingsWindow = nextSettingsWindow
+  nextSettingsWindow.focus()
 }
 
 // IPC: open a single audio/video file via native OS dialog

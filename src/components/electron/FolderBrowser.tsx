@@ -18,6 +18,8 @@ import {
   Loader2,
   SquareArrowOutUpRight,
 } from "lucide-react";
+import { SidebarRow } from "../ui/SidebarRow";
+import { SidebarRowAction } from "../ui/SidebarRowAction";
 
 const VIDEO_EXTS = new Set(["mp4", "mkv", "avi", "mov", "webm", "m4v"]);
 
@@ -25,24 +27,6 @@ const getMimeType = (name: string): string => {
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   return VIDEO_EXTS.has(ext) ? `video/${ext}` : `audio/${ext}`;
 };
-
-/* ── Indent guide ───────────────────────────────────────────────── */
-const INDENT_PX = 20; // pixels per depth level
-const BASE_PX = 8;    // left padding for all rows
-
-const IndentGuides = ({ depth }: { depth: number }) => (
-  <>
-    {/* base padding */}
-    {depth > 0 && <span className="inline-block shrink-0" style={{ width: BASE_PX }} />}
-    {Array.from({ length: depth }).map((_, i) => (
-      <span
-        key={i}
-        className="inline-block shrink-0 self-stretch border-r border-gray-300/50 dark:border-gray-600/50"
-        style={{ width: INDENT_PX }}
-      />
-    ))}
-  </>
-);
 
 /* ── File node ──────────────────────────────────────────────────── */
 interface TreeNodeProps {
@@ -61,46 +45,30 @@ const TreeNode = ({ node, depth, onFileClick, activeFilePath }: TreeNodeProps) =
     const ext = node.name.split(".").pop()?.toLowerCase() ?? "";
     const isVideo = VIDEO_EXTS.has(ext);
     const isActive = activeFilePath === node.path;
+    
     return (
       <li>
-        <button
+        <SidebarRow
           onClick={() => onFileClick(node)}
-          className={`w-full flex items-center h-[26px] text-left transition-colors group ${
-            isActive
-              ? "bg-primary-500/12 dark:bg-primary-500/15 text-primary-600 dark:text-primary-300"
-              : "hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300"
-          }`}
-          style={{ paddingLeft: depth === 0 ? BASE_PX : 0 }}
-        >
-          <IndentGuides depth={depth} />
-          <span className="shrink-0" style={{ width: INDENT_PX }} />{/* spacer where chevron would be */}
-          {isVideo ? (
-            <FileVideo className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
-          ) : (
-            <Music className="w-3.5 h-3.5 shrink-0 text-primary-400 dark:text-primary-500 mr-1.5" />
-          )}
-          <span
-            className={`text-xs truncate pr-2 ${
-              isActive ? "font-semibold" : "font-normal"
-            }`}
-          >
-            {node.name}
-          </span>
-          <span className="ml-auto pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <span
-              role="button"
-              tabIndex={-1}
-              onClick={(e) => {
-                e.stopPropagation();
-                void revealInFileManager(node.path);
-              }}
+          isActive={isActive}
+          depth={depth}
+          containerClassName="pl-5"
+          icon={
+            isVideo ? (
+              <FileVideo className="w-3.5 h-3.5 text-accent-400 dark:text-accent-500" />
+            ) : (
+              <Music className="w-3.5 h-3.5 text-primary-400 dark:text-primary-500" />
+            )
+          }
+          primaryText={node.name}
+          actions={
+            <SidebarRowAction
+              icon={<SquareArrowOutUpRight />}
+              onClick={() => void revealInFileManager(node.path)}
               title={showInFileManagerLabel}
-              className="flex items-center justify-center p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
-            >
-              <SquareArrowOutUpRight className="w-3 h-3" />
-            </span>
-          </span>
-        </button>
+            />
+          }
+        />
       </li>
     );
   }
@@ -108,40 +76,32 @@ const TreeNode = ({ node, depth, onFileClick, activeFilePath }: TreeNodeProps) =
   // Directory node
   return (
     <li>
-      <button
+      <SidebarRow
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center h-[26px] text-left hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors group"
-        style={{ paddingLeft: depth === 0 ? BASE_PX : 0 }}
-      >
-        <IndentGuides depth={depth} />
-        {open ? (
-          <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
-        ) : (
-          <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
-        )}
-        {open ? (
-          <FolderOpen className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
-        ) : (
-          <Folder className="w-3.5 h-3.5 shrink-0 text-accent-400 dark:text-accent-500 mr-1.5" />
-        )}
-        <span className="text-xs font-medium text-gray-700 dark:text-gray-200 truncate pr-2">
-          {node.name}
-        </span>
-        <span className="ml-auto pr-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <span
-            role="button"
-            tabIndex={-1}
-            onClick={(e) => {
-              e.stopPropagation();
-              void revealInFileManager(node.path);
-            }}
+        depth={depth}
+        icon={
+          <div className="flex items-center gap-0.5">
+            {open ? (
+              <ChevronDown className="w-3 h-3 text-gray-400" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-gray-400" />
+            )}
+            {open ? (
+              <FolderOpen className="w-3.5 h-3.5 text-accent-400 dark:text-accent-500" />
+            ) : (
+              <Folder className="w-3.5 h-3.5 text-accent-400 dark:text-accent-500" />
+            )}
+          </div>
+        }
+        primaryText={node.name}
+        actions={
+          <SidebarRowAction
+            icon={<SquareArrowOutUpRight />}
+            onClick={() => void revealInFileManager(node.path)}
             title={showInFileManagerLabel}
-            className="flex items-center justify-center p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
-          >
-            <SquareArrowOutUpRight className="w-3 h-3" />
-          </span>
-        </span>
-      </button>
+          />
+        }
+      />
       {open && node.children && node.children.length > 0 && (
         <ul>
           {node.children.map((child) => (
@@ -193,45 +153,44 @@ const RootFolder = ({ path, onFileClick, onRemove, activeFilePath }: RootFolderP
   }, [loadTree]);
 
   return (
-    <div>
+    <div className="mb-1">
       {/* Root folder row */}
-      <div className="flex items-center h-[26px] group hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="flex-1 flex items-center min-w-0 h-full"
-        >
-          {open ? (
-            <ChevronDown className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 mx-0.5" />
-          )}
-          {open ? (
-            <FolderOpen className="w-4 h-4 shrink-0 text-accent-500 dark:text-accent-400 mr-1.5" />
-          ) : (
-            <Folder className="w-4 h-4 shrink-0 text-accent-500 dark:text-accent-400 mr-1.5" />
-          )}
-          <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
-            {folderName}
-          </span>
-          {loading && (
-            <Loader2 className="w-3 h-3 ml-1.5 shrink-0 text-gray-400 animate-spin" />
-          )}
-        </button>
-        <button
-          onClick={() => void revealInFileManager(path)}
-          title={showInFileManagerLabel}
-          className="p-0.5 mr-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all shrink-0 opacity-0 group-hover:opacity-100"
-        >
-          <SquareArrowOutUpRight className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={() => onRemove(path)}
-          title={t("folderBrowser.removeFolder", "Remove folder")}
-          className="p-0.5 mr-1 rounded text-gray-400 hover:text-error-500 dark:hover:text-error-400 transition-all shrink-0 opacity-0 group-hover:opacity-100"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      <SidebarRow
+        onClick={() => setOpen((o) => !o)}
+        icon={
+          <div className="flex items-center gap-0.5">
+            {open ? (
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            ) : (
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+            )}
+            {open ? (
+              <FolderOpen className="w-4 h-4 text-accent-500 dark:text-accent-400" />
+            ) : (
+              <Folder className="w-4 h-4 text-accent-500 dark:text-accent-400" />
+            )}
+          </div>
+        }
+        primaryText={folderName}
+        className="h-[30px]"
+        contentClassName="font-semibold text-gray-800 dark:text-gray-100"
+        actions={
+          <>
+            {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}
+            <SidebarRowAction
+              icon={<SquareArrowOutUpRight />}
+              onClick={() => void revealInFileManager(path)}
+              title={showInFileManagerLabel}
+            />
+            <SidebarRowAction
+              variant="error"
+              icon={<X />}
+              onClick={() => onRemove(path)}
+              title={t("folderBrowser.removeFolder", "Remove folder")}
+            />
+          </>
+        }
+      />
 
       {/* Tree */}
       {open && loading && (
@@ -306,7 +265,7 @@ export const FolderBrowser = ({ onAddFolder: _onAddFolder }: FolderBrowserProps)
         </p>
         <button
           onClick={addFolder}
-          className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+          className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 rounded px-1"
         >
           {t("sidebar.addFolder", "Add folder")}
         </button>
@@ -315,7 +274,7 @@ export const FolderBrowser = ({ onAddFolder: _onAddFolder }: FolderBrowserProps)
   }
 
   return (
-    <div>
+    <div className="py-1">
       {sourceFolders.map((folderPath) => (
         <RootFolder
           key={folderPath}
@@ -328,3 +287,4 @@ export const FolderBrowser = ({ onAddFolder: _onAddFolder }: FolderBrowserProps)
     </div>
   );
 };
+

@@ -3,6 +3,7 @@ import { YouTubeInput } from "../components/player/YouTubeInput";
 import { ElectronFileOpener } from "../components/electron/ElectronFileOpener";
 import { motion } from "framer-motion";
 import { Youtube, FileAudio, Mic } from "lucide-react";
+import { DesktopCard } from "../components/ui/DesktopCard";
 
 interface ElectronHomePageProps {
   handleVideoIdSubmit: (videoId: string) => void;
@@ -20,7 +21,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
         transition={{ delay: 0.2 }}
         className="px-8 py-6 lg:px-12"
       >
-        <div className="max-w-6xl mx-auto space-y-4">
+        <div className="max-w-6xl mx-auto space-y-8">
           {/* Minimalist Hero */}
           <div className="space-y-2">
             <motion.h1 
@@ -48,8 +49,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               whileHover={{ y: -5 }}
               className="group relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 to-primary-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-primary-500/30 group-hover:shadow-2xl group-hover:shadow-primary-500/5">
+              <DesktopCard className="p-8 h-full flex flex-col transition-all group-hover:border-primary-500/30 group-hover:shadow-2xl group-hover:shadow-primary-500/5">
                 <div className="mb-6 flex items-center justify-between">
                   <div className="w-12 h-12 bg-accent-50 dark:bg-accent-900/30 rounded-2xl flex items-center justify-center text-accent-600 dark:text-accent-400 group-hover:scale-110 transition-transform">
                     <FileAudio className="w-6 h-6" />
@@ -64,7 +64,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
                     <ElectronFileOpener />
                   </div>
                 </div>
-              </div>
+              </DesktopCard>
             </motion.div>
 
             {/* YouTube Entry */}
@@ -72,8 +72,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               whileHover={{ y: -5 }}
               className="group relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-error-500/10 to-orange-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-error-500/30 group-hover:shadow-2xl group-hover:shadow-error-500/5">
+              <DesktopCard className="p-8 h-full flex flex-col transition-all group-hover:border-error-500/30 group-hover:shadow-2xl group-hover:shadow-error-500/5">
                 <div className="mb-6 flex items-center justify-between">
                   <div className="w-12 h-12 bg-red-50 dark:bg-error-900/30 rounded-2xl flex items-center justify-center text-error-600 dark:text-error-400 group-hover:scale-110 transition-transform">
                     <Youtube className="w-6 h-6" />
@@ -88,7 +87,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
                     <YouTubeInput onVideoIdSubmit={handleVideoIdSubmit} />
                   </div>
                 </div>
-              </div>
+              </DesktopCard>
             </motion.div>
 
             {/* Podcast Entry - Coming Soon */}
@@ -96,8 +95,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               whileHover={{ y: -5 }}
               className="group relative opacity-70 grayscale-[0.3]"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
-              <div className="relative bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col transition-all group-hover:border-indigo-500/30 group-hover:shadow-2xl group-hover:shadow-indigo-500/5">
+              <DesktopCard className="p-8 h-full flex flex-col transition-all group-hover:border-indigo-500/30 group-hover:shadow-2xl group-hover:shadow-indigo-500/5">
                 <div className="mb-6 flex items-center justify-between">
                   <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
                     <Mic className="w-6 h-6" />
@@ -114,7 +112,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
                     Direct integration for podcast feeds and RSS audio subscriptions is currently under development.
                   </p>
                 </div>
-              </div>
+              </DesktopCard>
             </motion.div>
           </div>
         </div>
@@ -133,3 +131,4 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
     </div>
   );
 };
+

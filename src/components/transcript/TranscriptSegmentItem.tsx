@@ -128,7 +128,11 @@ export const TranscriptSegmentItem = memo(
                 {formatSegmentTime(segment.startTime)}
               </span>
 
-              <div className="flex space-x-1 opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity">
+              <div className={`flex space-x-1 transition-opacity ${
+                isActive 
+                  ? "opacity-100" 
+                  : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 active:opacity-100"
+              }`}>
                 <button
                   onClick={shouldShowPauseButton ? handlePausePlayback : handleJumpToTime}
                   className={`p-1.5 rounded-full transition-colors ${

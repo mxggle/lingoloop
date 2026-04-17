@@ -1317,10 +1317,10 @@ export const TranscriptPanel = () => {
           )}
 
           {bookmarks.map(b => (
-            <div
+            <button
               key={b.id}
               onClick={() => handleTabSelect(b.id)}
-              className={`group w-full text-left px-3 py-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between ${activeTabId === b.id
+              className={`group w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center justify-between outline-none focus-visible:ring-1 focus-visible:ring-primary-500 ${activeTabId === b.id
                 ? "bg-primary-100 dark:bg-primary-900/30"
                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
@@ -1339,7 +1339,7 @@ export const TranscriptPanel = () => {
                 </div>
               </div>
 
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity space-x-1 shrink-0">
+              <div className="flex items-center opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity space-x-1 shrink-0">
                 <button
                   onClick={(e) => handlePlayBookmark(e, b.id)}
                   className="p-1 rounded-full hover:bg-white/50 dark:hover:bg-black/50 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400"
@@ -1362,7 +1362,7 @@ export const TranscriptPanel = () => {
                   <Trash size={14} />
                 </button>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>

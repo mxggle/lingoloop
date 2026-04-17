@@ -6,6 +6,8 @@ import {
   getShowInFileManagerLabel,
   revealInFileManager,
 } from "./fileManager";
+import { SidebarRow } from "../ui/SidebarRow";
+import { SidebarRowAction } from "../ui/SidebarRowAction";
 
 /* ── Time-ago helper ────────────────────────────────────────────── */
 const timeAgo = (
@@ -81,79 +83,53 @@ export const PlayHistory = () => {
   }
 
   return (
-    <ul>
+    <ul className="py-1">
       {sorted.map((item) => {
         const active = isActive(item, currentFilePath, currentYouTubeId);
         const nativePath = item.nativePath ?? item.fileData?.nativePath;
+        
         return (
-          <li key={item.id}>
-            <button
+          <li key={item.id} className="mb-0.5 last:mb-0">
+            <SidebarRow
               onClick={() => loadFromHistory(item.id)}
-              className={`w-full flex items-center h-[28px] px-2 text-left transition-colors group ${
-                active
-                  ? "bg-primary-500/12 dark:bg-primary-500/15 text-primary-600 dark:text-primary-300"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-700/40 text-gray-600 dark:text-gray-300"
-              }`}
-            >
-              {/* Icon */}
-              {item.type === "youtube" ? (
-                <Youtube className="w-3.5 h-3.5 shrink-0 text-error-400 dark:text-error-500 mr-1.5" />
-              ) : (
-                <Music className="w-3.5 h-3.5 shrink-0 text-primary-400 dark:text-primary-500 mr-1.5" />
-              )}
-
-              {/* Name */}
-              <span
-                className={`text-xs truncate flex-1 min-w-0 ${
-                  active ? "font-semibold" : "font-normal"
-                }`}
-              >
-                {item.name}
-              </span>
-
-              {/* Time ago (hidden on hover, replaced by remove button) */}
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 shrink-0 ml-2 tabular-nums group-hover:hidden">
-                {timeAgo(item.accessedAt, t)}
-              </span>
-
-              {nativePath && (
-                <span
-                  role="button"
-                  tabIndex={-1}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void revealInFileManager(nativePath);
-                  }}
-                  title={showInFileManagerLabel}
-                  className="hidden group-hover:flex items-center justify-center p-0.5 ml-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0"
-                >
-                  <SquareArrowOutUpRight className="w-3 h-3" />
-                </span>
-              )}
-
-              {/* Remove button (visible on hover) */}
-              <span
-                role="button"
-                tabIndex={-1}
-                onClick={(e) => handleRemove(e, item.id)}
-                title={t("sidebar.removeItem", "Remove")}
-                className="hidden group-hover:flex items-center justify-center p-0.5 ml-1 rounded text-gray-400 hover:text-error-500 dark:hover:text-error-400 transition-colors shrink-0"
-              >
-                <X className="w-3 h-3" />
-              </span>
-            </button>
-
-            {/* Subtext line */}
-            <div
-              className={`flex items-center h-[16px] px-2 pl-[30px] ${
-                active ? "text-primary-400/70 dark:text-primary-400/50" : "text-gray-400 dark:text-gray-500"
-              }`}
-            >
-              <span className="text-[10px] font-mono truncate">{getSubtext(item)}</span>
-            </div>
+              isActive={active}
+              icon={
+                item.type === "youtube" ? (
+                  <Youtube className="w-3.5 h-3.5 text-error-400 dark:text-error-500" />
+                ) : (
+                  <Music className="w-3.5 h-3.5 text-primary-400 dark:text-primary-500" />
+                )
+              }
+              primaryText={item.name}
+              secondaryText={getSubtext(item)}
+              className="h-auto py-1.5"
+              actions={
+                <>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums group-hover:hidden mr-1">
+                    {timeAgo(item.accessedAt, t)}
+                  </span>
+                  {nativePath && (
+                    <SidebarRowAction
+                      icon={<SquareArrowOutUpRight />}
+                      onClick={() => void revealInFileManager(nativePath)}
+                      title={showInFileManagerLabel}
+                      className="hidden group-hover:flex"
+                    />
+                  )}
+                  <SidebarRowAction
+                    variant="error"
+                    icon={<X />}
+                    onClick={(e) => handleRemove(e as React.MouseEvent, item.id)}
+                    title={t("sidebar.removeItem", "Remove")}
+                    className="hidden group-hover:flex"
+                  />
+                </>
+              }
+            />
           </li>
         );
       })}
     </ul>
   );
 };
+

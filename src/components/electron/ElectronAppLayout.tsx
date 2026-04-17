@@ -265,25 +265,6 @@ export const ElectronAppLayout = ({
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(156,163,175,0.4);
         }
-
-        /* Force rounded corners on sidebar items */
-        .custom-scrollbar button, 
-        .custom-scrollbar .group {
-          border-radius: 0.5rem !important;
-          margin-left: 0.5rem !important;
-          margin-right: 0.5rem !important;
-          width: calc(100% - 1rem) !important;
-          transition: all 0.2s ease !important;
-        }
-        /* Override hover background with a more subtle one, except for active items */
-        .custom-scrollbar button:not([class*="bg-primary"]):hover,
-        .custom-scrollbar .group:not([class*="bg-primary"]):hover {
-          background-color: rgba(0, 0, 0, 0.05) !important;
-        }
-        .dark .custom-scrollbar button:not([class*="bg-primary"]):hover,
-        .dark .custom-scrollbar .group:not([class*="bg-primary"]):hover {
-          background-color: rgba(255, 255, 255, 0.05) !important;
-        }
       `}</style>
     </aside>
   );

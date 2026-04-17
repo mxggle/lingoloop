@@ -32,6 +32,23 @@ const ROUTE_FALLBACK = (
   </div>
 );
 
+const SettingsWindowPlaceholder = () => (
+  <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-10 text-slate-100">
+    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30 backdrop-blur">
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">
+        LoopMate
+      </p>
+      <h1 className="mt-4 text-2xl font-semibold text-white">
+        Settings window placeholder
+      </h1>
+      <p className="mt-3 text-sm leading-6 text-slate-300">
+        Native settings window plumbing is connected. The dedicated standalone
+        settings surface will replace this placeholder in a follow-up task.
+      </p>
+    </div>
+  </main>
+);
+
 // Memoized so it never re-renders due to AppRouterInner re-renders on route change.
 // PlayerPage has no props — all data flows through store hooks — so memo is safe here.
 // Without this, every route navigation causes PlayerPage + all transcript segments to re-render.
@@ -55,7 +72,7 @@ const AppRouterInner = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/settings-window" element={<SettingsPage />} />
+          <Route path="/settings-window" element={<SettingsWindowPlaceholder />} />
           {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
           <Route
             path="/player"

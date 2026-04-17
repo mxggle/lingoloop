@@ -99,23 +99,19 @@ async function openSettingsWindow(
   tab?: SettingsWindowTab,
   section?: string,
 ): Promise<void> {
-  const targetUrl = buildRendererUrl('/settings-window', {
-    tab,
-    section: section?.trim() || undefined,
-  })
-
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) {
       settingsWindow.restore()
     }
 
-    if (settingsWindow.webContents.getURL() !== targetUrl) {
-      await settingsWindow.loadURL(targetUrl)
-    }
-
     settingsWindow.focus()
     return
   }
+
+  const targetUrl = buildRendererUrl('/settings-window', {
+    tab,
+    section: section?.trim() || undefined,
+  })
 
   settingsWindow = new BrowserWindow({
     width: 960,

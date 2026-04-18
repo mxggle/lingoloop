@@ -55,6 +55,8 @@ export function AIProviderDetail({
   const providerName = t(`aiSettingsPage.providers.${provider}`);
   const isOllama = provider === "ollama";
   const isPreferred = preferredProvider === provider;
+  const hasOllamaBaseUrl = ollamaBaseUrl.trim().length > 0;
+  const hasOllamaModel = model.trim().length > 0;
 
   const connectionFeedback =
     connectionStatus === "success"
@@ -71,6 +73,12 @@ export function AIProviderDetail({
           }
         : null;
   const ConnectionFeedbackIcon = connectionFeedback?.Icon;
+  const connectionStatusLabel = "Connection Status";
+  const ollamaStatusDescription = setupStatus.isConfigured || !hasOllamaBaseUrl
+    ? t("aiSettingsPage.ollamaBaseUrlHelp")
+    : !hasOllamaModel
+      ? t("aiSettingsPage.ollamaModelHelp")
+      : t("aiSettingsPage.ollamaBaseUrlHelp");
 
   return (
     <DesktopCard className="h-full min-h-[440px]">
@@ -143,10 +151,10 @@ export function AIProviderDetail({
                 </div>
                 <div>
                   <p className="text-sm font-bold text-gray-900 dark:text-white">
-                    {t("aiSettingsPage.status.ready")}
+                    {setupStatus.label}
                   </p>
                   <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                    {t("aiSettingsPage.ollamaBaseUrlHelp")}
+                    {ollamaStatusDescription}
                   </p>
                 </div>
               </div>
@@ -206,7 +214,7 @@ export function AIProviderDetail({
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {t("aiSettingsPage.status.active")}
+                      {connectionStatusLabel}
                     </p>
                     {connectionFeedback ? (
                       <div

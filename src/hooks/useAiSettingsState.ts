@@ -120,6 +120,37 @@ const DEFAULT_CONNECTION_STATUS: ProviderRecord<ConnectionStatus> = {
   ollama: "idle",
 };
 
+const isPlausibleHttpUrl = (value: string) => {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(trimmedValue);
+    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const getProviderConfigSignatures = (config: {
+  openaiApiKey: string;
+  openaiModel: string;
+  geminiApiKey: string;
+  geminiModel: string;
+  grokApiKey: string;
+  grokModel: string;
+  ollamaBaseUrl: string;
+  ollamaModel: string;
+}): ProviderRecord<string> => ({
+  openai: `${config.openaiApiKey}\u0000${config.openaiModel}`,
+  gemini: `${config.geminiApiKey}\u0000${config.geminiModel}`,
+  grok: `${config.grokApiKey}\u0000${config.grokModel}`,
+  ollama: `${config.ollamaBaseUrl}\u0000${config.ollamaModel}`,
+});
+
 const serializeAiSettings = (settings: PersistedAiSettings) => JSON.stringify(settings);
 
 const getLoadedAiSettings = (): PersistedAiSettings => {
@@ -165,6 +196,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
   const hasHydratedAiSettingsRef = useRef(false);
   const pendingAiSettingsSaveRef = useRef<number | null>(null);
   const lastSavedAiSettingsRef = useRef<string | null>(null);
+  const providerConfigSignaturesRef = useRef<ProviderRecord<string> | null>(null);
 
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
@@ -200,8 +232,29 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     ProviderRecord<ConnectionStatus>
   >(DEFAULT_CONNECTION_STATUS);
 
-  const getProviderSetupStatus = (provider: AIProvider, apiKey: string) => {
+  const getProviderSetupStatus = (
+    provider: AIProvider,
+    apiKey: string,
+    model: string,
+    baseURL?: string
+  ) => {
     if (provider === "ollama") {
+      if (!model.trim() || !baseURL?.trim()) {
+        return {
+          label: t("aiSettingsPage.status.missing"),
+          tone: "warning" as const,
+          isConfigured: false,
+        };
+      }
+
+      if (!isPlausibleHttpUrl(baseURL)) {
+        return {
+          label: t("aiSettingsPage.status.invalid"),
+          tone: "error" as const,
+          isConfigured: false,
+        };
+      }
+
       return {
         label: t("aiSettingsPage.status.ready"),
         tone: "success" as const,
@@ -239,7 +292,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setOpenaiApiKey,
       model: openaiModel,
       setModel: setOpenaiModel,
-      setupStatus: getProviderSetupStatus("openai", openaiApiKey),
+      setupStatus: getProviderSetupStatus("openai", openaiApiKey, openaiModel),
     },
     {
       provider: "gemini",
@@ -247,7 +300,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setGeminiApiKey,
       model: geminiModel,
       setModel: setGeminiModel,
-      setupStatus: getProviderSetupStatus("gemini", geminiApiKey),
+      setupStatus: getProviderSetupStatus("gemini", geminiApiKey, geminiModel),
     },
     {
       provider: "grok",
@@ -255,7 +308,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setGrokApiKey,
       model: grokModel,
       setModel: setGrokModel,
-      setupStatus: getProviderSetupStatus("grok", grokApiKey),
+      setupStatus: getProviderSetupStatus("grok", grokApiKey, grokModel),
     },
     {
       provider: "ollama",
@@ -263,7 +316,12 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: () => undefined,
       model: ollamaModel,
       setModel: setOllamaModel,
-      setupStatus: getProviderSetupStatus("ollama", ""),
+      setupStatus: getProviderSetupStatus(
+        "ollama",
+        "",
+        ollamaModel,
+        ollamaBaseUrl
+      ),
     },
   ];
 
@@ -310,6 +368,9 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setMaxTokens(loadedSettings.maxTokens);
 
     lastSavedAiSettingsRef.current = serializeAiSettings(loadedSettings);
+    providerConfigSignaturesRef.current = getProviderConfigSignatures(
+      loadedSettings
+    );
     hasHydratedAiSettingsRef.current = true;
 
     return () => {
@@ -384,6 +445,60 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     temperature,
   ]);
 
+  useEffect(() => {
+    if (!hasHydratedAiSettingsRef.current) {
+      return;
+    }
+
+    const providerConfigSignatures = getProviderConfigSignatures({
+      openaiApiKey,
+      openaiModel,
+      geminiApiKey,
+      geminiModel,
+      grokApiKey,
+      grokModel,
+      ollamaBaseUrl,
+      ollamaModel,
+    });
+
+    if (providerConfigSignaturesRef.current === null) {
+      providerConfigSignaturesRef.current = providerConfigSignatures;
+      return;
+    }
+
+    const changedProviders = (
+      Object.keys(providerConfigSignatures) as AIProvider[]
+    ).filter(
+      (provider) =>
+        providerConfigSignatures[provider] !==
+        providerConfigSignaturesRef.current?.[provider]
+    );
+
+    if (changedProviders.length === 0) {
+      return;
+    }
+
+    setConnectionStatus((current) => {
+      const nextStatus = { ...current };
+
+      changedProviders.forEach((provider) => {
+        nextStatus[provider] = "idle";
+      });
+
+      return nextStatus;
+    });
+    providerConfigSignaturesRef.current = providerConfigSignatures;
+  }, [
+    geminiApiKey,
+    geminiModel,
+    grokApiKey,
+    grokModel,
+    ollamaBaseUrl,
+    ollamaModel,
+    openaiApiKey,
+    openaiModel,
+  ]);
+
   const toggleApiKeyVisibility = (provider: AIProvider) => {
     setShowApiKeys((current) => ({ ...current, [provider]: !current[provider] }));
   };
@@ -411,6 +526,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         provider,
         model: config.model,
         apiKey: config.apiKey,
+        baseURL: provider === "ollama" ? ollamaBaseUrl.trim() : undefined,
         temperature: 0.1,
         maxTokens: 10,
       };

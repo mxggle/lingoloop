@@ -66,9 +66,10 @@ const statusToneClassName = {
 } as const;
 
 export type AiSettingsSection = "defaults" | "providers" | "transcription";
+const DEFAULT_AI_SETTINGS_SECTION: AiSettingsSection = "defaults";
 
 const AI_SETTINGS_SECTIONS: readonly AiSettingsSection[] = [
-  "defaults",
+  DEFAULT_AI_SETTINGS_SECTION,
   "providers",
   "transcription",
 ];
@@ -90,13 +91,11 @@ const AISettingsPanelComponent = ({
 }: AISettingsPanelProps) => {
   const { t } = useTranslation();
   const [aiSubTab, setAiSubTab] = useState<AiSettingsSection>(
-    initialSection ?? "defaults"
+    initialSection ?? DEFAULT_AI_SETTINGS_SECTION
   );
 
   useEffect(() => {
-    if (initialSection) {
-      setAiSubTab(initialSection);
-    }
+    setAiSubTab(initialSection ?? DEFAULT_AI_SETTINGS_SECTION);
   }, [initialSection]);
 
   const { providerConfigs, defaultsState, providersState, transcriptionState } = state;
@@ -705,7 +704,7 @@ type AISettingsPanelComponentType = ((
 };
 
 export const AISettingsPanel = Object.assign(AISettingsPanelComponent, {
-  defaultSection: "defaults" as AiSettingsSection,
+  defaultSection: DEFAULT_AI_SETTINGS_SECTION,
   isSection: (
     section: string | null | undefined
   ): section is AiSettingsSection =>

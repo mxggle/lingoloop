@@ -24,11 +24,13 @@ const parseSettingsWorkspaceSearch = (
   search: string
 ): SettingsWorkspaceRouteState => {
   const params = new URLSearchParams(search);
+  const rawTab = params.get("tab")?.trim();
   const rawSection = params.get("section")?.trim();
   const section = AISettingsPanel.isSection(rawSection) ? rawSection : undefined;
+  const tab = rawTab === "ai" || (rawTab !== "general" && section) ? "ai" : "general";
 
   return {
-    tab: params.get("tab") === "ai" ? "ai" : "general",
+    tab,
     section,
   };
 };

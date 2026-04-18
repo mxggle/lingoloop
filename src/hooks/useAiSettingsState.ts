@@ -11,7 +11,9 @@ import {
   normalizeModelId,
 } from "../types/aiService";
 
-type ConnectionStatus = "idle" | "success" | "error";
+export type ConnectionStatus = "idle" | "success" | "error";
+
+export type ProviderSetupTone = "success" | "warning" | "error";
 
 type ProviderRecord<T> = Record<AIProvider, T>;
 
@@ -40,6 +42,11 @@ export interface ProviderConfigState {
   setApiKey: (apiKey: string) => void;
   model: string;
   setModel: (model: string) => void;
+  setupStatus: {
+    label: string;
+    tone: ProviderSetupTone;
+    isConfigured: boolean;
+  };
 }
 
 export interface AiDefaultsState {
@@ -54,13 +61,13 @@ export interface AiDefaultsState {
 }
 
 export interface AiProvidersState {
+  selectedProvider: AIProvider;
+  setSelectedProvider: (provider: AIProvider) => void;
   showApiKeys: ProviderRecord<boolean>;
   toggleApiKeyVisibility: (provider: AIProvider) => void;
   testingConnection: ProviderRecord<boolean>;
   connectionStatus: ProviderRecord<ConnectionStatus>;
   testConnection: (provider: AIProvider) => Promise<void>;
-  expandedProvider: AIProvider | null;
-  setExpandedProvider: (provider: AIProvider | null) => void;
   ollamaBaseUrl: string;
   setOllamaBaseUrl: (url: string) => void;
 }
@@ -185,15 +192,45 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
   const [showApiKeys, setShowApiKeys] =
     useState<ProviderRecord<boolean>>(DEFAULT_SHOW_API_KEYS);
   const [showGroqApiKey, setShowGroqApiKey] = useState(false);
-  const [expandedProvider, setExpandedProvider] = useState<AIProvider | null>(
-    "openai"
-  );
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider>("openai");
   const [testingConnection, setTestingConnection] = useState<
     ProviderRecord<boolean>
   >(DEFAULT_TESTING_CONNECTION);
   const [connectionStatus, setConnectionStatus] = useState<
     ProviderRecord<ConnectionStatus>
   >(DEFAULT_CONNECTION_STATUS);
+
+  const getProviderSetupStatus = (provider: AIProvider, apiKey: string) => {
+    if (provider === "ollama") {
+      return {
+        label: t("aiSettingsPage.status.ready"),
+        tone: "success" as const,
+        isConfigured: true,
+      };
+    }
+
+    if (!apiKey.trim()) {
+      return {
+        label: t("aiSettingsPage.status.missing"),
+        tone: "warning" as const,
+        isConfigured: false,
+      };
+    }
+
+    if (!aiService.validateApiKey(provider, apiKey)) {
+      return {
+        label: t("aiSettingsPage.status.invalid"),
+        tone: "error" as const,
+        isConfigured: false,
+      };
+    }
+
+    return {
+      label: t("aiSettingsPage.status.ready"),
+      tone: "success" as const,
+      isConfigured: true,
+    };
+  };
 
   const providerConfigs: ProviderConfigState[] = [
     {
@@ -202,6 +239,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setOpenaiApiKey,
       model: openaiModel,
       setModel: setOpenaiModel,
+      setupStatus: getProviderSetupStatus("openai", openaiApiKey),
     },
     {
       provider: "gemini",
@@ -209,6 +247,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setGeminiApiKey,
       model: geminiModel,
       setModel: setGeminiModel,
+      setupStatus: getProviderSetupStatus("gemini", geminiApiKey),
     },
     {
       provider: "grok",
@@ -216,6 +255,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: setGrokApiKey,
       model: grokModel,
       setModel: setGrokModel,
+      setupStatus: getProviderSetupStatus("grok", grokApiKey),
     },
     {
       provider: "ollama",
@@ -223,6 +263,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setApiKey: () => undefined,
       model: ollamaModel,
       setModel: setOllamaModel,
+      setupStatus: getProviderSetupStatus("ollama", ""),
     },
   ];
 
@@ -260,7 +301,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setLocalWhisperUrl(loadedSettings.localWhisperUrl);
     setLocalWhisperModel(loadedSettings.localWhisperModel);
     setPreferredProvider(loadedSettings.preferredProvider);
-    setExpandedProvider(loadedSettings.preferredProvider);
+    setSelectedProvider(loadedSettings.preferredProvider);
     setPreferredTranscriptionProvider(
       loadedSettings.preferredTranscriptionProvider
     );
@@ -423,13 +464,13 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setMaxTokens,
     },
     providersState: {
+      selectedProvider,
+      setSelectedProvider,
       showApiKeys,
       toggleApiKeyVisibility,
       testingConnection,
       connectionStatus,
       testConnection,
-      expandedProvider,
-      setExpandedProvider,
       ollamaBaseUrl,
       setOllamaBaseUrl,
     },

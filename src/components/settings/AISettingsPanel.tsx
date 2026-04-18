@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  AlertCircle,
-  Brain,
   CheckCircle,
   ChevronRight,
   Eye,
@@ -11,21 +9,18 @@ import {
   Globe,
   Key,
   Shield,
-  TestTube,
 } from "lucide-react";
-import { aiService } from "../../services/aiService";
 import {
   AIProvider,
-  DEFAULT_MODELS,
   TRANSCRIPTION_PROVIDERS,
   TranscriptionProvider,
-  getModelById,
 } from "../../types/aiService";
 import { cn } from "../../utils/cn";
 import type { UseAiSettingsStateResult } from "../../hooks/useAiSettingsState";
+import { AIProviderDetail } from "./AIProviderDetail";
+import { AIProviderList } from "./AIProviderList";
 import { DesktopCard, DesktopCardContent } from "../ui/DesktopCard";
 import { Input } from "../ui/input";
-import { ModelSelector } from "../ui/ModelSelector";
 
 const LANGUAGE_OPTIONS = [
   "english",
@@ -47,24 +42,6 @@ const LANGUAGE_VALUES: Record<(typeof LANGUAGE_OPTIONS)[number], string> = {
   korean: "Korean",
 };
 
-const providerSurfaceClassName: Record<AIProvider, string> = {
-  openai:
-    "bg-success-100 text-success-700 dark:bg-success-950/40 dark:text-success-300",
-  gemini: "bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300",
-  grok: "bg-warning-100 text-warning-700 dark:bg-warning-950/40 dark:text-warning-300",
-  ollama:
-    "bg-primary-100 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300",
-};
-
-const statusToneClassName = {
-  success:
-    "border border-success-200 bg-success-50 text-success-700 dark:border-success-900/60 dark:bg-success-950/40 dark:text-success-300",
-  warning:
-    "border border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-900/60 dark:bg-warning-950/40 dark:text-warning-300",
-  error:
-    "border border-error-200 bg-red-50 text-error-700 dark:border-error-900/60 dark:bg-red-950/40 dark:text-error-300",
-} as const;
-
 export type AiSettingsSection = "defaults" | "providers" | "transcription";
 const DEFAULT_AI_SETTINGS_SECTION: AiSettingsSection = "defaults";
 
@@ -73,10 +50,6 @@ const AI_SETTINGS_SECTIONS: readonly AiSettingsSection[] = [
   "providers",
   "transcription",
 ];
-
-function isOllama(provider: AIProvider): provider is "ollama" {
-  return provider === "ollama";
-}
 
 interface AISettingsPanelProps {
   state: UseAiSettingsStateResult;
@@ -98,7 +71,8 @@ const AISettingsPanelComponent = ({
     setAiSubTab(initialSection ?? DEFAULT_AI_SETTINGS_SECTION);
   }, [initialSection]);
 
-  const { providerConfigs, defaultsState, providersState, transcriptionState } = state;
+  const { providerConfigs, defaultsState, providersState, transcriptionState } =
+    state;
   const {
     preferredProvider,
     setPreferredProvider,
@@ -115,8 +89,8 @@ const AISettingsPanelComponent = ({
     testingConnection,
     connectionStatus,
     testConnection,
-    expandedProvider,
-    setExpandedProvider,
+    selectedProvider,
+    setSelectedProvider,
     ollamaBaseUrl,
     setOllamaBaseUrl,
   } = providersState;
@@ -147,97 +121,27 @@ const AISettingsPanelComponent = ({
   const providerDisplayName = (provider: AIProvider) =>
     t(`aiSettingsPage.providers.${provider}`);
 
-  const getProviderSetupStatus = (provider: AIProvider, apiKey: string) => {
-    if (provider === "ollama") {
-      return {
-        label: t("aiSettingsPage.status.ready"),
-        className: statusToneClassName.success,
-      };
-    }
-
-    if (!apiKey.trim()) {
-      return {
-        label: t("aiSettingsPage.status.missing"),
-        className: statusToneClassName.warning,
-      };
-    }
-
-    if (!aiService.validateApiKey(provider, apiKey)) {
-      return {
-        label: t("aiSettingsPage.status.invalid"),
-        className: statusToneClassName.error,
-      };
-    }
-
-    return {
-      label: t("aiSettingsPage.status.ready"),
-      className: statusToneClassName.success,
-    };
-  };
-
-  const getConnectionStatusIcon = (provider: AIProvider) => {
-    switch (connectionStatus[provider]) {
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-success-500" />;
-      case "error":
-        return <AlertCircle className="h-4 w-4 text-error-500" />;
-      default:
-        return null;
-    }
-  };
-
   const handleSectionChange = (section: AiSettingsSection) => {
     setAiSubTab(section);
     onSectionChange?.(section);
   };
 
-  return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <DesktopCard className="group overflow-hidden border-none bg-primary-500 text-white shadow-2xl shadow-primary-500/10 dark:bg-primary-600">
-        <DesktopCardContent className="relative p-8">
-          <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 transform p-8 opacity-10 transition-transform duration-700 group-hover:scale-110">
-            <Brain size={120} />
-          </div>
-          <div className="relative z-10 flex flex-col justify-between gap-8 md:flex-row md:items-center">
-            <div className="space-y-1">
-              <h3 className="text-2xl font-black uppercase tracking-tight">
-                AI Intelligence
-              </h3>
-              <p className="max-w-xs text-xs font-semibold uppercase tracking-wider leading-relaxed text-primary-100 opacity-80">
-                Configure high-performance models for your study sessions.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-md">
-                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider opacity-60">
-                  {t("aiSettingsPage.preferredProvider")}
-                </span>
-                <span className="text-sm font-bold">
-                  {providerDisplayName(preferredProvider)}
-                </span>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 backdrop-blur-md">
-                <span className="mb-1 block text-[10px] font-black uppercase tracking-wider opacity-60">
-                  {t("aiSettingsPage.summaryDefaultModel")}
-                </span>
-                <span className="text-sm font-bold">
-                  {preferredProvider === "ollama"
-                    ? providerConfigs.find(
-                        ({ provider }) => provider === preferredProvider
-                      )?.model || DEFAULT_MODELS.ollama
-                    : getModelById(
-                        providerConfigs.find(
-                          ({ provider }) => provider === preferredProvider
-                        )?.model || DEFAULT_MODELS[preferredProvider]
-                      )?.name || DEFAULT_MODELS[preferredProvider]}
-                </span>
-              </div>
-            </div>
-          </div>
-        </DesktopCardContent>
-      </DesktopCard>
+  const selectedProviderConfig =
+    providerConfigs.find(({ provider }) => provider === selectedProvider) ??
+    providerConfigs[0];
 
-      <div className="space-y-8">
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="space-y-2">
+        <h2 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+          {t("aiSettingsPage.title")}
+        </h2>
+        <p className="max-w-3xl text-sm leading-6 text-gray-500 dark:text-gray-400">
+          {t("aiSettingsPage.subtitle")}
+        </p>
+      </div>
+
+      <div className="space-y-6">
         <div className="mx-auto flex w-fit gap-1.5 rounded-2xl bg-black/5 p-1.5 dark:bg-white/5 sm:mx-0">
           {aiSubTabs.map(({ id, label, Icon }) => (
             <button
@@ -268,8 +172,7 @@ const AISettingsPanelComponent = ({
                   </h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-4">
-                  {providerConfigs.map(({ provider, apiKey }) => {
-                    const status = getProviderSetupStatus(provider, apiKey);
+                  {providerConfigs.map(({ provider, setupStatus }) => {
                     const isActive = preferredProvider === provider;
 
                     return (
@@ -295,7 +198,7 @@ const AISettingsPanelComponent = ({
                           {providerDisplayName(provider)}
                         </span>
                         <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 transition-colors group-hover:text-primary-500">
-                          {status.label}
+                          {setupStatus.label}
                         </span>
                       </button>
                     );
@@ -374,179 +277,31 @@ const AISettingsPanelComponent = ({
           ) : null}
 
           {aiSubTab === "providers" ? (
-            <section className="space-y-3 animate-in fade-in duration-300">
-              {providerConfigs.map(({ provider, apiKey, setApiKey, model, setModel }) => {
-                const providerName = providerDisplayName(provider);
-                const setupStatus = getProviderSetupStatus(provider, apiKey);
-                const isOllamaProvider = isOllama(provider);
-                const isExpanded = expandedProvider === provider;
-
-                return (
-                  <DesktopCard
-                    key={provider}
-                    className={cn(
-                      "group transition-all duration-300",
-                      isExpanded
-                        ? "border-primary-500/30 shadow-xl shadow-primary-500/5"
-                        : "border-black/5 dark:border-white/5"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedProvider(isExpanded ? null : provider)
-                      }
-                      className="group/header flex w-full items-center justify-between p-4 text-left outline-none sm:p-6"
-                    >
-                      <div className="flex items-center gap-4 sm:gap-6">
-                        <div
-                          className={cn(
-                            "rounded-2xl p-2.5 transition-all duration-300 group-hover:scale-110",
-                            providerSurfaceClassName[provider]
-                          )}
-                        >
-                          <Brain className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold uppercase tracking-tight text-gray-900 dark:text-white sm:text-base">
-                              {providerName}
-                            </h4>
-                            {!isOllamaProvider ? getConnectionStatusIcon(provider) : null}
-                          </div>
-                          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-gray-400 opacity-60">
-                            {isOllamaProvider
-                              ? model || "Local Llama"
-                              : getModelById(model)?.name || DEFAULT_MODELS[provider]}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span
-                          className={cn(
-                            "hidden rounded-full px-3 py-0.5 text-[8px] font-black uppercase tracking-wider xs:inline-flex",
-                            isExpanded ? "bg-primary-500 text-white" : setupStatus.className
-                          )}
-                        >
-                          {setupStatus.label}
-                        </span>
-                        <ChevronRight
-                          className={cn(
-                            "h-4 w-4 text-gray-400 transition-transform duration-300",
-                            isExpanded && "rotate-90 text-primary-500"
-                          )}
-                        />
-                      </div>
-                    </button>
-
-                    {isExpanded ? (
-                      <DesktopCardContent className="animate-in slide-in-from-top-2 space-y-8 px-6 pb-8 pt-2 duration-300">
-                        <div className="grid gap-10 border-t border-black/5 pt-6 dark:border-white/5 md:grid-cols-2">
-                          {isOllamaProvider ? (
-                            <>
-                              <div className="space-y-3">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                  {t("aiSettingsPage.ollamaBaseUrl")}
-                                </label>
-                                <Input
-                                  type="text"
-                                  value={ollamaBaseUrl}
-                                  onChange={(event) =>
-                                    setOllamaBaseUrl(event.target.value)
-                                  }
-                                  placeholder="http://localhost:11434"
-                                  className="h-12 rounded-2xl border-black/5 font-mono text-sm dark:border-white/5"
-                                />
-                              </div>
-                              <div className="space-y-3">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                  {t("aiSettingsPage.ollamaModel")}
-                                </label>
-                                <Input
-                                  type="text"
-                                  value={model}
-                                  onChange={(event) => setModel(event.target.value)}
-                                  placeholder="llama3.2"
-                                  className="h-12 rounded-2xl border-black/5 text-sm font-bold dark:border-white/5"
-                                />
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    {t("aiSettingsPage.apiKeyLabel")}
-                                  </label>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      void testConnection(provider);
-                                    }}
-                                    disabled={
-                                      !apiKey.trim() || testingConnection[provider]
-                                    }
-                                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-600 disabled:opacity-50 dark:text-primary-400"
-                                  >
-                                    {testingConnection[provider] ? (
-                                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
-                                    ) : (
-                                      <TestTube className="h-4 w-4" />
-                                    )}
-                                    {t("aiSettingsPage.testConnection")}
-                                  </button>
-                                </div>
-                                <div className="relative">
-                                  <Input
-                                    type={showApiKeys[provider] ? "text" : "password"}
-                                    value={apiKey}
-                                    onChange={(event) => setApiKey(event.target.value)}
-                                    placeholder={t(
-                                      "aiSettingsPage.apiKeyPlaceholderLabel",
-                                      { provider: providerName }
-                                    )}
-                                    className="h-12 rounded-2xl border-black/5 pr-12 font-mono text-sm dark:border-white/5"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleApiKeyVisibility(provider)}
-                                    className="absolute inset-y-0 right-4 flex items-center text-gray-400 transition-colors hover:text-primary-500"
-                                  >
-                                    {showApiKeys[provider] ? (
-                                      <EyeOff size={18} />
-                                    ) : (
-                                      <Eye size={18} />
-                                    )}
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="space-y-4">
-                                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                  {t("aiSettingsPage.defaultModel")}
-                                </label>
-                                <ModelSelector
-                                  selectedModel={model}
-                                  onModelSelect={setModel}
-                                  provider={provider}
-                                  placeholder={t(
-                                    "aiSettingsPage.selectModelPlaceholder",
-                                    { provider: providerName }
-                                  )}
-                                />
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        <div className="rounded-2xl border border-black/5 bg-black/[0.02] p-4 dark:border-white/5 dark:bg-white/[0.02]">
-                          <p className="text-xs font-medium leading-relaxed text-gray-500">
-                            {t(`aiSettingsPage.providerDescriptions.${provider}`)}
-                          </p>
-                        </div>
-                      </DesktopCardContent>
-                    ) : null}
-                  </DesktopCard>
-                );
-              })}
+            <section className="animate-in fade-in duration-300">
+              <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+                <AIProviderList
+                  providerConfigs={providerConfigs}
+                  selectedProvider={selectedProvider}
+                  preferredProvider={preferredProvider}
+                  connectionStatus={connectionStatus}
+                  onSelectProvider={setSelectedProvider}
+                />
+                <AIProviderDetail
+                  providerConfig={selectedProviderConfig}
+                  preferredProvider={preferredProvider}
+                  showApiKey={showApiKeys[selectedProviderConfig.provider]}
+                  connectionStatus={connectionStatus[selectedProviderConfig.provider]}
+                  testingConnection={testingConnection[selectedProviderConfig.provider]}
+                  ollamaBaseUrl={ollamaBaseUrl}
+                  setOllamaBaseUrl={setOllamaBaseUrl}
+                  onToggleApiKeyVisibility={() =>
+                    toggleApiKeyVisibility(selectedProviderConfig.provider)
+                  }
+                  onTestConnection={() => {
+                    void testConnection(selectedProviderConfig.provider);
+                  }}
+                />
+              </div>
             </section>
           ) : null}
 

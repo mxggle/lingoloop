@@ -1,5 +1,4 @@
 import { useState, Dispatch, SetStateAction } from "react";
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
@@ -35,6 +34,8 @@ export interface AppLayoutBaseProps {
   hideThemeToggle?: boolean;
   /** Hides the settings button from the header (useful when moved to sidebar) */
   hideSettings?: boolean;
+  /** Opens settings using the active platform shell behavior */
+  onOpenSettings?: () => void;
 }
 
 export const AppLayoutBase = ({
@@ -50,9 +51,9 @@ export const AppLayoutBase = ({
   desktopMode = false,
   hideThemeToggle = false,
   hideSettings = false,
+  onOpenSettings,
 }: AppLayoutBaseProps) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isLayoutPopoverOpen, setIsLayoutPopoverOpen] = useState(false);
   const isMac = typeof window !== "undefined" && navigator.userAgent.includes("Mac OS X");
@@ -216,9 +217,9 @@ export const AppLayoutBase = ({
             )}
 
             {/* Settings */}
-            {!hideSettings && (
+            {!hideSettings && onOpenSettings && (
               <button
-                onClick={() => navigate("/settings")}
+                onClick={onOpenSettings}
                 className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
                 aria-label={t("layout.openSettings")}
               >

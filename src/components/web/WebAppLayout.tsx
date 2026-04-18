@@ -1,8 +1,13 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
+import {
+  buildSettingsSearch,
+  onSettingsOpenIntent,
+  type SettingsOpenIntentDetail,
+} from "../../utils/settingsIntents";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -21,6 +26,22 @@ export const WebAppLayout = ({
 }: WebAppLayoutProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  const openSettings = useCallback(
+    (detail: SettingsOpenIntentDetail = {}) => {
+      navigate({
+        pathname: "/settings",
+        search: buildSettingsSearch(detail),
+      });
+    },
+    [navigate]
+  );
+
+  useEffect(() => {
+    return onSettingsOpenIntent((detail) => {
+      openSettings(detail);
+    });
+  }, [openSettings]);
 
   const navigateToHome = () => {
     const { setCurrentFile, setCurrentYouTube } = usePlayerStore.getState();
@@ -58,6 +79,7 @@ export const WebAppLayout = ({
       headerLeadingSlot={headerLeadingSlot}
       containerClassName="max-w-5xl mx-auto overflow-x-hidden"
       bottomPaddingClassName={bottomPaddingClassName}
+      onOpenSettings={() => openSettings()}
     >
       {children}
     </AppLayoutBase>

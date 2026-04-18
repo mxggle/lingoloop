@@ -23,7 +23,6 @@ import { transcriptionService } from "../../services/transcriptionService";
 import { TranscriptionProvider } from "../../types/aiService";
 import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
-import { useNavigate } from "react-router-dom";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
 
@@ -51,6 +50,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { requestOpenSettings } from "../../utils/settingsIntents";
 
 const EMPTY_SEGMENTS: TranscriptSegmentType[] = [];
 const EMPTY_BOOKMARKS: LoopBookmark[] = [];
@@ -124,7 +124,6 @@ const findSegmentIndexAtTime = (
 export const TranscriptPanel = () => {
   const LARGE_TRANSCRIPTION_FILE_SIZE = 25 * 1024 * 1024;
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
   const {
     currentFile,
@@ -555,7 +554,7 @@ export const TranscriptPanel = () => {
   }, []);
 
   const handleOpenAISettings = () => {
-    navigate("/settings?tab=ai");
+    requestOpenSettings({ tab: "ai" });
   };
 
   const scrollToSegmentIndex = useCallback(

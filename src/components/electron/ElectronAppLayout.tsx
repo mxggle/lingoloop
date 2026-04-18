@@ -18,6 +18,10 @@ import {
 import { AppLayoutBase } from "../layout/AppLayoutBase";
 import { PlayHistory } from "./PlayHistory";
 import { FolderBrowser } from "./FolderBrowser";
+import {
+  onSettingsOpenIntent,
+  type SettingsOpenIntentDetail,
+} from "../../utils/settingsIntents";
 
 /* ── Section header (VS Code style) ─────────────────────────────── */
 interface SectionHeaderProps {
@@ -166,6 +170,19 @@ export const ElectronAppLayout = ({
     await clearMediaHistory();
   }, [clearMediaHistory]);
 
+  const handleOpenSettings = useCallback(
+    async (detail: SettingsOpenIntentDetail = {}) => {
+      await window.electronAPI?.openSettingsWindow(detail.tab, detail.section);
+    },
+    []
+  );
+
+  useEffect(() => {
+    return onSettingsOpenIntent((detail) => {
+      void handleOpenSettings(detail);
+    });
+  }, [handleOpenSettings]);
+
   /* ── Sidebar ───────────────────────────────────────────────────── */
   const sidebar = (
     <aside
@@ -237,7 +254,7 @@ export const ElectronAppLayout = ({
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
-              onClick={() => navigate("/settings")}
+              onClick={() => void handleOpenSettings()}
               className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
               title={t("layout.openSettings", "Open Settings")}
             >
@@ -309,6 +326,7 @@ export const ElectronAppLayout = ({
       desktopMode={true}
       hideThemeToggle={true}
       hideSettings={true}
+      onOpenSettings={() => void handleOpenSettings()}
     >
       {children}
     </AppLayoutBase>

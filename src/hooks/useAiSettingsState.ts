@@ -196,7 +196,20 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
   const hasHydratedAiSettingsRef = useRef(false);
   const pendingAiSettingsSaveRef = useRef<number | null>(null);
   const lastSavedAiSettingsRef = useRef<string | null>(null);
-  const providerConfigSignaturesRef = useRef<ProviderRecord<string> | null>(null);
+  const previousProviderConfigSignaturesRef =
+    useRef<ProviderRecord<string> | null>(null);
+  const latestProviderConfigSignaturesRef = useRef<ProviderRecord<string>>({
+    openai: "",
+    gemini: "",
+    grok: "",
+    ollama: "",
+  });
+  const providerConnectionRequestIdsRef = useRef<ProviderRecord<number>>({
+    openai: 0,
+    gemini: 0,
+    grok: 0,
+    ollama: 0,
+  });
 
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
@@ -343,6 +356,16 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     temperature,
     maxTokens,
   });
+  latestProviderConfigSignaturesRef.current = getProviderConfigSignatures({
+    openaiApiKey,
+    openaiModel,
+    geminiApiKey,
+    geminiModel,
+    grokApiKey,
+    grokModel,
+    ollamaBaseUrl,
+    ollamaModel,
+  });
 
   useEffect(() => {
     const loadedSettings = getLoadedAiSettings();
@@ -368,7 +391,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setMaxTokens(loadedSettings.maxTokens);
 
     lastSavedAiSettingsRef.current = serializeAiSettings(loadedSettings);
-    providerConfigSignaturesRef.current = getProviderConfigSignatures(
+    previousProviderConfigSignaturesRef.current = getProviderConfigSignatures(
       loadedSettings
     );
     hasHydratedAiSettingsRef.current = true;
@@ -450,7 +473,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       return;
     }
 
-    const providerConfigSignatures = getProviderConfigSignatures({
+    const currentProviderConfigSignatures = getProviderConfigSignatures({
       openaiApiKey,
       openaiModel,
       geminiApiKey,
@@ -461,17 +484,15 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       ollamaModel,
     });
 
-    if (providerConfigSignaturesRef.current === null) {
-      providerConfigSignaturesRef.current = providerConfigSignatures;
+    if (previousProviderConfigSignaturesRef.current === null) {
+      previousProviderConfigSignaturesRef.current = currentProviderConfigSignatures;
       return;
     }
 
-    const changedProviders = (
-      Object.keys(providerConfigSignatures) as AIProvider[]
-    ).filter(
+    const changedProviders = (Object.keys(currentProviderConfigSignatures) as AIProvider[]).filter(
       (provider) =>
-        providerConfigSignatures[provider] !==
-        providerConfigSignaturesRef.current?.[provider]
+        currentProviderConfigSignatures[provider] !==
+        previousProviderConfigSignaturesRef.current?.[provider]
     );
 
     if (changedProviders.length === 0) {
@@ -487,7 +508,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
 
       return nextStatus;
     });
-    providerConfigSignaturesRef.current = providerConfigSignatures;
+    previousProviderConfigSignaturesRef.current = currentProviderConfigSignatures;
   }, [
     geminiApiKey,
     geminiModel,
@@ -518,6 +539,10 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       return;
     }
 
+    const requestId = providerConnectionRequestIdsRef.current[provider] + 1;
+    providerConnectionRequestIdsRef.current[provider] = requestId;
+    const requestSignature = latestProviderConfigSignaturesRef.current[provider];
+
     setTestingConnection((current) => ({ ...current, [provider]: true }));
     setConnectionStatus((current) => ({ ...current, [provider]: "idle" }));
 
@@ -531,6 +556,14 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         maxTokens: 10,
       };
       const success = await aiService.testConnection(requestConfig);
+      const isLatestRequest =
+        providerConnectionRequestIdsRef.current[provider] === requestId;
+      const hasMatchingSignature =
+        latestProviderConfigSignaturesRef.current[provider] === requestSignature;
+
+      if (!isLatestRequest || !hasMatchingSignature) {
+        return;
+      }
 
       if (success) {
         setConnectionStatus((current) => ({ ...current, [provider]: "success" }));
@@ -548,6 +581,15 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         );
       }
     } catch (error) {
+      const isLatestRequest =
+        providerConnectionRequestIdsRef.current[provider] === requestId;
+      const hasMatchingSignature =
+        latestProviderConfigSignaturesRef.current[provider] === requestSignature;
+
+      if (!isLatestRequest || !hasMatchingSignature) {
+        return;
+      }
+
       setConnectionStatus((current) => ({ ...current, [provider]: "error" }));
       toast.error(
         t("aiSettingsPage.connectionFailedWithError", {
@@ -557,7 +599,9 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         })
       );
     } finally {
-      setTestingConnection((current) => ({ ...current, [provider]: false }));
+      if (providerConnectionRequestIdsRef.current[provider] === requestId) {
+        setTestingConnection((current) => ({ ...current, [provider]: false }));
+      }
     }
   };
 

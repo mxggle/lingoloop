@@ -73,7 +73,7 @@ export function AIProviderDetail({
           }
         : null;
   const ConnectionFeedbackIcon = connectionFeedback?.Icon;
-  const connectionStatusLabel = "Connection Status";
+  const connectionStatusLabel = t("aiSettingsPage.testConnection");
   const ollamaStatusDescription = setupStatus.isConfigured || !hasOllamaBaseUrl
     ? t("aiSettingsPage.ollamaBaseUrlHelp")
     : !hasOllamaModel

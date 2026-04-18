@@ -2,7 +2,10 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 import { Brain, SlidersHorizontal } from "lucide-react";
 import { GeneralSettingsPanel } from "./GeneralSettingsPanel";
-import { AISettingsPanel } from "./AISettingsPanel";
+import {
+  AISettingsPanel,
+  type AiSettingsSection,
+} from "./AISettingsPanel";
 import {
   SettingsSidebar,
   type SettingsSidebarItem,
@@ -14,14 +17,15 @@ export type SettingsWorkspaceVariant = "page" | "standalone";
 
 export interface SettingsWorkspaceRouteState {
   tab: SettingsTab;
-  section?: string;
+  section?: AiSettingsSection;
 }
 
 const parseSettingsWorkspaceSearch = (
   search: string
 ): SettingsWorkspaceRouteState => {
   const params = new URLSearchParams(search);
-  const section = params.get("section")?.trim() || undefined;
+  const rawSection = params.get("section")?.trim();
+  const section = AISettingsPanel.isSection(rawSection) ? rawSection : undefined;
 
   return {
     tab: params.get("tab") === "ai" ? "ai" : "general",
@@ -67,6 +71,8 @@ interface SettingsWorkspaceProps {
   activeTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
   aiSettingsState: UseAiSettingsStateResult;
+  activeSection?: AiSettingsSection;
+  onSectionChange?: (section: AiSettingsSection) => void;
   variant?: SettingsWorkspaceVariant;
 }
 
@@ -82,6 +88,8 @@ const SettingsWorkspaceComponent = ({
   activeTab,
   onTabChange,
   aiSettingsState,
+  activeSection,
+  onSectionChange,
   variant = "page",
 }: SettingsWorkspaceProps) => {
   const { t } = useTranslation();
@@ -93,7 +101,11 @@ const SettingsWorkspaceComponent = ({
         {activeTab === "general" ? (
           <GeneralSettingsPanel />
         ) : (
-          <AISettingsPanel state={aiSettingsState} />
+          <AISettingsPanel
+            state={aiSettingsState}
+            initialSection={activeSection}
+            onSectionChange={onSectionChange}
+          />
         )}
       </div>
     );

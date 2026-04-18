@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   AlertCircle,
@@ -65,7 +65,13 @@ const statusToneClassName = {
     "border border-error-200 bg-red-50 text-error-700 dark:border-error-900/60 dark:bg-red-950/40 dark:text-error-300",
 } as const;
 
-type AiSubTab = "defaults" | "providers" | "transcription";
+export type AiSettingsSection = "defaults" | "providers" | "transcription";
+
+const AI_SETTINGS_SECTIONS: readonly AiSettingsSection[] = [
+  "defaults",
+  "providers",
+  "transcription",
+];
 
 function isOllama(provider: AIProvider): provider is "ollama" {
   return provider === "ollama";
@@ -73,11 +79,25 @@ function isOllama(provider: AIProvider): provider is "ollama" {
 
 interface AISettingsPanelProps {
   state: UseAiSettingsStateResult;
+  initialSection?: AiSettingsSection;
+  onSectionChange?: (section: AiSettingsSection) => void;
 }
 
-export function AISettingsPanel({ state }: AISettingsPanelProps) {
+const AISettingsPanelComponent = ({
+  state,
+  initialSection,
+  onSectionChange,
+}: AISettingsPanelProps) => {
   const { t } = useTranslation();
-  const [aiSubTab, setAiSubTab] = useState<AiSubTab>("defaults");
+  const [aiSubTab, setAiSubTab] = useState<AiSettingsSection>(
+    initialSection ?? "defaults"
+  );
+
+  useEffect(() => {
+    if (initialSection) {
+      setAiSubTab(initialSection);
+    }
+  }, [initialSection]);
 
   const { providerConfigs, defaultsState, providersState, transcriptionState } = state;
   const {
@@ -167,6 +187,11 @@ export function AISettingsPanel({ state }: AISettingsPanelProps) {
     }
   };
 
+  const handleSectionChange = (section: AiSettingsSection) => {
+    setAiSubTab(section);
+    onSectionChange?.(section);
+  };
+
   return (
     <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <DesktopCard className="group overflow-hidden border-none bg-primary-500 text-white shadow-2xl shadow-primary-500/10 dark:bg-primary-600">
@@ -219,7 +244,7 @@ export function AISettingsPanel({ state }: AISettingsPanelProps) {
             <button
               key={id}
               type="button"
-              onClick={() => setAiSubTab(id)}
+              onClick={() => handleSectionChange(id)}
               className={cn(
                 "flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-bold uppercase tracking-wide transition-all duration-300",
                 aiSubTab === id
@@ -670,4 +695,20 @@ export function AISettingsPanel({ state }: AISettingsPanelProps) {
       </div>
     </div>
   );
-}
+};
+
+type AISettingsPanelComponentType = ((
+  props: AISettingsPanelProps
+) => JSX.Element) & {
+  defaultSection: AiSettingsSection;
+  isSection: (section: string | null | undefined) => section is AiSettingsSection;
+};
+
+export const AISettingsPanel = Object.assign(AISettingsPanelComponent, {
+  defaultSection: "defaults" as AiSettingsSection,
+  isSection: (
+    section: string | null | undefined
+  ): section is AiSettingsSection =>
+    !!section &&
+    (AI_SETTINGS_SECTIONS as readonly string[]).includes(section),
+}) as AISettingsPanelComponentType;

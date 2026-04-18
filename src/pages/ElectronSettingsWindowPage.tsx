@@ -35,6 +35,20 @@ export function ElectronSettingsWindowPage() {
     );
   };
 
+  const handleSectionChange = (section: NonNullable<typeof routeState.section>) => {
+    navigate(
+      {
+        pathname: location.pathname,
+        search: SettingsWorkspace.buildSearch({
+          ...routeState,
+          tab: "ai",
+          section,
+        }),
+      },
+      { replace: true }
+    );
+  };
+
   return (
     <SettingsWindowShell
       title={t("settingsPage.title")}
@@ -58,6 +72,8 @@ export function ElectronSettingsWindowPage() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         aiSettingsState={aiSettingsState}
+        activeSection={routeState.section}
+        onSectionChange={handleSectionChange}
         variant="standalone"
       />
     </SettingsWindowShell>

@@ -150,6 +150,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         temperature: parseFloat(localStorage.getItem("ai_temperature") || "0.7"),
         maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "2000"),
         systemPrompt: AI_PROMPTS.system.languageTutor(targetLanguage),
+        responseFormat: "json_object",
       };
 
       const prompt = AI_PROMPTS.features.sentenceExplanation(text, targetLanguage);
@@ -157,15 +158,53 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
       let structuredExplanation: JapaneseExplanation | undefined;
       const cleanedContent = response.content;
 
+      // Robust JSON Parsing with auto-repair
+      const healJson = (str: string): string => {
+        let jsonStr = str.trim();
+        // Remove markdown formatting if present
+        if (jsonStr.startsWith("```")) {
+          jsonStr = jsonStr.replace(/^```(json)?\n?|```$/g, "").trim();
+        }
+        
+        // Simple brace counting to fix truncated JSON
+        let braceCount = 0;
+        let bracketCount = 0;
+        let inString = false;
+        let lastChar = "";
+        
+        for (let i = 0; i < jsonStr.length; i++) {
+          const char = jsonStr[i];
+          if (char === '"' && lastChar !== "\\") inString = !inString;
+          if (!inString) {
+            if (char === "{") braceCount++;
+            else if (char === "}") braceCount--;
+            else if (char === "[") bracketCount++;
+            else if (char === "]") bracketCount--;
+          }
+          lastChar = char;
+        }
+
+        // If truncated inside a string, close it
+        if (inString) jsonStr += '"';
+        
+        // Remove trailing comma if it exists (common after truncation)
+        jsonStr = jsonStr.replace(/,\s*$/, "");
+        
+        // Close missing brackets and braces
+        while (bracketCount > 0) { jsonStr += "]"; bracketCount--; }
+        while (braceCount > 0) { jsonStr += "}"; braceCount--; }
+        
+        return jsonStr;
+      };
+
       try {
-        // AI might wrap JSON in markdown code blocks
+        // First try finding anything that looks like JSON
         const jsonMatch = response.content.match(/```json\n?([\s\S]*?)\n?```/) || 
                          response.content.match(/{[\s\S]*}/);
         
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[1] || jsonMatch[0];
-          structuredExplanation = JSON.parse(jsonStr.trim());
-        }
+        const rawJson = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.content;
+        const healedJson = healJson(rawJson);
+        structuredExplanation = JSON.parse(healedJson);
       } catch (parseErr) {
         console.error("Failed to parse structured explanation:", parseErr);
         // Fallback to treating as raw markdown if JSON parsing fails

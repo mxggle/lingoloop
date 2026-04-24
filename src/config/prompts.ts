@@ -41,7 +41,7 @@ export const AI_PROMPTS = {
       `- "Whole to Part" Approach: Always provide a high-level summary of the sentence's "soul" before diving into the mechanical breakdown.\n` +
       `- Exam Strategy: If the sentence is from a practice question, analyze the logic behind the phrasing and identify common "N2 traps."\n\n` +
       `Target Sentence: "${text}"\n\n` +
-      `Output format: JSON. Your response must be a single valid JSON object with the following structure:\n` +
+      `Output format: JSON. Your response must be a single valid JSON object. Keep explanations concise but insightful.\n` +
       `{\n` +
       `  "targetSentence": "the original sentence",\n` +
       `  "senseiOverview": "1-2 sentences in first-person 'Sensei' tone explaining the heart or feeling",\n` +
@@ -50,14 +50,14 @@ export const AI_PROMPTS = {
       `    "literal": "literal translation (optional)"\n` +
       `  },\n` +
       `  "breakdown": [\n` +
-      `    { "item": "Word/Phrase (Reading)", "explanation": "meaning, usage, and conjugation logic" },\n` +
+      `    { "item": "Word/Phrase (Reading)", "explanation": "meaning, usage, and conjugation logic (concise)" },\n` +
       `    { "item": "Particle", "explanation": "specific function in this context" }\n` +
       `  ],\n` +
       `  "grammarSpotlight": [\n` +
       `    {\n` +
       `      "point": "Grammar Point",\n` +
       `      "form": "Construction",\n` +
-      `      "meaning": "Explanation",\n` +
+      `      "meaning": "Brief explanation",\n` +
       `      "examples": ["Example 1", "Example 2"]\n` +
       `    }\n` +
       `  ],\n` +

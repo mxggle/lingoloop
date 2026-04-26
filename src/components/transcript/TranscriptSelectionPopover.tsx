@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { AI_PROMPTS } from "../../config/prompts";
-import { Loader, Sparkles, X } from "lucide-react";
+import { BookmarkPlus, Loader, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { aiService } from "../../services/aiService";
+import { usePlayerStore, type TranscriptSegment } from "../../stores/playerStore";
 import {
   AIProvider,
   AIServiceConfig,
@@ -23,12 +24,14 @@ import {
 
 interface TranscriptSelectionPopoverProps {
   selection: TranscriptSelectionState;
+  segment: TranscriptSegment;
   segmentText: string;
   onClose: () => void;
 }
 
 export const TranscriptSelectionPopover = ({
   selection,
+  segment,
   segmentText,
   onClose,
 }: TranscriptSelectionPopoverProps) => {
@@ -41,6 +44,10 @@ export const TranscriptSelectionPopover = ({
     left: selection.rect.left,
   }));
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const currentFile = usePlayerStore((state) => state.currentFile);
+  const currentYouTube = usePlayerStore((state) => state.currentYouTube);
+  const addGlossaryEntry = usePlayerStore((state) => state.addGlossaryEntry);
+  const getCurrentMediaId = usePlayerStore((state) => state.getCurrentMediaId);
 
   const key = useMemo(() => buildTranscriptSelectionKey(selection), [selection]);
   const selectedProvider = useMemo(
@@ -168,6 +175,38 @@ export const TranscriptSelectionPopover = ({
     }
   };
 
+  const handleSaveToGlossary = () => {
+    const mediaId = getCurrentMediaId();
+
+    if (!mediaId) {
+      toast.error(t("glossary.loadMediaFirst"));
+      return;
+    }
+
+    const saved = addGlossaryEntry({
+      mediaId,
+      mediaName:
+        currentFile?.name ||
+        currentYouTube?.title ||
+        currentYouTube?.id ||
+        t("glossary.unknownMedia"),
+      mediaType: currentFile?.type,
+      youtubeId: currentYouTube?.id,
+      segmentId: segment.id,
+      text: selection.text,
+      contextText: segment.text,
+      selectionStart: selection.start,
+      selectionEnd: selection.end,
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+    });
+
+    if (saved) {
+      toast.success(t("glossary.saved"));
+      onClose();
+    }
+  };
+
   const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof HTMLElement) || target.closest("button")) {
@@ -233,8 +272,17 @@ export const TranscriptSelectionPopover = ({
         </button>
       </div>
 
-      {!result && (
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={handleSaveToGlossary}
+          className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-500"
+        >
+          <BookmarkPlus size={13} />
+          {t("glossary.saveSelection")}
+        </button>
+
+        {!result && (
           <button
             type="button"
             onClick={generateExplanation}
@@ -248,8 +296,8 @@ export const TranscriptSelectionPopover = ({
             )}
             {t("transcript.explainSelection")}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {error && (
         <div className="mt-3 text-sm text-error-600 dark:text-error-400">{error}</div>

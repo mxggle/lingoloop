@@ -63,6 +63,23 @@
     "history": "履歴",
     "aiSettings": "AI設定"
   },
+  "glossary": {
+    "title": "用語集",
+    "description": "保存したトランスクリプトの選択範囲を、元のリスニング文脈と一緒に復習します。",
+    "openGlossary": "用語集を開く",
+    "saveSelection": "用語集に保存",
+    "saved": "用語集に保存しました",
+    "alreadySaved": "この選択範囲はすでに用語集にあります",
+    "loadMediaFirst": "用語集に保存するには先にメディアを読み込んでください",
+    "unknownMedia": "不明なメディア",
+    "entryCount": "{{count}} 件保存済み",
+    "emptyTitle": "保存したテキストはまだありません",
+    "emptyDescription": "トランスクリプト内のテキストを選択して保存すると、復習リストを作れます。",
+    "playContext": "文脈を再生",
+    "playingContext": "保存した文脈を再生しています",
+    "sourceMediaRequired": "この文脈を再生するには元のメディアを読み込んでください",
+    "deleteEntry": "用語集項目を削除"
+  },
   "settings": {
     "title": "設定",
     "playback": "再生",

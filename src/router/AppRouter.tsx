@@ -14,6 +14,10 @@ const SettingsPage = lazy(async () => {
   const module = await import("../pages/SettingsPage");
   return { default: module.SettingsPage };
 });
+const GlossaryPage = lazy(async () => {
+  const module = await import("../pages/GlossaryPage");
+  return { default: module.GlossaryPage };
+});
 const SettingsWindowPage = lazy(async () => {
   const module = await import("../pages/ElectronSettingsWindowPage");
   return { default: module.ElectronSettingsWindowPage };
@@ -59,6 +63,7 @@ const AppRouterInner = () => {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/settings-window" element={<SettingsWindowPage />} />
           {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
           <Route

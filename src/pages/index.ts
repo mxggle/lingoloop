@@ -9,3 +9,7 @@ export const PlayerPage = lazy(() =>
 export const SettingsPage = lazy(() =>
   import("./SettingsPage").then((module) => ({ default: module.SettingsPage }))
 );
+
+export const GlossaryPage = lazy(() =>
+  import("./GlossaryPage").then((module) => ({ default: module.GlossaryPage }))
+);

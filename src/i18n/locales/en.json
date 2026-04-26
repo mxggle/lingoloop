@@ -65,6 +65,23 @@
     "history": "History",
     "aiSettings": "AI Settings"
   },
+  "glossary": {
+    "title": "Glossary",
+    "description": "Review saved transcript selections with their original listening context.",
+    "openGlossary": "Open glossary",
+    "saveSelection": "Save to Glossary",
+    "saved": "Saved to glossary",
+    "alreadySaved": "This selection is already in your glossary",
+    "loadMediaFirst": "Load media before saving to the glossary",
+    "unknownMedia": "Unknown media",
+    "entryCount": "{{count}} saved",
+    "emptyTitle": "No saved text yet",
+    "emptyDescription": "Select text in a transcript and save it to build your review list.",
+    "playContext": "Play context",
+    "playingContext": "Playing saved context",
+    "sourceMediaRequired": "Load the source media first to play this context",
+    "deleteEntry": "Delete glossary entry"
+  },
   "bookmarks": {
     "bookmarkAdded": "Bookmark added",
     "bookmarkUpdated": "Bookmark updated",

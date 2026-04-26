@@ -39,3 +39,34 @@ export interface TranscriptSelectionState {
   rect: TranscriptSelectionRect;
   matchedItem: TranscriptStudyItem | null;
 }
+
+export interface GlossaryEntry {
+  id: string;
+  mediaId: string;
+  mediaName: string;
+  mediaType?: string;
+  youtubeId?: string;
+  segmentId: string;
+  text: string;
+  contextText: string;
+  selectionStart: number;
+  selectionEnd: number;
+  startTime: number;
+  endTime: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreateGlossaryEntryInput {
+  mediaId: string;
+  mediaName: string;
+  mediaType?: string;
+  youtubeId?: string;
+  segmentId: string;
+  text: string;
+  contextText: string;
+  selectionStart: number;
+  selectionEnd: number;
+  startTime: number;
+  endTime: number;
+}

@@ -13,12 +13,20 @@ import {
 import { nativePathToUrl } from "../utils/platform";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
-import type { MediaTranscriptStudy } from "../types/transcriptStudy";
+import type {
+  CreateGlossaryEntryInput,
+  GlossaryEntry,
+  MediaTranscriptStudy,
+} from "../types/transcriptStudy";
 import {
   buildSegmentTranscriptStudy,
   buildTranscriptStudy,
   inferTranscriptLevelSystem,
 } from "../utils/transcriptStudy";
+import {
+  createGlossaryEntry,
+  isDuplicateGlossaryEntry,
+} from "../utils/glossary";
 import {
   getNextSentenceSeekTime,
   getPreviousSentenceSeekTime,
@@ -157,6 +165,7 @@ export interface PlayerState {
   // Transcript state
   mediaTranscripts: MediaTranscripts; // Changed from transcriptSegments array to media-scoped object
   mediaTranscriptStudy: MediaTranscriptStudies;
+  glossaryEntries: GlossaryEntry[];
   isTranscriptLoading: boolean;
   showTranscript: boolean;
   isTranscribing: boolean;
@@ -244,6 +253,9 @@ export interface PlayerActions {
   importTranscript: (file: File) => Promise<void>;
   createBookmarkFromTranscript: (segmentId: string) => void;
   loadTranscriptForMedia: (mediaId: string) => Promise<void>;
+  addGlossaryEntry: (entry: CreateGlossaryEntryInput) => boolean;
+  deleteGlossaryEntry: (id: string) => void;
+  playGlossaryEntryContext: (id: string) => boolean;
 
   // Bookmark actions
   addBookmark: (bookmark: Omit<LoopBookmark, "id" | "createdAt">) => boolean;
@@ -323,6 +335,7 @@ const initialState: PlayerState = {
   selectedBookmarkId: null,
   mediaTranscripts: {},
   mediaTranscriptStudy: {},
+  glossaryEntries: [],
   isTranscriptLoading: false,
   showTranscript: false,
   isTranscribing: false,
@@ -887,6 +900,48 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
             [mediaId]: [...(state.mediaBookmarks[mediaId] || []), ...filtered],
           },
         }));
+      },
+
+      addGlossaryEntry: (input) => {
+        const { glossaryEntries } = get();
+        if (isDuplicateGlossaryEntry(glossaryEntries, input)) {
+          toast.error(i18n.t("glossary.alreadySaved"));
+          return false;
+        }
+
+        const entry = createGlossaryEntry(input);
+
+        set((state) => ({
+          glossaryEntries: [entry, ...state.glossaryEntries],
+        }));
+        return true;
+      },
+      deleteGlossaryEntry: (id) => {
+        set((state) => ({
+          glossaryEntries: state.glossaryEntries.filter((entry) => entry.id !== id),
+        }));
+      },
+      playGlossaryEntryContext: (id) => {
+        const { glossaryEntries, getCurrentMediaId } = get();
+        const entry = glossaryEntries.find((candidate) => candidate.id === id);
+        const currentMediaId = getCurrentMediaId();
+
+        if (!entry || !currentMediaId || entry.mediaId !== currentMediaId) {
+          return false;
+        }
+
+        const startTime = Math.max(0, entry.startTime - 0.15);
+
+        set({
+          currentTime: startTime,
+          loopStart: startTime,
+          loopEnd: entry.endTime,
+          isLooping: true,
+          isPlaying: true,
+          selectedBookmarkId: null,
+          loopCount: 0,
+        });
+        return true;
       },
 
       // History actions
@@ -2034,6 +2089,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         showWaveform: state.showWaveform,
         videoSize: state.videoSize,
         mediaBookmarks: state.mediaBookmarks,
+        glossaryEntries: state.glossaryEntries,
         showTranscript: state.showTranscript,
         transcriptLanguage: state.transcriptLanguage,
         recentYouTubeVideos: state.recentYouTubeVideos,

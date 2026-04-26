@@ -1,10 +1,11 @@
 import { useState, Dispatch, SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import {
   Moon, Sun, Info, Settings, Layout, Eye, EyeOff,
-  Music, Video, Youtube,
+  Music, Video, Youtube, BookOpen,
 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
@@ -54,6 +55,7 @@ export const AppLayoutBase = ({
   onOpenSettings,
 }: AppLayoutBaseProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isLayoutPopoverOpen, setIsLayoutPopoverOpen] = useState(false);
   const isMac = typeof window !== "undefined" && navigator.userAgent.includes("Mac OS X");
@@ -196,6 +198,14 @@ export const AppLayoutBase = ({
                 </Popover.Portal>
               </Popover.Root>
             )}
+
+            <button
+              onClick={() => navigate("/glossary")}
+              className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
+              aria-label={t("glossary.openGlossary")}
+            >
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+            </button>
 
             {/* Theme toggle */}
             {!hideThemeToggle && (

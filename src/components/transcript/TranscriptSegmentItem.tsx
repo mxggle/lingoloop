@@ -232,6 +232,7 @@ export const TranscriptSegmentItem = memo(
         {selectionEnabled && activeSelection && (
           <TranscriptSelectionPopover
             selection={activeSelection}
+            segment={segment}
             segmentText={segment.text}
             onClose={onClearSelection}
           />

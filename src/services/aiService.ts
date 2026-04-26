@@ -48,6 +48,7 @@ export class UnifiedAIService {
       top_p: config.topP ?? 1,
       frequency_penalty: config.frequencyPenalty ?? 0,
       presence_penalty: config.presencePenalty ?? 0,
+      response_format: config.responseFormat ? { type: config.responseFormat } : undefined,
     };
 
     const response = await fetch(
@@ -112,6 +113,7 @@ export class UnifiedAIService {
         temperature: config.temperature ?? 0.7,
         topP: config.topP ?? 1,
         maxOutputTokens: config.maxTokens ?? model.maxOutputTokens,
+        responseMimeType: config.responseFormat === "json_object" ? "application/json" : "text/plain",
       },
     };
 
@@ -169,6 +171,7 @@ export class UnifiedAIService {
       temperature: config.temperature ?? 0.7,
       max_tokens: config.maxTokens ?? 2048,
       top_p: config.topP ?? 1,
+      response_format: config.responseFormat ? { type: config.responseFormat } : undefined,
     };
 
     const headers: Record<string, string> = {
@@ -225,6 +228,7 @@ export class UnifiedAIService {
       temperature: config.temperature ?? 0.7,
       max_tokens: config.maxTokens ?? model.maxOutputTokens,
       top_p: config.topP ?? 1,
+      response_format: config.responseFormat ? { type: config.responseFormat } : undefined,
     };
 
     const response = await fetch(

@@ -47,7 +47,7 @@ export const InitialHistoryDisplay = () => {
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-          <History size={18} className="text-purple-500" />
+          <History size={18} className="text-primary-500" />
           {t("history.recentMedia")}
         </h3>
         <div className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export const InitialHistoryDisplay = () => {
             key={item.id}
             onClick={() => handleLoadFromHistory(item)}
             className="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-100 dark:border-gray-700 
-                      hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer transition-all group"
+                      hover:shadow-md hover:border-primary-200 dark:hover:border-primary-800 cursor-pointer transition-all group"
           >
             <div className="flex items-center gap-3">
               {/* Icon based on media type */}
@@ -80,7 +80,7 @@ export const InitialHistoryDisplay = () => {
                 {item.type === "file" ? (
                   <FileAudio size={24} className="text-blue-500" />
                 ) : (
-                  <Youtube size={24} className="text-red-500" />
+                  <Youtube size={24} className="text-error-500" />
                 )}
               </div>
 
@@ -95,7 +95,7 @@ export const InitialHistoryDisplay = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-purple-600 hover:text-purple-700 hover:bg-purple-100 dark:hover:bg-purple-900/30 h-8 w-8 p-0"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-primary-600 hover:text-primary-700 hover:bg-primary-100 dark:hover:bg-primary-900/30 h-8 w-8 p-0"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleLoadFromHistory(item);

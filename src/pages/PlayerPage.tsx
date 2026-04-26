@@ -7,14 +7,15 @@ import { MediaPlayer } from "../components/player/MediaPlayer";
 import { YouTubePlayer } from "../components/player/YouTubePlayer";
 import { CombinedControls } from "../components/controls/CombinedControls";
 import { MobileControls } from "../components/controls/MobileControls";
-import { MediaHistory } from "../components/player/MediaHistory";
+import { isElectron } from "../utils/platform";
+import { MediaHistory } from "../components/web/MediaHistory";
 import { WaveformVisualizer } from "../components/waveform/WaveformVisualizer";
 import { TranscriptPanel } from "../components/transcript";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
 import { AppLayout } from "../components/layout/AppLayout";
-import { useLayoutSettings } from "../contexts/LayoutSettingsContext";
+import { useLayoutSettings } from "../contexts/layoutSettings";
 
 export const PlayerPage = () => {
   const { t } = useTranslation();
@@ -58,108 +59,108 @@ export const PlayerPage = () => {
         setLayoutSettings((prev) => ({ ...prev, showPlayer: !isAudio }));
       }
     }
-  }, [currentFile]);
+  }, [currentFile, setLayoutSettings]);
 
   useEffect(() => {
     if (youtubeId && !currentFile) {
       setLayoutSettings((prev) => ({ ...prev, showPlayer: true }));
     }
-  }, [youtubeId, currentFile]);
+  }, [youtubeId, currentFile, setLayoutSettings]);
 
   return (
     <AppLayout
       layoutSettings={layoutSettings}
       setLayoutSettings={setLayoutSettings}
+      bottomPaddingClassName="pb-0"
     >
-      {/* Show loading message if media is being loaded */}
-      {
-        isLoadingMedia && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
-                {t("common.loading")}
-              </p>
+      <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
+        {/* Show loading message if media is being loaded */}
+        {
+          isLoadingMedia && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  {t("common.loading")}
+                </p>
+              </div>
             </div>
-          </div>
-        )
-      }
+          )
+        }
 
-      {/* Show message if no media is available and not loading */}
-      {
-        !currentFile && !youtubeId && !isLoadingMedia && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
-                {t("player.noMediaLoaded")}
-              </p>
+        {/* Show message if no media is available and not loading */}
+        {
+          !currentFile && !youtubeId && !isLoadingMedia && (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
+                  {t("player.noMediaLoaded")}
+                </p>
+              </div>
             </div>
-          </div>
-        )
-      }
+          )
+        }
 
-      {/* Player Section - Always render media elements for functionality, but handle visibility appropriately */}
-      {
-        (youtubeId || currentFile) && (
-          <>
-            {/* When player is hidden, render only the functional media elements with no UI or space */}
-            {!layoutSettings.showPlayer ? (
-              youtubeId && !currentFile ? (
-                <YouTubePlayer videoId={youtubeId} hiddenMode={true} />
+        {/* Player Section - Always render media elements for functionality, but handle visibility appropriately */}
+        {
+          (youtubeId || currentFile) && (
+            <>
+              {/* When player is hidden, render only the functional media elements with no UI or space */}
+              {!layoutSettings.showPlayer ? (
+                youtubeId && !currentFile ? (
+                  <YouTubePlayer videoId={youtubeId} hiddenMode={true} />
+                ) : (
+                  <MediaPlayer hiddenMode={true} />
+                )
               ) : (
-                <MediaPlayer hiddenMode={true} />
-              )
-            ) : (
-              /* When player is visible, render the full UI */
-              <div className="relative rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5">
-                {youtubeId && !currentFile && (
-                  <YouTubePlayer videoId={youtubeId} />
-                )}
-                {currentFile && <MediaPlayer />}
-              </div>
-            )}
-          </>
-        )
-      }
+                /* When player is visible, render the full UI */
+                <div className="relative shrink-0 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5">
+                  {youtubeId && !currentFile && (
+                    <YouTubePlayer videoId={youtubeId} />
+                  )}
+                  {currentFile && <MediaPlayer />}
+                </div>
+              )}
+            </>
+          )
+        }
 
-      {/* Waveform Section */}
-      {
-        (currentFile || youtubeId) &&
-        (currentFile?.type.includes("audio") || currentFile?.type.includes("video") || youtubeId) &&
-        showWaveform &&
-        layoutSettings.showWaveform && (
-          <div className="sm:mt-4 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-gradient-to-r sm:from-purple-50/50 sm:to-indigo-50/50 sm:dark:from-purple-900/10 sm:dark:to-indigo-900/10 sm:p-4">
-            <WaveformVisualizer />
-          </div>
-        )
-      }
+        {/* Waveform Section */}
+        {
+          (currentFile || youtubeId) &&
+          (currentFile?.type.includes("audio") || currentFile?.type.includes("video") || youtubeId) &&
+          showWaveform &&
+          layoutSettings.showWaveform && (
+            <div className="shrink-0 sm:mt-4 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-gradient-to-r sm:from-primary-50/50 sm:to-accent-50/50 sm:dark:from-primary-900/10 sm:dark:to-accent-900/10 sm:p-4">
+              <WaveformVisualizer />
+            </div>
+          )
+        }
 
-      {/* Dynamic Content Area (Transcript + Controls) */}
-      {
-        (currentFile || youtubeId) && (
-          <div className="flex flex-col flex-1 min-h-0">
-            {" "}
-            {/* Parent flex container for transcript and controls */}
-            {/* Transcript panel - designed to grow */}
-            {layoutSettings.showTranscript && (
-              <div className="mt-2 sm:mt-3 flex-1 flex flex-col min-h-0">
-                {" "}
-                {/* Wrapper for TranscriptPanel, allows growth */}
-                <TranscriptPanel />
-              </div>
-            )}
-            {/* Media controls (should not grow) */}
-            {layoutSettings.showControls && (
-              <div className="mt-4 sm:mt-6 bg-white dark:bg-gray-900 rounded-lg p-3 sm:p-4 ">
-                {isMobile ? <MobileControls /> : <CombinedControls />}
-              </div>
-            )}
-          </div>
-        )
-      }
+        {/* Dynamic Content Area (Transcript + Controls) */}
+        {
+          (currentFile || youtubeId) && (
+            <div
+              className={`flex flex-col min-h-0 ${layoutSettings.showTranscript ? "flex-1" : "shrink-0"
+                }`}
+            >
+              {/* Transcript panel - designed to grow */}
+              {layoutSettings.showTranscript && (
+                <div className="mt-2 sm:mt-3 flex flex-1 min-h-0 flex-col">
+                  <TranscriptPanel />
+                </div>
+              )}
+              {/* Media controls (floating) */}
+              {layoutSettings.showControls && (
+                isMobile ? <MobileControls /> : <CombinedControls showSidebarOffset={isElectron()} />
+              )}
+            </div>
+          )
+        }
 
-      {/* Media History - also typically outside normal flex flow */}
-      <MediaHistory />
-    </AppLayout >
+        {/* Media History – web only; Electron uses the sidebar PlayHistory */}
+        {!isElectron() && <MediaHistory />}
+      </div>
+    </AppLayout>
   );
 };

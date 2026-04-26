@@ -297,7 +297,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
                     },
                     required: ["text", "language", "segments"]
                 },
-            } as any,
+            },
         };
 
         const apiKey = config.apiKey;

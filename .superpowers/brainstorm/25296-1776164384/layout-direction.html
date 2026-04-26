@@ -1,0 +1,65 @@
+<h2>Transcript Redesign Direction</h2>
+<p class="subtitle">Pick the interaction model that should anchor highlights and contextual explanations.</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. Enhanced Segment List</div>
+        <div class="mockup-body">
+          <div class="mock-content" style="padding:12px; display:flex; flex-direction:column; gap:10px;">
+            <div style="border:1px solid #d8dee9; border-radius:10px; padding:10px; background:#fff7ed;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">00:12 - 00:16</div>
+              <div style="line-height:1.6; color:#111827;">
+                I <span style="background:#fde68a; padding:1px 4px; border-radius:999px;">ended up</span>
+                <span style="background:#bfdbfe; padding:1px 4px; border-radius:999px; margin-left:4px;">putting off</span>
+                the meeting.
+              </div>
+              <div style="margin-top:8px; background:#111827; color:white; border-radius:10px; padding:8px 10px; font-size:12px; max-width:220px;">Selection pop-up: explain “putting off” in this sentence</div>
+            </div>
+            <div style="border:1px solid #e5e7eb; border-radius:10px; padding:10px; opacity:.65;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:6px;">00:16 - 00:20</div>
+              <div style="line-height:1.6; color:#374151;">That decision made everyone nervous.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Keep the current segment list</h3>
+      <p>Add level-based highlights directly inside each segment row and show a lightweight selection pop-up anchored to the selected text.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. Reader Surface</div>
+        <div class="mockup-body">
+          <div style="display:grid; grid-template-columns: 1.8fr 1fr; gap:10px; padding:12px;">
+            <div style="border:1px solid #d8dee9; border-radius:10px; padding:12px; background:white;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Now playing sentence</div>
+              <div style="font-size:18px; line-height:1.7; color:#111827;">
+                I <span style="background:#fde68a; padding:1px 4px; border-radius:999px;">ended up</span>
+                <span style="background:#bfdbfe; padding:1px 4px; border-radius:999px; margin-left:4px;">putting off</span>
+                the meeting.
+              </div>
+              <div style="margin-top:10px; display:flex; gap:8px; font-size:12px; color:#6b7280;">
+                <span>Prev / Next</span><span>Loop</span><span>Save</span>
+              </div>
+            </div>
+            <div style="border:1px solid #e5e7eb; border-radius:10px; padding:12px; background:#f8fafc;">
+              <div style="font-size:12px; color:#6b7280; margin-bottom:8px;">Study panel</div>
+              <div style="font-size:12px; color:#111827; margin-bottom:6px;">Selected: <strong>putting off</strong></div>
+              <div style="font-size:12px; color:#374151; line-height:1.5;">Delay or postpone something. In this sentence it means the speaker postponed the meeting.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Shift to a reader-style transcript</h3>
+      <p>Promote the active sentence into a larger reading surface with a persistent study panel for vocabulary and contextual explanations.</p>
+    </div>
+  </div>
+</div>

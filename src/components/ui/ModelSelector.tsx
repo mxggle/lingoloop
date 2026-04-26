@@ -91,7 +91,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       case "gemini":
         return "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400";
       case "grok":
-        return "bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400";
+        return "bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-400";
       default:
         return "bg-gray-50 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
     }
@@ -166,7 +166,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               <span className="truncate">{selectedModelInfo.name}</span>
               {showPricing && !compact && hasPricing(selectedModelInfo) && (
                 <span className="text-xs text-muted-foreground">
-                  {formatPrice(selectedModelInfo.pricing.input)}/1M
+                  {t("modelSelector.pricePerMillion", { price: formatPrice(selectedModelInfo.pricing.input) })}
                 </span>
               )}
             </>

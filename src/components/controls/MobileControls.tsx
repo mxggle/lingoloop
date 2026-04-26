@@ -213,7 +213,7 @@ export const MobileControls = () => {
   // Note: Loop jump functions removed as they're not used in the mobile interface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-[50] pb-safe">
+    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-[60] pb-safe">
       <div className="px-3 pt-2 pb-3">
 
         {/* Main controls - reorganized for better vertical space usage */}
@@ -232,7 +232,7 @@ export const MobileControls = () => {
 
             <button
               onClick={togglePlayPause}
-              className="p-4 bg-purple-600 rounded-full text-white hover:bg-purple-700 shadow-md"
+              className="p-4 bg-primary-600 rounded-full text-white hover:bg-primary-700 shadow-md"
               aria-label={isPlaying ? t("player.pause") : t("player.play")}
             >
               {isPlaying ? (
@@ -256,7 +256,7 @@ export const MobileControls = () => {
               className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               aria-label={t("player.playbackSpeed")}
             >
-              <span className="text-sm font-bold">{playbackRate}x</span>
+              <span className="text-sm font-bold">{t("player.speedIndicator", { rate: playbackRate })}</span>
             </button>
           </div>
 
@@ -266,7 +266,7 @@ export const MobileControls = () => {
             <button
               onClick={() => setAutoAdvanceBookmarks(!autoAdvanceBookmarks)}
               className={`p-3 rounded-full ${autoAdvanceBookmarks
-                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
                 : "hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               aria-label={
@@ -281,7 +281,7 @@ export const MobileControls = () => {
             <button
               onClick={toggleLooping}
               className={`p-3 rounded-full ${isLooping
-                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                ? "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
                 : "hover:bg-gray-200 dark:hover:bg-gray-700"
                 }`}
               aria-label={
@@ -309,10 +309,10 @@ export const MobileControls = () => {
 
             <button
               onClick={handleBookmarkAction}
-              className={`p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${selectedBookmarkId
-                ? "bg-purple-700 hover:bg-red-500/80 active:bg-red-500/90 text-white" // Active/Delete mode
+              className={`p-3 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 ${selectedBookmarkId
+                ? "bg-primary-700 hover:bg-error-500/80 active:bg-error-500/90 text-white" // Active/Delete mode
                 : loopStart !== null && loopEnd !== null
-                  ? "bg-purple-600/50 hover:bg-purple-700 active:bg-purple-800 text-white" // Add mode
+                  ? "bg-primary-600/50 hover:bg-primary-700 active:bg-primary-800 text-white" // Add mode
                   : "opacity-50 cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700" // Disabled - matches other disabled buttons
                 }`}
               disabled={
@@ -399,7 +399,7 @@ export const MobileControls = () => {
                 max={1}
                 step={0.01}
                 onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="w-full h-12 appearance-none bg-gradient-to-r from-purple-200 to-purple-500 rounded-full"
+                className="w-full h-12 appearance-none bg-gradient-to-r from-primary-200 to-primary-500 rounded-full"
                 style={{
                   WebkitAppearance: "none",
                   background: `linear-gradient(to right, #9333ea ${(muted ? 0 : volume) * 100

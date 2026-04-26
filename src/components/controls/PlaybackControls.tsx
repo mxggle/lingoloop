@@ -120,7 +120,7 @@ export const PlaybackControls = () => {
           
           <button
             onClick={togglePlayPause}
-            className="p-3 bg-purple-600 rounded-full text-white hover:bg-purple-700"
+            className="p-3 bg-primary-600 rounded-full text-white hover:bg-primary-700"
             aria-label={isPlaying ? t("player.pause") : t("player.play")}
           >
             {isPlaying ? <Pause size={24} /> : <Play size={24} />}
@@ -144,7 +144,7 @@ export const PlaybackControls = () => {
             <Rewind size={20} />
           </button>
           
-          <span className="text-sm font-medium">{playbackRate.toFixed(2)}x</span>
+          <span className="text-sm font-medium">{t("player.speedIndicator", { rate: playbackRate.toFixed(2) })}</span>
           
           <button
             onClick={increasePlaybackRate}

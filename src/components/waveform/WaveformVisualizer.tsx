@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
-import { usePlayerStore } from "../../stores/playerStore";
+import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import { usePlayerStore, type LoopBookmark } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useShadowingStore } from "../../stores/shadowingStore";
+import { useShallow } from "zustand/react/shallow";
 import {
   CachedWaveformData,
   getCachedWaveform,
@@ -18,15 +19,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
-  Volume2,
-  VolumeX,
   Trash2,
   Mic,
   Radio,
 } from "lucide-react";
-import { Slider } from "@/components/ui/slider";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { useThemeStore } from "../../stores/themeStore";
+import { hexToRgba } from "../../utils/theme";
 import { checkAudioRecordingSupport, getRecordingUnsupportedMessage } from "../../utils/browserCheck";
 import { useShadowingRecorder } from "../../hooks/useShadowingRecorder";
 import {
@@ -43,8 +43,18 @@ const BOOKMARK_TOAST_ID = "bookmark-action-toast";
 
 // Stable empty arrays used in selectors to avoid creating
 // a new [] on every render (prevents infinite re-render loops)
-const EMPTY_BOOKMARKS: readonly any[] = Object.freeze([]);
-const EMPTY_SEGMENTS: readonly any[] = Object.freeze([]);
+type ShadowingSegmentView = {
+  id: string;
+  startTime: number;
+  duration: number;
+  storageId: string;
+  fileOffset?: number;
+  peaks?: number[];
+  peakTimes?: number[];
+};
+
+const EMPTY_BOOKMARKS: readonly LoopBookmark[] = Object.freeze([]);
+const EMPTY_SEGMENTS: readonly ShadowingSegmentView[] = Object.freeze([]);
 
 const normalizeCachedWaveform = (
   waveform: CachedWaveformData
@@ -72,6 +82,11 @@ type RecordingOverlay = {
   peakTimes: number[];
   startedAt: number;
 };
+
+type AudioContextWindow = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
 // Utility function to format time in mm:ss.ms format
 const formatTime = (time: number): string => {
   if (isNaN(time)) return "00:00.0";
@@ -88,6 +103,7 @@ const formatTime = (time: number): string => {
 
 export const WaveformVisualizer = () => {
   const { t } = useTranslation();
+  const { colors } = useThemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // Track clickable bookmark lane rects (CSS pixel units)
@@ -150,27 +166,58 @@ export const WaveformVisualizer = () => {
     autoAdvanceBookmarks,
     setAutoAdvanceBookmarks,
     updateBookmark,
-    mediaVolume,
-    setMediaVolume,
-    previousMediaVolume,
-    setPreviousMediaVolume,
     isPlaying,
-    muted,
-    toggleMute,
-  } = usePlayerStore();
+  } = usePlayerStore(
+    useShallow((state) => ({
+      currentFile: state.currentFile,
+      currentYouTube: state.currentYouTube,
+      currentTime: state.currentTime,
+      duration: state.duration,
+      loopStart: state.loopStart,
+      loopEnd: state.loopEnd,
+      isLooping: state.isLooping,
+      playbackRate: state.playbackRate,
+      waveformZoom: state.waveformZoom,
+      showWaveform: state.showWaveform,
+      setCurrentTime: state.setCurrentTime,
+      setLoopPoints: state.setLoopPoints,
+      setWaveformZoom: state.setWaveformZoom,
+      setIsLooping: state.setIsLooping,
+      addBookmark: state.addBookmark,
+      selectedBookmarkId: state.selectedBookmarkId,
+      loadBookmark: state.loadBookmark,
+      setIsPlaying: state.setIsPlaying,
+      deleteBookmark: state.deleteBookmark,
+      autoAdvanceBookmarks: state.autoAdvanceBookmarks,
+      setAutoAdvanceBookmarks: state.setAutoAdvanceBookmarks,
+      updateBookmark: state.updateBookmark,
+      isPlaying: state.isPlaying,
+    }))
+  );
 
   const {
-    volume: shadowVolume, setVolume: setShadowVolume,
-    muted: shadowMuted, setMuted: setShadowMuted,
     currentRecording,
+    currentRecordingRevision,
     isShadowingMode, setShadowingMode,
     isRecording,
-  } = useShadowingStore();
+  } = useShadowingStore(
+    useShallow((state) => ({
+      currentRecording: state.currentRecording,
+      currentRecordingRevision: state.currentRecordingRevision,
+      isShadowingMode: state.isShadowingMode,
+      setShadowingMode: state.setShadowingMode,
+      isRecording: state.isRecording,
+    }))
+  );
 
-  const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
+  const mediaId = currentFile
+    ? currentFile.storageId || currentFile.id || `file-${currentFile.name}-${currentFile.size}`
+    : currentYouTube
+      ? `youtube-${currentYouTube.id}`
+      : null;
   const shadowingSegments = useShadowingStore((state) => {
-    if (!mediaId) return EMPTY_SEGMENTS as any[];
-    return state.sessions[mediaId]?.segments || (EMPTY_SEGMENTS as any[]);
+    if (!mediaId) return EMPTY_SEGMENTS;
+    return state.sessions[mediaId]?.segments || EMPTY_SEGMENTS;
   });
   const [shadowingWaveforms, setShadowingWaveforms] = useState<ShadowWaveform[]>([]);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
@@ -211,7 +258,10 @@ export const WaveformVisualizer = () => {
             }
 
             const arrayBuffer = await file.arrayBuffer();
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const audioContext = new (
+              window.AudioContext ||
+              (window as AudioContextWindow).webkitAudioContext
+            )();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
             const fileOffset = seg.fileOffset || 0;
@@ -297,17 +347,32 @@ export const WaveformVisualizer = () => {
 
   // Subscribe to bookmarks for current media so changes re-render this component
   const bookmarks = usePlayerStore((state) => {
-    const mediaId = state.getCurrentMediaId();
     // Return the actual array from state if it exists; otherwise return
     // a module-stable empty array so the selector snapshot is referentially stable.
     return mediaId && state.mediaBookmarks[mediaId]
       ? state.mediaBookmarks[mediaId]
-      : (EMPTY_BOOKMARKS as any[]);
+      : EMPTY_BOOKMARKS;
   });
+  const bookmarkMap = useMemo(
+    () => new Map(bookmarks.map((bookmark) => [bookmark.id, bookmark])),
+    [bookmarks]
+  );
+  const sortedBookmarks = useMemo(
+    () =>
+      bookmarks.length > 1
+        ? [...bookmarks].sort((a, b) => a.start - b.start)
+        : bookmarks,
+    [bookmarks]
+  );
+  const hasBookmarks = bookmarks.length > 0;
+  const getBookmarkById = useCallback(
+    (id: string) => bookmarkMap.get(id) ?? null,
+    [bookmarkMap]
+  );
 
   // Resolve the currently active/selected bookmark for display
   const activeBookmark =
-    bookmarks?.find((b) => b.id === selectedBookmarkId) || null;
+    selectedBookmarkId ? getBookmarkById(selectedBookmarkId) : null;
 
   // YouTube notice dismissal state
   const [isYoutubeNoticeDismissed, setIsYoutubeNoticeDismissed] = useState(false);
@@ -700,7 +765,7 @@ export const WaveformVisualizer = () => {
       canvasLoopStart >= 0 &&
       canvasLoopEnd <= canvas.width
     ) {
-      ctx.fillStyle = "rgba(139, 92, 246, 0.2)"; // Purple with opacity
+      ctx.fillStyle = hexToRgba(colors.primary, 0.2); // Theme primary with opacity
       ctx.fillRect(
         canvasLoopStart,
         0,
@@ -721,7 +786,7 @@ export const WaveformVisualizer = () => {
         const w = x2 - x1;
 
         if (w > 0) {
-          ctx.fillStyle = "rgba(139, 92, 246, 0.4)"; // Stronger purple for active selection
+          ctx.fillStyle = hexToRgba(colors.primary, 0.4); // Stronger primary for active selection
           ctx.fillRect(x1, 0, w, canvas.height);
         }
       }
@@ -735,7 +800,7 @@ export const WaveformVisualizer = () => {
       mainWaveformHeight - mainWaveformPadding * 2
     );
 
-    ctx.fillStyle = "#8B5CF6"; // Purple
+    ctx.fillStyle = colors.primary; // Theme primary
 
     // Correct slice width calculation based on total valid data vs visible window
     // Do NOT rely on clamped indices for scale, or it stretches at the ends
@@ -784,9 +849,8 @@ export const WaveformVisualizer = () => {
 
       // Draw separator
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(139, 92, 246, 0.3)";
-      ctx.lineWidth = 1 * dpr;
-      ctx.moveTo(0, shadowTop);
+      ctx.strokeStyle = hexToRgba(colors.primary, 0.3); // Theme primary with opacity
+      ctx.lineWidth = 1 * dpr;      ctx.moveTo(0, shadowTop);
       ctx.lineTo(canvas.width, shadowTop);
       ctx.stroke();
 
@@ -815,7 +879,7 @@ export const WaveformVisualizer = () => {
         const segEnd = seg.start + seg.duration;
         if (segEnd < startOffset || seg.start > endOffset) return;
 
-        ctx.fillStyle = "#10B981"; // Emerald/Green for user audio
+        ctx.fillStyle = colors.success; // Theme success color for user audio
 
         const sampleDuration = seg.duration / seg.data.length;
 
@@ -876,12 +940,12 @@ export const WaveformVisualizer = () => {
         const elapsed = performance.now() - fadingRecording.startedAt;
         const alpha = Math.max(0, 1 - elapsed / 350);
         if (alpha > 0) {
-          drawRecordingOverlay(fadingRecording, "#EF4444", alpha);
+          drawRecordingOverlay(fadingRecording, colors.error, alpha);
         }
       }
 
       if (currentRecording) {
-        drawRecordingOverlay(currentRecording, "#EF4444");
+        drawRecordingOverlay(currentRecording, colors.error);
       }
       ctx.restore();
     }
@@ -950,12 +1014,16 @@ export const WaveformVisualizer = () => {
     selectedBookmarkId,
     shadowingWaveforms,
     currentRecording,
+    currentRecordingRevision,
     fadingRecording,
     fadeFrame,
     isDragging,
     dragStart,
     dragEnd,
     isMobile,
+    colors.error,
+    colors.primary,
+    colors.success,
   ]);
 
   // Helper function to draw markers
@@ -1113,6 +1181,7 @@ export const WaveformVisualizer = () => {
     [
       currentTime,
       waveformZoom,
+      setIsPlaying,
       setIsDragging,
       setTouchStartTime,
       setPinchStartDistance,
@@ -1193,15 +1262,16 @@ export const WaveformVisualizer = () => {
               (r) => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2
             );
             if (laneHit) {
-              const bm = bookmarks?.find((b) => b.id === laneHit.id);
+              const bm = getBookmarkById(laneHit.id);
               if (bm) {
                 loadBookmark(bm.id);
                 setCurrentTime(bm.start);
                 setIsPlaying(true);
               }
             } else {
-              // Seek to tapped position
+              // Seek to tapped position — lift the arm if shadowing is active
               setCurrentTime(time);
+              if (isShadowingMode) setShadowingMode(false);
               // If loop is active and tap is outside loop, disable looping
               if (isLooping && loopStart !== null && loopEnd !== null) {
                 if (time < loopStart || time > loopEnd) {
@@ -1243,13 +1313,15 @@ export const WaveformVisualizer = () => {
       setPinchStartDistance,
       positionToTime,
       duration,
-      bookmarks,
       loadBookmark,
       setCurrentTime,
       isLooping,
       loopStart,
       loopEnd,
+      isShadowingMode,
+      setShadowingMode,
       setIsLooping,
+      getBookmarkById,
     ]
   );
 
@@ -1425,7 +1497,7 @@ export const WaveformVisualizer = () => {
     if (resizingBookmark) {
       const time = positionToTime(e.clientX);
       if (time >= 0 && time <= duration) {
-        const bm = bookmarks?.find((b) => b.id === resizingBookmark.id);
+        const bm = getBookmarkById(resizingBookmark.id);
         if (bm) {
           if (resizingBookmark.edge === "start") {
             const newStart = Math.min(time, bm.end - 0.1);
@@ -1535,7 +1607,7 @@ export const WaveformVisualizer = () => {
 
   // Navigate between bookmarks (previous/next)
   const goToBookmark = (direction: "prev" | "next") => {
-    const list = (bookmarks || []).slice().sort((a, b) => a.start - b.start);
+    const list = sortedBookmarks;
     if (list.length === 0) return;
 
     // Find current index: selected id preferred; otherwise nearest to current time
@@ -1591,7 +1663,7 @@ export const WaveformVisualizer = () => {
         (r) => xCss >= r.x1 && xCss <= r.x2 && yCss >= r.y1 && yCss <= r.y2
       );
       if (laneHit) {
-        const bm = bookmarks?.find((b) => b.id === laneHit.id);
+        const bm = getBookmarkById(laneHit.id);
         if (bm) {
           loadBookmark(bm.id);
           setCurrentTime(bm.start);
@@ -1609,8 +1681,9 @@ export const WaveformVisualizer = () => {
         }
       }
 
-      // Seek to the clicked time
+      // Seek to the clicked time — lift the arm if shadowing is active
       setCurrentTime(time);
+      if (isShadowingMode) setShadowingMode(false);
 
       // Desktop: auto-adjust viewport if click target is outside current view
       if (!isMobile) {
@@ -1635,12 +1708,13 @@ export const WaveformVisualizer = () => {
   };
 
   const handleSelectBookmark = (id: string) => {
-    const bm = bookmarks?.find((b) => b.id === id);
+    const bm = getBookmarkById(id);
     if (!bm) return;
     loadBookmark(id);
     setCurrentTime(bm.start);
     setIsPlaying(true);
     setOverlapMenu(null);
+    if (isShadowingMode) setShadowingMode(false);
     document.body.classList.add("user-seeking");
     setTimeout(() => {
       document.body.classList.remove("user-seeking");
@@ -1658,32 +1732,32 @@ export const WaveformVisualizer = () => {
 
   return (
     <>
-      <div className="mt-2 backdrop-blur-sm rounded-lg overflow-hidden border border-purple-500/30 relative">
+      <div className="mt-2 backdrop-blur-sm rounded-lg overflow-hidden border border-primary-500/30 relative">
         {/* Zoom controls - moved to top-left; hidden on mobile (use pinch) */}
         {/* {!isMobile && (
         <div className={`absolute top-1 left-1 z-10 flex items-center gap-1 bg-gray-900/60 backdrop-blur rounded-full ring-1 ring-white/10 shadow-md px-1.5 py-1`}>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleZoomIn}
-            title="Zoom In"
+            title={t("waveform.zoomIn")}
           >
             <PlusIcon className="h-3.5 w-3.5" />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleZoomOut}
-            title="Zoom Out"
+            title={t("waveform.zoomOut")}
           >
             <MinusIcon className="h-3.5 w-3.5" />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 h-8 w-8`}
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 h-8 w-8`}
             onClick={handleResetZoom}
-            title="Reset Zoom"
+            title={t("waveform.resetZoom")}
           >
             <ArrowsPointingOutIcon className="h-3.5 w-3.5" />
           </button>
-          <span className="text-xs text-white/90 px-1">{formatZoom(waveformZoom)}x</span>
+          <span className="text-xs text-white/90 px-1">{t("waveform.zoomLevel", { level: formatZoom(waveformZoom) })}</span>
         </div>
       )} */}
 
@@ -1707,112 +1781,6 @@ export const WaveformVisualizer = () => {
         >
 
           <canvas ref={canvasRef} className="w-full h-full cursor-crosshair" />
-
-          {/* Media Volume Control - overlaid on top-left of media waveform lane */}
-          {showWaveform && (
-            <div
-              className={`absolute left-2 z-10 group/vol flex items-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full h-8 pointer-events-auto transition-all duration-200 -translate-y-1/2 top-[25%] ${isMobile ? "opacity-100" : ""}`}
-              onMouseDown={stopPropagation}
-              onClick={stopPropagation}
-              onTouchStart={stopPropagation}
-              onPointerDown={stopPropagation}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (mediaVolume === 0) {
-                    if (previousMediaVolume !== undefined && previousMediaVolume > 0) {
-                      setMediaVolume(previousMediaVolume);
-                    } else {
-                      setMediaVolume(1);
-                    }
-                  } else {
-                    setPreviousMediaVolume(mediaVolume);
-                    setMediaVolume(0);
-                  }
-                }}
-                className="h-full px-2.5 text-white/70 hover:text-white transition-colors"
-                title="Media Volume"
-              >
-                {(mediaVolume === 0 || muted) ? <VolumeX size={isMobile ? 16 : 14} /> : <Volume2 size={isMobile ? 16 : 14} />}
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 ${isMobile ? "max-w-[120px]" : "max-w-0 group-hover/vol:max-w-[100px]"}`}>
-                <div className={`${isMobile ? "w-[100px]" : "w-24"} pr-4`}>
-                  <Slider
-                    value={[muted ? 0 : mediaVolume]}
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    onValueChange={(v) => {
-                      setMediaVolume(v[0]);
-                      if (v[0] > 0 && muted) {
-                        toggleMute();
-                      }
-                    }}
-                    className="cursor-pointer"
-                    thumbClassName="!h-3.5 !w-3.5 !border-0 !bg-white !shadow-[0_0_6px_rgba(255,255,255,0.6)]"
-                    trackClassName="!h-1 !bg-white/20"
-                    rangeClassName="!bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* REC Volume Control - overlaid on left of shadowing waveform lane (bottom half) */}
-          {showWaveform && (
-            <div
-              className={`absolute left-2 top-[75%] -translate-y-1/2 z-10 group/svol flex items-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full h-8 pointer-events-auto transition-all duration-200 ${isMobile ? "opacity-100" : ""}`}
-              onMouseDown={stopPropagation}
-              onClick={stopPropagation}
-              onTouchStart={stopPropagation}
-              onPointerDown={stopPropagation}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (shadowMuted) {
-                    const previousVolume = useShadowingStore.getState().previousShadowVolume;
-                    if (previousVolume !== undefined && previousVolume > 0) {
-                      setShadowVolume(previousVolume);
-                    } else {
-                      setShadowVolume(1);
-                    }
-                    setShadowMuted(false);
-                  } else {
-                    useShadowingStore.getState().setPreviousShadowVolume(shadowVolume);
-                    setShadowVolume(0);
-                    setShadowMuted(true);
-                  }
-                }}
-                className="h-full px-2.5 text-white/70 hover:text-white transition-colors"
-                title="Recording Volume"
-              >
-                {(shadowMuted || shadowVolume === 0 || muted) ? <VolumeX size={isMobile ? 16 : 14} /> : <Volume2 size={isMobile ? 16 : 14} />}
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 ${isMobile ? "max-w-[120px]" : "max-w-0 group-hover/svol:max-w-[100px]"}`}>
-                <div className={`${isMobile ? "w-[100px]" : "w-24"} pr-4`}>
-                  <Slider
-                    value={[(shadowMuted || muted) ? 0 : shadowVolume]}
-                    min={0}
-                    max={1}
-                    step={0.1}
-                    onValueChange={(v) => {
-                      setShadowVolume(v[0]);
-                      if (v[0] > 0) {
-                        if (shadowMuted) setShadowMuted(false);
-                        if (muted) toggleMute();
-                      }
-                    }}
-                    className="cursor-pointer"
-                    thumbClassName="!h-3.5 !w-3.5 !border-0 !bg-white !shadow-[0_0_6px_rgba(255,255,255,0.6)]"
-                    trackClassName="!h-1 !bg-white/20"
-                    rangeClassName="!bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Overlapping bookmarks picker */}
           {overlapMenu && (
@@ -1871,7 +1839,7 @@ export const WaveformVisualizer = () => {
           {/* Visual indicator for dragging selection */}
           {isDragging && dragStart !== null && dragEnd !== null && (
             <div
-              className="absolute bg-purple-500/30 border border-purple-500 pointer-events-none"
+              className="absolute bg-primary-500/30 border border-primary-500 pointer-events-none"
               style={{
                 left: `${timeToPosition(Math.min(dragStart, dragEnd))}%`,
                 width: `${timeToPosition(Math.max(dragStart, dragEnd)) -
@@ -1932,8 +1900,8 @@ export const WaveformVisualizer = () => {
 
           {/* Playhead time code - Video editing app style, moved to bottom */}
           <div
-            className={`absolute bottom-0 mb-1 bg-red-600 text-white font-mono font-bold px-2 py-0.5 rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.4)] pointer-events-none z-[25] ${isMobile ? "text-[11px]" : "text-[10px]"
-              } border border-red-500/20`}
+            className={`absolute bottom-0 mb-1 bg-error-600 text-white font-mono font-bold px-2 py-0.5 rounded-sm shadow-[0_2px_8px_rgba(0,0,0,0.4)] pointer-events-none z-[25] ${isMobile ? "text-[11px]" : "text-[10px]"
+              } border border-error-500/20`}
             style={{
               left: `${timeToPosition(currentTime)}%`,
               transform: "translateX(-50%)",
@@ -1941,7 +1909,7 @@ export const WaveformVisualizer = () => {
           >
             {formatTime(currentTime)}
             {/* Tip pointer at bottom pointing UP */}
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-red-600"></div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-b-[4px] border-b-error-600"></div>
           </div>
 
           {(shadowingSegments.length > 0 || canRecord) && (
@@ -1960,13 +1928,13 @@ export const WaveformVisualizer = () => {
                   aria-pressed={isShadowingMode}
                   aria-label={isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
                   title={!canRecord ? getRecordingUnsupportedMessage(recordingCapabilities) : isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
-                  className={`group relative inline-flex shrink-0 justify-center rounded-full border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400/70 ${
+                  className={`group relative inline-flex shrink-0 justify-center rounded-full border-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-error-400/70 ${
                     !canRecord
                       ? "cursor-not-allowed border-white/8 bg-white/5"
                       : isRecording
-                        ? "border-red-500/70 bg-gradient-to-b from-red-700 to-red-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                        ? "border-error-500/70 bg-gradient-to-b from-error-700 to-error-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
                         : isShadowingMode
-                          ? "border-amber-400/50 bg-amber-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-amber-500/28"
+                          ? "border-warning-400/50 bg-warning-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-warning-500/28"
                           : "border-white/12 bg-white/8 hover:bg-white/13"
                   }`}
                 >
@@ -1987,9 +1955,9 @@ export const WaveformVisualizer = () => {
                       }`}
                     >
                       {isRecording ? (
-                        <Radio size={isMobile ? 9 : 8} className="animate-pulse text-red-500" />
+                        <Radio size={isMobile ? 9 : 8} className="animate-pulse text-error-500" />
                       ) : isShadowingMode ? (
-                        <Mic size={isMobile ? 9 : 8} className="text-amber-600" />
+                        <Mic size={isMobile ? 9 : 8} className="text-warning-600" />
                       ) : (
                         <Mic size={isMobile ? 9 : 8} className="text-slate-500/80" />
                       )}
@@ -2000,27 +1968,27 @@ export const WaveformVisualizer = () => {
                 {shadowingSegments.length > 0 && (
                   !isConfirmingDelete ? (
                     <button
-                      className={`shrink-0 rounded-full text-white/35 hover:text-red-400 hover:bg-white/8 transition-colors ${
+                      className={`shrink-0 rounded-full text-white/35 hover:text-error-400 hover:bg-white/8 transition-colors ${
                         isMobile ? "p-1.5" : "p-1"
                       }`}
                       onClick={() => setIsConfirmingDelete(true)}
-                      title="Delete shadow track"
+                      title={t("waveform.deleteShadowTrack")}
                     >
                       <Trash2 size={isMobile ? 13 : 12} />
                     </button>
                   ) : (
                     <button
-                      className="px-2 py-1 text-[10px] bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors leading-none"
+                      className="px-2 py-1 text-[10px] bg-error-600 text-white rounded-full hover:bg-error-700 transition-colors leading-none"
                       onClick={async () => {
                         if (mediaId) {
                           await useShadowingStore.getState().deleteAllSegments(mediaId);
                           setShadowingMode(false);
-                          toast.success("Shadow track deleted");
+                          toast.success(t("shadowing.success.trackDeleted"));
                         }
                         setIsConfirmingDelete(false);
                       }}
                     >
-                      Confirm
+                      {t("waveform.confirmDelete")}
                     </button>
                   )
                 )}
@@ -2062,7 +2030,7 @@ export const WaveformVisualizer = () => {
                   {formatTime(loopStart)} - {formatTime(loopEnd)}
                 </span>
                 <button
-                  className={`bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded ${isMobile ? "text-sm px-3 py-1 ml-2" : "text-xs px-2 py-0.5"
+                  className={`bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded ${isMobile ? "text-sm px-3 py-1 ml-2" : "text-xs px-2 py-0.5"
                     }`}
                   onClick={handleLoopSelection}
                   title={
@@ -2078,7 +2046,7 @@ export const WaveformVisualizer = () => {
                   </span>
                 </button>
                 <button
-                  className={`bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded ${isMobile ? "text-sm px-2 py-1 ml-1" : "text-xs px-1.5 py-0.5 ml-1"
+                  className={`bg-error-600 hover:bg-error-700 active:bg-error-800 text-white rounded ${isMobile ? "text-sm px-2 py-1 ml-1" : "text-xs px-1.5 py-0.5 ml-1"
                     }`}
                   onClick={() => {
                     setLoopPoints(null, null);
@@ -2124,9 +2092,9 @@ export const WaveformVisualizer = () => {
         >
           <button
             className={`${isLooping
-              ? "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white"
+              ? "bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white"
               : "text-white hover:bg-white/10 active:bg-white/20"
-              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => setIsLooping(!isLooping)}
             title={isLooping ? t("loop.disableLoop") : t("loop.enableLoop")}
@@ -2136,9 +2104,9 @@ export const WaveformVisualizer = () => {
           </button>
           <button
             className={`${autoAdvanceBookmarks
-              ? "bg-purple-600 text-white"
+              ? "bg-primary-600 text-white"
               : "text-white hover:bg-white/10 active:bg-white/20"
-              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+              } inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => setAutoAdvanceBookmarks(!autoAdvanceBookmarks)}
             title={
@@ -2151,7 +2119,7 @@ export const WaveformVisualizer = () => {
             <ChevronsRight size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               if (duration === 0) return;
@@ -2169,7 +2137,7 @@ export const WaveformVisualizer = () => {
             <AlignStartHorizontal size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               if (duration === 0) return;
@@ -2185,7 +2153,7 @@ export const WaveformVisualizer = () => {
             <AlignEndHorizontal size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => {
               setLoopPoints(null, null);
@@ -2197,32 +2165,32 @@ export const WaveformVisualizer = () => {
             <X size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => goToBookmark("prev")}
             title={t("player.previousBookmark")}
             aria-label={t("player.previousBookmark")}
-            disabled={(bookmarks?.length || 0) === 0}
+            disabled={!hasBookmarks}
           >
             <ChevronLeft size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white hover:bg-white/10 active:bg-white/20 focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               }`}
             onClick={() => goToBookmark("next")}
             title={t("player.nextBookmark")}
             aria-label={t("player.nextBookmark")}
-            disabled={(bookmarks?.length || 0) === 0}
+            disabled={!hasBookmarks}
           >
             <ChevronRight size={isMobile ? 16 : 14} />
           </button>
           <button
-            className={`inline-flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-purple-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
+            className={`inline-flex items-center justify-center rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary-400 ${isMobile ? "h-9 w-9" : "h-8 w-8"
               } ${selectedBookmarkId
-                ? "bg-purple-700 hover:bg-red-500/80 active:bg-red-500/90" // Active/Delete mode
+                ? "bg-primary-700 hover:bg-error-500/80 active:bg-error-500/90" // Active/Delete mode
                 : loopStart !== null && loopEnd !== null
-                  ? "bg-purple-600/50 hover:bg-purple-700 active:bg-purple-800" // Add mode
-                  : "bg-purple-600/40 cursor-not-allowed" // Disabled
+                  ? "bg-primary-600/50 hover:bg-primary-700 active:bg-primary-800" // Add mode
+                  : "bg-primary-600/40 cursor-not-allowed" // Disabled
               }`}
             onClick={() => {
               if (selectedBookmarkId) {

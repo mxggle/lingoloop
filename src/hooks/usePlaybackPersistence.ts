@@ -1,79 +1,107 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { usePlayerStore } from "../stores/playerStore";
+import { useShallow } from "zustand/react/shallow";
 
 /**
  * Hook to persist playback time to the history item in the store.
  * It debounces the update to avoid frequent store writes/re-renders.
  */
 export const usePlaybackPersistence = () => {
-    const { currentFile, currentYouTube, currentTime, updateHistoryPlaybackTime, mediaHistory } = usePlayerStore();
-    const lastSavedTime = useRef<number>(currentTime);
-    const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { currentFile, currentYouTube, mediaHistory, updateHistoryPlaybackTime } =
+    usePlayerStore(
+      useShallow((state) => ({
+        currentFile: state.currentFile,
+        currentYouTube: state.currentYouTube,
+        mediaHistory: state.mediaHistory,
+        updateHistoryPlaybackTime: state.updateHistoryPlaybackTime,
+      }))
+    );
+  const currentTime = usePlayerStore((state) => state.currentTime);
+  const lastSavedTime = useRef<number>(currentTime);
+  const latestTimeRef = useRef<number>(currentTime);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Determine current media ID
-    const getCurrentMediaId = () => {
-        if (currentFile) {
-            // Find the history item for this file
-            // We can't rely just on file ID because the history ID is what we need to update
-            // But we don't have the history ID directly in currentFile state usually
-            // However, addToMediaHistory ensures we have an entry.
-            // Let's find it.
-            if (currentFile.storageId) {
-                return mediaHistory.find(h => h.type === "file" && h.storageId === currentFile.storageId)?.id;
-            }
-            return mediaHistory.find(h => h.type === "file" && h.fileData?.name === currentFile.name && h.fileData?.size === currentFile.size)?.id;
-        }
+  const currentHistoryId = useMemo(() => {
+    if (currentFile) {
+      if (currentFile.storageId) {
+        return mediaHistory.find(
+          (item) =>
+            item.type === "file" && item.storageId === currentFile.storageId
+        )?.id ?? null;
+      }
 
-        if (currentYouTube) {
-            return mediaHistory.find(h => h.type === "youtube" && h.youtubeData?.youtubeId === currentYouTube.id)?.id;
-        }
+      return (
+        mediaHistory.find(
+          (item) =>
+            item.type === "file" &&
+            item.fileData?.name === currentFile.name &&
+            item.fileData?.size === currentFile.size
+        )?.id ?? null
+      );
+    }
 
-        return null;
+    if (currentYouTube) {
+      return (
+        mediaHistory.find(
+          (item) =>
+            item.type === "youtube" &&
+            item.youtubeData?.youtubeId === currentYouTube.id
+        )?.id ?? null
+      );
+    }
+
+    return null;
+  }, [currentFile, currentYouTube, mediaHistory]);
+
+  useEffect(() => {
+    latestTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  const persistPlaybackTime = useCallback(
+    (historyId: string | null, time: number, thresholdSeconds: number) => {
+      if (!historyId) return;
+      if (Math.abs(time - lastSavedTime.current) <= thresholdSeconds) return;
+
+      updateHistoryPlaybackTime(historyId, time);
+      lastSavedTime.current = time;
+    },
+    [updateHistoryPlaybackTime]
+  );
+
+  // Save on media change or unmount using the last observed time for the prior media.
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+
+      persistPlaybackTime(currentHistoryId, latestTimeRef.current, 1);
     };
+  }, [currentHistoryId, persistPlaybackTime]);
 
-    const currentHistoryId = getCurrentMediaId();
+  // Periodic save (debounced) for the active media only.
+  useEffect(() => {
+    if (!currentHistoryId) return;
 
-    // Save on unmount or media change
-    useEffect(() => {
-        const handleSave = () => {
-            if (currentHistoryId && Math.abs(currentTime - lastSavedTime.current) > 1) {
-                updateHistoryPlaybackTime(currentHistoryId, currentTime);
-                lastSavedTime.current = currentTime;
-            }
-        };
+    if (Math.abs(currentTime - lastSavedTime.current) <= 2) {
+      return;
+    }
 
-        // Save when unmounting or changing media
-        return () => {
-            // We need to capture the values at the time of unmount
-            // But hooks refs are mutable.
-            // Actually, we should just save periodically.
-            // The cleanup function runs when dependencies change.
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-            handleSave();
-        };
-    }, [currentHistoryId, currentTime, updateHistoryPlaybackTime]);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-    // Periodic save (debounce)
-    useEffect(() => {
-        if (!currentHistoryId) return;
+    saveTimeoutRef.current = setTimeout(() => {
+      persistPlaybackTime(currentHistoryId, latestTimeRef.current, 2);
+      saveTimeoutRef.current = null;
+    }, 2000);
 
-        if (Math.abs(currentTime - lastSavedTime.current) > 2) { // Only save if changed significantly (2s)
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-
-            saveTimeoutRef.current = setTimeout(() => {
-                updateHistoryPlaybackTime(currentHistoryId, currentTime);
-                lastSavedTime.current = currentTime;
-            }, 2000); // 2 second debounce
-        }
-
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-            }
-        };
-    }, [currentTime, currentHistoryId, updateHistoryPlaybackTime]);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, [currentHistoryId, currentTime, persistPlaybackTime]);
 };

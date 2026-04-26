@@ -68,17 +68,17 @@ export const YouTubeInput = ({ onVideoIdSubmit }: YouTubeInputProps) => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={t("youtube.enterUrl")}
-          className="w-full h-12 px-12 rounded-xl border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 outline-none text-sm"
+          className="w-full h-12 px-12 rounded-xl border border-primary-200 dark:border-primary-800/30 bg-transparent text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200 outline-none text-sm"
           whileFocus={{ scale: 1.01 }}
         />
         <Youtube
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-purple-500 dark:text-purple-400"
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-500 dark:text-primary-400"
           size={20}
         />
       </div>
       <motion.button
         type="submit"
-        className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium rounded-xl shadow-md flex items-center justify-center gap-2 transition-all duration-200"
+        className="w-full h-12 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-md flex items-center justify-center gap-2 transition-all duration-200"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >

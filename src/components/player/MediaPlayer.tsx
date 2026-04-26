@@ -1,7 +1,7 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { setCurrentTime as setCurrentTimeExternal } from "../../stores/currentTimeStore";
 import { toast } from "react-hot-toast";
-import { Play, Pause } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 interface MediaPlayerProps {
@@ -9,15 +9,17 @@ interface MediaPlayerProps {
 }
 
 export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
-  // Get showWaveform state to adjust player height
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [localPlayState, setLocalPlayState] = useState(false);
 
   const isDelayingRef = useRef(false);
   // Track pending play intent so we can start playback once the element is ready
   const pendingPlayRef = useRef(false);
   const lastReportedTimeRef = useRef(0);
+  const lastZustandWriteRef = useRef(0);
+  const resolvingInfiniteDurationRef = useRef(false);
+  const playbackSyncFrameRef = useRef<number | null>(null);
+  const loopResumeTimeoutRef = useRef<number | null>(null);
 
   const {
     currentFile,
@@ -30,10 +32,10 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     loopStart,
     loopEnd,
     isLooping,
-    showWaveform,
     setCurrentTime,
     setDuration,
     setIsPlaying,
+    setIsTransitioning,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
@@ -46,42 +48,110 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       loopStart: state.loopStart,
       loopEnd: state.loopEnd,
       isLooping: state.isLooping,
-      showWaveform: state.showWaveform,
       setCurrentTime: state.setCurrentTime,
       setDuration: state.setDuration,
       setIsPlaying: state.setIsPlaying,
+      setIsTransitioning: state.setIsTransitioning,
     }))
   );
 
-  // Keep local state in sync with global state
-  useEffect(() => {
-    setLocalPlayState(isPlaying);
-  }, [isPlaying]);
-
   // Helper to safely play a media element
   const safePlay = useCallback(
-    (mediaElement: HTMLMediaElement) => {
+    async (mediaElement: HTMLMediaElement) => {
       // readyState >= 2 (HAVE_CURRENT_DATA) means enough data to play
       if (mediaElement.readyState >= 2) {
-        mediaElement.play().catch((err) => {
+        try {
+          setIsTransitioning(true);
+          await mediaElement.play();
+        } catch (err) {
           console.error("Error playing media:", err);
           toast.error(
             "Error playing media. The file may be corrupted or not supported."
           );
           setIsPlaying(false);
-        });
+        } finally {
+          setIsTransitioning(false);
+        }
       } else {
         // Not ready yet – mark as pending and wait for canplay
         pendingPlayRef.current = true;
       }
     },
-    [setIsPlaying]
+    [setIsPlaying, setIsTransitioning]
+  );
+
+  const syncCurrentTime = useCallback(
+    (
+      time: number,
+      options?: {
+        forceStoreWrite?: boolean;
+      }
+    ) => {
+      setCurrentTimeExternal(time);
+
+      const currentStoreTime = usePlayerStore.getState().currentTime;
+      const storeDrift = Math.abs(currentStoreTime - time);
+
+      if (options?.forceStoreWrite) {
+        lastReportedTimeRef.current = time;
+        if (storeDrift >= 0.001) {
+          lastZustandWriteRef.current = performance.now();
+          setCurrentTime(time);
+        }
+        return;
+      }
+
+      if (Math.abs(time - lastReportedTimeRef.current) < 1 / 30) {
+        return;
+      }
+
+      lastReportedTimeRef.current = time;
+
+      if (storeDrift < 0.001) {
+        return;
+      }
+
+      const now = performance.now();
+      if (now - lastZustandWriteRef.current < 250) {
+        return;
+      }
+
+      lastZustandWriteRef.current = now;
+      setCurrentTime(time);
+    },
+    [setCurrentTime]
   );
 
   // Reset pending play when the media source changes
   useEffect(() => {
     pendingPlayRef.current = false;
+    resolvingInfiniteDurationRef.current = false;
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
   }, [currentFile?.url]);
+
+  useEffect(() => {
+    if (isPlaying) return;
+
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (isLooping) return;
+
+    if (loopResumeTimeoutRef.current !== null) {
+      window.clearTimeout(loopResumeTimeoutRef.current);
+      loopResumeTimeoutRef.current = null;
+    }
+    isDelayingRef.current = false;
+  }, [isLooping]);
 
   // Listen for canplay to know when the element is ready
   useEffect(() => {
@@ -94,9 +164,12 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       // If a play was requested while we were loading, start now
       if (pendingPlayRef.current) {
         pendingPlayRef.current = false;
+        setIsTransitioning(true);
         mediaElement.play().catch((err) => {
           console.error("Error playing media after canplay:", err);
           setIsPlaying(false);
+        }).finally(() => {
+          setIsTransitioning(false);
         });
       }
     };
@@ -109,7 +182,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("canplay", handleCanPlay);
     };
-  }, [currentFile, setIsPlaying]);
+  }, [currentFile, setIsPlaying, setIsTransitioning]);
 
   // Pause playback when the component unmounts only if media has been cleared.
   // During navigation (settings → player), currentFile stays set so we preserve playback.
@@ -132,12 +205,18 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     if (isPlaying) {
       if (isDelayingRef.current) return; // Don't interfere if delaying
-      safePlay(mediaElement);
+      if (mediaElement.paused) {
+        safePlay(mediaElement);
+      }
     } else {
       pendingPlayRef.current = false;
-      mediaElement.pause();
+      if (!mediaElement.paused) {
+        setIsTransitioning(true);
+        mediaElement.pause();
+        setIsTransitioning(false);
+      }
     }
-  }, [isPlaying, currentFile, setIsPlaying, safePlay]);
+  }, [isPlaying, currentFile, setIsPlaying, safePlay, setIsTransitioning]);
 
   // Keep the global playback state aligned with actual media element state.
   // This is required for features like shadowing recording that react to store playback.
@@ -148,12 +227,14 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     if (!mediaElement) return;
 
     const handlePlay = () => {
+      if (usePlayerStore.getState().isTransitioning) return;
       if (!usePlayerStore.getState().isPlaying) {
         setIsPlaying(true);
       }
     };
 
     const handlePause = () => {
+      if (usePlayerStore.getState().isTransitioning) return;
       if (isDelayingRef.current || mediaElement.ended) return;
       if (usePlayerStore.getState().isPlaying) {
         setIsPlaying(false);
@@ -200,34 +281,23 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       : audioRef.current;
     if (!mediaElement) return;
 
-    // Add listener for manual seeking from UI controls
     const handleUserSeeking = () => {
-      if (document.body.classList.contains("user-seeking")) {
-        // Cancel any active delay
-        isDelayingRef.current = false;
+      if (!document.body.classList.contains("user-seeking")) return;
 
-        // Update the media element's time to the current value from the store
-        const storeTime = usePlayerStore.getState().currentTime;
+      isDelayingRef.current = false;
+
+      const storeTime = currentTime;
+      if (Math.abs(mediaElement.currentTime - storeTime) > 0.5) {
         mediaElement.currentTime = storeTime;
+      }
+      syncCurrentTime(storeTime, { forceStoreWrite: true });
 
-        // For mobile devices, ensure play state is maintained
-        if (isPlaying && mediaElement.paused) {
-          mediaElement.play().catch((error) => {
-            console.error("Error playing after seek:", error);
-          });
-        }
+      if (isPlaying && mediaElement.paused) {
+        mediaElement.play().catch((error) => {
+          console.error("Error playing after seek:", error);
+        });
       }
     };
-
-    // Create a direct subscription to time changes for more responsive mobile seeking
-    const unsubscribe = usePlayerStore.subscribe((state) => {
-      const newTime = state.currentTime;
-      if (document.body.classList.contains("user-seeking")) {
-        if (Math.abs(mediaElement.currentTime - newTime) > 0.5) {
-          mediaElement.currentTime = newTime;
-        }
-      }
-    });
 
     // Listen for manual seek class changes
     const observer = new MutationObserver((mutations) => {
@@ -239,12 +309,12 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     });
 
     observer.observe(document.body, { attributes: true });
+    handleUserSeeking();
 
     return () => {
       observer.disconnect();
-      unsubscribe();
     };
-  }, [currentFile, isPlaying]);
+  }, [currentFile, currentTime, isPlaying, syncCurrentTime]);
 
   // Handle A-B loop
   useEffect(() => {
@@ -255,10 +325,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
 
     const handleTimeUpdate = () => {
       const currentTimeValue = mediaElement.currentTime;
-      if (Math.abs(currentTimeValue - lastReportedTimeRef.current) >= 0.05) {
-        lastReportedTimeRef.current = currentTimeValue;
-        setCurrentTime(currentTimeValue);
-      }
+      syncCurrentTime(currentTimeValue);
 
       // Handle A-B looping
       if (isLooping && loopStart !== null && loopEnd !== null) {
@@ -307,10 +374,20 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
             isDelayingRef.current = true;
             mediaElement.pause();
 
-            setTimeout(() => {
+            if (loopResumeTimeoutRef.current !== null) {
+              window.clearTimeout(loopResumeTimeoutRef.current);
+            }
+
+            loopResumeTimeoutRef.current = window.setTimeout(() => {
+              loopResumeTimeoutRef.current = null;
               // Valid check: ensuring we are still meant to loop
               const currentState = usePlayerStore.getState();
-              if (currentState.isLooping && currentState.loopStart !== null) {
+              if (
+                currentState.isPlaying &&
+                currentState.isLooping &&
+                currentState.loopStart !== null &&
+                currentFile?.url === currentState.currentFile?.url
+              ) {
                 mediaElement.currentTime = currentState.loopStart;
                 mediaElement.play().catch(e => console.error("Play after gap failed", e));
               }
@@ -341,7 +418,40 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("timeupdate", handleTimeUpdate);
     };
-  }, [currentFile, isLooping, loopStart, loopEnd, setCurrentTime]);
+  }, [currentFile, isLooping, loopStart, loopEnd, syncCurrentTime]);
+
+  useEffect(() => {
+    const mediaElement = currentFile?.type.includes("video")
+      ? videoRef.current
+      : audioRef.current;
+    if (!mediaElement) return;
+
+    const stopSync = () => {
+      if (playbackSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(playbackSyncFrameRef.current);
+        playbackSyncFrameRef.current = null;
+      }
+    };
+
+    if (!isPlaying) {
+      const pausedTime = mediaElement.currentTime;
+      syncCurrentTime(pausedTime, { forceStoreWrite: true });
+      stopSync();
+      return stopSync;
+    }
+
+    const syncPlaybackFrame = () => {
+      if (!mediaElement.paused && !mediaElement.ended && !mediaElement.seeking) {
+        syncCurrentTime(mediaElement.currentTime);
+      }
+
+      playbackSyncFrameRef.current = window.requestAnimationFrame(syncPlaybackFrame);
+    };
+
+    playbackSyncFrameRef.current = window.requestAnimationFrame(syncPlaybackFrame);
+
+    return stopSync;
+  }, [currentFile, isPlaying, syncCurrentTime]);
 
   // Add a listener for seeking to handle manual seeking
   useEffect(() => {
@@ -362,6 +472,8 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
           mediaElement.currentTime = loopStart;
         }
       }
+
+      syncCurrentTime(mediaElement.currentTime, { forceStoreWrite: true });
     };
 
     mediaElement.addEventListener("seeking", handleSeeking);
@@ -369,7 +481,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     return () => {
       mediaElement.removeEventListener("seeking", handleSeeking);
     };
-  }, [currentFile, isLooping, loopStart, loopEnd]);
+  }, [currentFile, isLooping, loopStart, loopEnd, syncCurrentTime]);
 
   // Handle seeking from the store (for rewind/fast forward buttons)
   useEffect(() => {
@@ -389,13 +501,71 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   }, [currentFile, currentTime]);
 
   // Handle media metadata loaded
+  const commitDuration = useCallback(
+    (mediaElement: HTMLMediaElement) => {
+      const nextDuration = mediaElement.duration;
+      if (Number.isFinite(nextDuration) && nextDuration >= 0) {
+        resolvingInfiniteDurationRef.current = false;
+        setDuration(nextDuration);
+        return true;
+      }
+
+      setDuration(0);
+      return false;
+    },
+    [setDuration]
+  );
+
+  const resolveInfiniteDuration = useCallback(
+    (mediaElement: HTMLMediaElement) => {
+      if (
+        resolvingInfiniteDurationRef.current ||
+        Number.isFinite(mediaElement.duration) ||
+        mediaElement.readyState === 0
+      ) {
+        return;
+      }
+
+      resolvingInfiniteDurationRef.current = true;
+      const originalTime = mediaElement.currentTime;
+
+      const finalize = () => {
+        mediaElement.currentTime = originalTime;
+        commitDuration(mediaElement);
+      };
+
+      const handleTimeUpdate = () => {
+        mediaElement.removeEventListener("timeupdate", handleTimeUpdate);
+        finalize();
+      };
+
+      mediaElement.addEventListener("timeupdate", handleTimeUpdate, {
+        once: true,
+      });
+
+      try {
+        mediaElement.currentTime = Number.MAX_SAFE_INTEGER;
+      } catch (error) {
+        console.warn("Failed to resolve media duration from metadata:", error);
+        resolvingInfiniteDurationRef.current = false;
+      }
+    },
+    [commitDuration]
+  );
+
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLMediaElement>) => {
     console.log("Media metadata loaded:", {
       duration: e.currentTarget.duration,
       src: e.currentTarget.src,
       readyState: e.currentTarget.readyState,
     });
-    setDuration(e.currentTarget.duration);
+    if (!commitDuration(e.currentTarget)) {
+      resolveInfiniteDuration(e.currentTarget);
+    }
+  };
+
+  const handleDurationChange = (e: React.SyntheticEvent<HTMLMediaElement>) => {
+    commitDuration(e.currentTarget);
   };
 
   // Handle media ended
@@ -443,6 +613,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
             ref={videoRef}
             src={currentFile.url}
             onLoadedMetadata={handleLoadedMetadata}
+            onDurationChange={handleDurationChange}
             onEnded={handleEnded}
             onError={handleError}
             controls
@@ -453,6 +624,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
             ref={audioRef}
             src={currentFile.url}
             onLoadedMetadata={handleLoadedMetadata}
+            onDurationChange={handleDurationChange}
             onEnded={handleEnded}
             onError={handleError}
           />
@@ -470,74 +642,21 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
           src={currentFile.url}
           className="w-full h-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] rounded-lg shadow-lg"
           onLoadedMetadata={handleLoadedMetadata}
+          onDurationChange={handleDurationChange}
           onEnded={handleEnded}
           onError={handleError}
           controls
           preload="metadata"
         />
       ) : (
-        <>
-          <audio
-            ref={audioRef}
-            src={currentFile.url}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={handleEnded}
-            onError={handleError}
-          />
-          <div
-            className="w-full rounded-lg flex items-center justify-center relative"
-            style={{
-              // Compact but not cramped: keep a sensible minimum using clamp
-              height: showWaveform
-                ? "clamp(240px, calc(100vh - 420px), 300px)"
-                : "clamp(220px, calc(100vh - 300px), 280px)",
-              maxHeight: "300px",
-              transition: "height 0.3s ease-in-out", // Smooth transition
-            }}
-          >
-            {/* Improved background with subtler gradient */}
-            <div
-              className="absolute inset-0 bg-cover bg-center z-0"
-              style={{
-                backgroundImage: 'url("/audio-background.svg")',
-                backgroundSize: "cover",
-                opacity: 0.8,
-              }}
-            ></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-purple-500/20 to-gray-900/60 z-10"></div>
-
-            {/* Enhanced Audio file info with quick controls */}
-            <div className="z-20 text-center p-4 sm:p-6 md:p-8 bg-white/15 backdrop-blur-md rounded-xl shadow-lg border border-white/20 max-w-md w-full mx-3 sm:mx-0">
-              <div className="flex flex-col sm:flex-row items-center justify-center mb-3 sm:mb-6 gap-3 sm:gap-0">
-                <div
-                  className="w-20 h-20 sm:w-24 md:w-28 sm:h-24 md:h-28 rounded-full bg-purple-600 flex items-center justify-center shadow-xl sm:mr-6"
-                  onClick={() => {
-                    setIsPlaying(!isPlaying);
-                    setLocalPlayState(!localPlayState);
-                  }}
-                  style={{ cursor: "pointer" }}
-                >
-                  {localPlayState ? (
-                    <Pause className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white" />
-                  ) : (
-                    <Play className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-white ml-1 sm:ml-2" />
-                  )}
-                </div>
-                <div className="text-center sm:text-left">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-1 sm:mb-2 truncate max-w-full sm:max-w-[200px]">
-                    {currentFile.name}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-white/90 font-medium">
-                    Audio Track
-                  </p>
-                  <div className="mt-1 sm:mt-2 text-white/70 text-xs hidden sm:block">
-                    Click the circle to play/pause
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
+        <audio
+          ref={audioRef}
+          src={currentFile.url}
+          onLoadedMetadata={handleLoadedMetadata}
+          onDurationChange={handleDurationChange}
+          onEnded={handleEnded}
+          onError={handleError}
+        />
       )}
     </div>
   );

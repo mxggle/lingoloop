@@ -1,16 +1,36 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+import { electronStorage } from "./electronStorage";
 import {
   storeMediaFile,
   retrieveMediaFile,
   deleteMediaFile,
-  getStoredTranscript,
+  getStoredTranscriptRecord,
   setStoredTranscript,
   deleteStoredTranscript,
   clearAllStoredTranscripts,
 } from "../utils/mediaStorage";
+import { nativePathToUrl } from "../utils/platform";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
+import type {
+  CreateGlossaryEntryInput,
+  GlossaryEntry,
+  MediaTranscriptStudy,
+} from "../types/transcriptStudy";
+import {
+  buildSegmentTranscriptStudy,
+  buildTranscriptStudy,
+  inferTranscriptLevelSystem,
+} from "../utils/transcriptStudy";
+import {
+  createGlossaryEntry,
+  isDuplicateGlossaryEntry,
+} from "../utils/glossary";
+import {
+  getNextSentenceSeekTime,
+  getPreviousSentenceSeekTime,
+} from "../utils/sentenceSeek";
 
 // Prevent noisy duplicate toasts for existing A–B ranges
 let lastDuplicateToastAt = 0;
@@ -28,7 +48,8 @@ export interface MediaFile {
   size: number;
   url: string;
   id?: string;
-  storageId?: string; // ID for IndexedDB storage
+  storageId?: string; // ID for IndexedDB storage (web / drag-drop)
+  nativePath?: string; // Absolute filesystem path (Electron native files only)
 }
 
 export interface YouTubeMedia {
@@ -66,7 +87,8 @@ export interface MediaHistoryItem {
     title?: string;
     youtubeId?: string;
   };
-  storageId?: string; // ID for IndexedDB storage
+  storageId?: string; // ID for IndexedDB storage (web / drag-drop)
+  nativePath?: string; // Absolute filesystem path (Electron native files only)
 }
 
 export interface MediaFolder {
@@ -90,11 +112,23 @@ export interface MediaTranscripts {
   [mediaId: string]: TranscriptSegment[];
 }
 
+export interface MediaTranscriptStudies {
+  [mediaId: string]: MediaTranscriptStudy;
+}
+
+type PersistedPlayerStoreState = {
+  mediaFolders?: Record<string, { parentId?: string | null }>;
+  historyFolderFilter?: string;
+  sourceFolder?: string;
+  sourceFolders?: string[];
+};
+
 export interface PlayerState {
   // Media state
   currentFile: MediaFile | null;
   currentYouTube: YouTubeMedia | null;
   isPlaying: boolean;
+  isTransitioning: boolean;
   currentTime: number;
   duration: number;
   volume: number;
@@ -126,9 +160,12 @@ export interface PlayerState {
   // Seek configuration
   seekStepSeconds: number; // default seek step for arrows/buttons
   seekSmallStepSeconds: number; // shift+arrow small step
+  seekMode: "seconds" | "sentence";
 
   // Transcript state
   mediaTranscripts: MediaTranscripts; // Changed from transcriptSegments array to media-scoped object
+  mediaTranscriptStudy: MediaTranscriptStudies;
+  glossaryEntries: GlossaryEntry[];
   isTranscriptLoading: boolean;
   showTranscript: boolean;
   isTranscribing: boolean;
@@ -143,6 +180,14 @@ export interface PlayerState {
   historySortBy: "date" | "name" | "type";
   historySortOrder: "asc" | "desc";
   historyFolderFilter: "all" | "unfiled" | string;
+  // Source folders (Electron only — persisted paths, files loaded at runtime)
+  sourceFolders: string[];
+
+  // Layout state
+  isSidebarOpen: boolean;
+  sidebarWidth: number;
+  activeSidebarTab: "recent" | "folders";
+  sidebarSections: { explorer: boolean; recent: boolean };
 }
 
 export interface PlayerActions {
@@ -150,6 +195,7 @@ export interface PlayerActions {
   setCurrentFile: (file: MediaFile | null) => void;
   setCurrentYouTube: (youtube: YouTubeMedia | null) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  setIsTransitioning: (isTransitioning: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setVolume: (volume: number) => void;
@@ -188,6 +234,7 @@ export interface PlayerActions {
   // Seek settings
   setSeekStepSeconds: (seconds: number) => void;
   setSeekSmallStepSeconds: (seconds: number) => void;
+  setSeekMode: (mode: "seconds" | "sentence") => void;
 
   // Transcript actions
   startTranscribing: () => void;
@@ -206,6 +253,9 @@ export interface PlayerActions {
   importTranscript: (file: File) => Promise<void>;
   createBookmarkFromTranscript: (segmentId: string) => void;
   loadTranscriptForMedia: (mediaId: string) => Promise<void>;
+  addGlossaryEntry: (entry: CreateGlossaryEntryInput) => boolean;
+  deleteGlossaryEntry: (id: string) => void;
+  playGlossaryEntryContext: (id: string) => boolean;
 
   // Bookmark actions
   addBookmark: (bookmark: Omit<LoopBookmark, "id" | "createdAt">) => boolean;
@@ -234,6 +284,10 @@ export interface PlayerActions {
   clearMediaHistory: () => Promise<void>;
   setHistoryLimit: (limit: number) => void;
 
+  // Source folder actions (Electron only)
+  addSourceFolder: (path: string) => void;
+  removeSourceFolder: (path: string) => void;
+
   // Folder & item management
   createMediaFolder: (name: string, parentId?: string | null) => string;
   renameMediaFolder: (folderId: string, newName: string) => void;
@@ -245,12 +299,19 @@ export interface PlayerActions {
     order: "asc" | "desc"
   ) => void;
   setHistoryFolderFilter: (filter: "all" | "unfiled" | string) => void;
+
+  // Layout actions
+  setIsSidebarOpen: (isOpen: boolean) => void;
+  setSidebarWidth: (width: number) => void;
+  setActiveSidebarTab: (tab: "recent" | "folders") => void;
+  toggleSidebarSection: (section: "explorer" | "recent") => void;
 }
 
 const initialState: PlayerState = {
   currentFile: null,
   currentYouTube: null,
   isPlaying: false,
+  isTransitioning: false,
   currentTime: 0,
   duration: 0,
   volume: 1,
@@ -273,6 +334,8 @@ const initialState: PlayerState = {
   mediaBookmarks: {},
   selectedBookmarkId: null,
   mediaTranscripts: {},
+  mediaTranscriptStudy: {},
+  glossaryEntries: [],
   isTranscriptLoading: false,
   showTranscript: false,
   isTranscribing: false,
@@ -284,11 +347,18 @@ const initialState: PlayerState = {
   // Defaults for seek steps
   seekStepSeconds: 5,
   seekSmallStepSeconds: 1,
+  seekMode: "seconds",
   // Library organization & sorting defaults
   mediaFolders: {},
   historySortBy: "date",
   historySortOrder: "desc",
   historyFolderFilter: "unfiled",
+  sourceFolders: [],
+  // Layout defaults (sidebar is Electron-only; default closed so web is unaffected)
+  isSidebarOpen: false,
+  sidebarWidth: 288,
+  activeSidebarTab: "recent",
+  sidebarSections: { explorer: true, recent: true },
 };
 
 export const usePlayerStore = create<PlayerState & PlayerActions>()(
@@ -299,16 +369,36 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       async loadTranscriptForMedia(mediaId: string) {
         set({ isTranscriptLoading: true });
 
-        const segments = await getStoredTranscript(mediaId);
+        const transcriptRecord = await getStoredTranscriptRecord(mediaId);
+        const segments = transcriptRecord?.segments || [];
+        const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
+        const studyBySegment =
+          transcriptRecord?.studyBySegment &&
+          Object.keys(transcriptRecord.studyBySegment).length > 0
+            ? transcriptRecord.studyBySegment
+            : buildTranscriptStudy(segments, levelSystem);
+
+        if (
+          transcriptRecord &&
+          Object.keys(transcriptRecord.studyBySegment).length === 0 &&
+          segments.length > 0
+        ) {
+          void setStoredTranscript(mediaId, segments, studyBySegment);
+        }
 
         set((state) => {
           const nextTranscripts = {
             ...state.mediaTranscripts,
             [mediaId]: segments,
           };
+          const nextTranscriptStudy = {
+            ...state.mediaTranscriptStudy,
+            [mediaId]: studyBySegment,
+          };
 
           return {
             mediaTranscripts: nextTranscripts,
+            mediaTranscriptStudy: nextTranscriptStudy,
             isTranscriptLoading:
               state.getCurrentMediaId() === mediaId ? false : state.isTranscriptLoading,
           };
@@ -322,7 +412,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
             const previousUrl = get().currentFile?.url;
             let storageId = file.storageId;
 
-            if (file instanceof File && !storageId) {
+            // Native Electron files: skip IndexedDB entirely — the file:// URL is persistent
+            const isNativeFile = !!file.nativePath;
+
+            if (!isNativeFile && file instanceof File && !storageId) {
               try {
                 // Pass current storageId so cleanup never evicts the playing file
                 const currentStorageId = get().currentFile?.storageId;
@@ -342,7 +435,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
             const { mediaHistory } = get();
             let existingHistoryItem = null;
 
-            if (storageId) {
+            if (isNativeFile && file.nativePath) {
+              // For native files, match by nativePath
+              existingHistoryItem = mediaHistory.find(
+                (item) => item.type === "file" && item.nativePath === file.nativePath
+              );
+            } else if (storageId) {
               // First try to find by storageId (most reliable)
               existingHistoryItem = mediaHistory.find(
                 (item) => item.type === "file" && item.storageId === storageId
@@ -370,7 +468,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
               storageId,
             };
 
-            // Add to history with storage ID
+            // Add to history (native files carry nativePath; web files carry storageId)
             get().addToMediaHistory({
               type: "file",
               name: fileWithId.name,
@@ -379,8 +477,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
                 type: fileWithId.type,
                 size: fileWithId.size,
                 url: fileWithId.url,
+                nativePath: fileWithId.nativePath,
               },
-              storageId,
+              storageId: isNativeFile ? undefined : storageId,
+              nativePath: fileWithId.nativePath,
             });
 
             // Resuming playback time if available in history
@@ -496,6 +596,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         }
       },
       setIsPlaying: (isPlaying) => set({ isPlaying }),
+      setIsTransitioning: (isTransitioning) => set({ isTransitioning }),
       setCurrentTime: (currentTime) => set({ currentTime }),
       setDuration: (duration) => set({ duration }),
       setVolume: (volume) => set({ volume }),
@@ -527,13 +628,33 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
       // Seek forward/backward
       seekForward: (seconds) => {
-        const { currentTime, duration } = get();
+        const { currentTime, duration, seekMode, getCurrentMediaTranscripts } = get();
+        if (seekMode === "sentence") {
+          const nextSentenceTime = getNextSentenceSeekTime(
+            getCurrentMediaTranscripts(),
+            currentTime
+          );
+          if (nextSentenceTime !== null) {
+            set({ currentTime: nextSentenceTime });
+            return;
+          }
+        }
         const newTime = Math.min(currentTime + seconds, duration);
         set({ currentTime: newTime });
       },
 
       seekBackward: (seconds) => {
-        const { currentTime } = get();
+        const { currentTime, seekMode, getCurrentMediaTranscripts } = get();
+        if (seekMode === "sentence") {
+          const previousSentenceTime = getPreviousSentenceSeekTime(
+            getCurrentMediaTranscripts(),
+            currentTime
+          );
+          if (previousSentenceTime !== null) {
+            set({ currentTime: previousSentenceTime });
+            return;
+          }
+        }
         const newTime = Math.max(currentTime - seconds, 0);
         set({ currentTime: newTime });
       },
@@ -666,6 +787,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         set({ seekStepSeconds: Math.max(0.1, Math.min(120, seconds)) }),
       setSeekSmallStepSeconds: (seconds: number) =>
         set({ seekSmallStepSeconds: Math.max(0.05, Math.min(10, seconds)) }),
+      setSeekMode: (seekMode) => set({ seekMode }),
 
       // Bookmark actions
       addBookmark: (bookmark) => {
@@ -780,6 +902,48 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         }));
       },
 
+      addGlossaryEntry: (input) => {
+        const { glossaryEntries } = get();
+        if (isDuplicateGlossaryEntry(glossaryEntries, input)) {
+          toast.error(i18n.t("glossary.alreadySaved"));
+          return false;
+        }
+
+        const entry = createGlossaryEntry(input);
+
+        set((state) => ({
+          glossaryEntries: [entry, ...state.glossaryEntries],
+        }));
+        return true;
+      },
+      deleteGlossaryEntry: (id) => {
+        set((state) => ({
+          glossaryEntries: state.glossaryEntries.filter((entry) => entry.id !== id),
+        }));
+      },
+      playGlossaryEntryContext: (id) => {
+        const { glossaryEntries, getCurrentMediaId } = get();
+        const entry = glossaryEntries.find((candidate) => candidate.id === id);
+        const currentMediaId = getCurrentMediaId();
+
+        if (!entry || !currentMediaId || entry.mediaId !== currentMediaId) {
+          return false;
+        }
+
+        const startTime = Math.max(0, entry.startTime - 0.15);
+
+        set({
+          currentTime: startTime,
+          loopStart: startTime,
+          loopEnd: entry.endTime,
+          isLooping: true,
+          isPlaying: true,
+          selectedBookmarkId: null,
+          loopCount: 0,
+        });
+        return true;
+      },
+
       // History actions
       addRecentYouTubeVideo: (video) =>
         set((state) => {
@@ -853,7 +1017,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
               ...existingItem,
               accessedAt: timestamp,
               // Preserve existing name (keep user renames)
-              name: existingItem.name || (item as any).name,
+              name: existingItem.name || item.name,
               // Update storageId if the new item has one
               ...(item.storageId && !existingItem.storageId
                 ? { storageId: item.storageId }
@@ -906,6 +1070,24 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
         try {
           if (historyItem.type === "file" && historyItem.fileData) {
+            // Native Electron file: reconstruct file:// URL from the saved path
+            if (historyItem.nativePath) {
+              const url = nativePathToUrl(historyItem.nativePath);
+              const fileData: MediaFile = {
+                name: historyItem.fileData.name,
+                type: historyItem.fileData.type,
+                size: historyItem.fileData.size,
+                url,
+                nativePath: historyItem.nativePath,
+              };
+              get().setCurrentFile(fileData);
+              if (historyItem.playbackTime) {
+                set({ currentTime: historyItem.playbackTime });
+              }
+              set({ isLoadingMedia: false });
+              return;
+            }
+
             // Check if we have this file stored in IndexedDB
             if (historyItem.storageId) {
               try {
@@ -927,9 +1109,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
                     type: historyItem.fileData.type,
                     size: historyItem.fileData.size,
                     url: url,
-                    id: `file-${Date.now()}-${Math.random()
-                      .toString(36)
-                      .substr(2, 9)}`,
                     storageId: historyItem.storageId,
                   };
 
@@ -961,9 +1140,6 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
             const fileData: MediaFile = {
               ...historyItem.fileData,
-              id: `file-${Date.now()}-${Math.random()
-                .toString(36)
-                .substr(2, 9)}`,
             };
 
             get().setCurrentFile(fileData);
@@ -1057,10 +1233,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         set((state) => {
           const nextBookmarks = { ...state.mediaBookmarks };
           const nextTranscripts = { ...state.mediaTranscripts };
+          const nextTranscriptStudy = { ...state.mediaTranscriptStudy };
 
           if (derivedMediaId) {
             delete nextBookmarks[derivedMediaId];
             delete nextTranscripts[derivedMediaId];
+            delete nextTranscriptStudy[derivedMediaId];
           }
 
           return {
@@ -1069,6 +1247,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
             ),
             mediaBookmarks: nextBookmarks,
             mediaTranscripts: nextTranscripts,
+            mediaTranscriptStudy: nextTranscriptStudy,
             ...(isDeletingCurrentMedia
               ? {
                   currentFile: null,
@@ -1129,6 +1308,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           mediaHistory: [],
           mediaBookmarks: {},
           mediaTranscripts: {},
+          mediaTranscriptStudy: {},
           currentFile: null,
           currentYouTube: null,
           isPlaying: false,
@@ -1260,6 +1440,16 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         })),
       setHistorySort: (by, order) => set({ historySortBy: by, historySortOrder: order }),
       setHistoryFolderFilter: (filter) => set({ historyFolderFilter: filter }),
+      addSourceFolder: (path) =>
+        set((state) => ({
+          sourceFolders: state.sourceFolders.includes(path)
+            ? state.sourceFolders
+            : [...state.sourceFolders, path],
+        })),
+      removeSourceFolder: (path) =>
+        set((state) => ({
+          sourceFolders: state.sourceFolders.filter((f) => f !== path),
+        })),
 
       // Transcript actions
       startTranscribing() {
@@ -1283,6 +1473,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         if (!mediaId) return;
 
         let updatedSegments: TranscriptSegment[] | null = null;
+        let updatedStudyBySegment: MediaTranscriptStudy | null = null;
 
         set((state) => {
           const currentSegments = state.mediaTranscripts[mediaId] || [];
@@ -1297,17 +1488,28 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           updatedSegments = [...currentSegments, newSegment].sort(
             (a, b) => a.startTime - b.startTime
           );
+          updatedStudyBySegment = {
+            ...(state.mediaTranscriptStudy[mediaId] || {}),
+            [newSegment.id]: buildSegmentTranscriptStudy(
+              newSegment.text,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            ),
+          };
 
           return {
             mediaTranscripts: {
               ...state.mediaTranscripts,
               [mediaId]: updatedSegments,
             },
+            mediaTranscriptStudy: {
+              ...state.mediaTranscriptStudy,
+              [mediaId]: updatedStudyBySegment,
+            },
           };
         });
 
-        if (updatedSegments) {
-          void setStoredTranscript(mediaId, updatedSegments);
+        if (updatedSegments && updatedStudyBySegment) {
+          void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
         }
       },
 
@@ -1317,21 +1519,37 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         if (!mediaId) return;
 
         let updatedSegments: TranscriptSegment[] = [];
+        let updatedStudyBySegment: MediaTranscriptStudy = {};
 
         set((state) => {
           updatedSegments = (state.mediaTranscripts[mediaId] || []).map((segment) =>
             segment.id === id ? { ...segment, ...changes } : segment
           );
+          updatedStudyBySegment = {
+            ...(state.mediaTranscriptStudy[mediaId] || {}),
+          };
+
+          const updatedSegment = updatedSegments.find((segment) => segment.id === id);
+          if (updatedSegment) {
+            updatedStudyBySegment[id] = buildSegmentTranscriptStudy(
+              updatedSegment.text,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            );
+          }
 
           return {
             mediaTranscripts: {
               ...state.mediaTranscripts,
               [mediaId]: updatedSegments,
             },
+            mediaTranscriptStudy: {
+              ...state.mediaTranscriptStudy,
+              [mediaId]: updatedStudyBySegment,
+            },
           };
         });
 
-        void setStoredTranscript(mediaId, updatedSegments);
+        void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
       },
 
       clearTranscript() {
@@ -1343,6 +1561,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           mediaTranscripts: {
             ...state.mediaTranscripts,
             [mediaId]: [],
+          },
+          mediaTranscriptStudy: {
+            ...state.mediaTranscriptStudy,
+            [mediaId]: {},
           },
         }));
 
@@ -1788,35 +2010,58 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         const mediaId = getCurrentMediaId();
         return mediaId ? mediaTranscripts[mediaId] || [] : [];
       },
+
+      // Layout actions
+      setIsSidebarOpen: (isSidebarOpen) => set({ isSidebarOpen }),
+      setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
+      setActiveSidebarTab: (activeSidebarTab) => set({ activeSidebarTab }),
+      toggleSidebarSection: (section) =>
+        set((state) => ({
+          sidebarSections: {
+            ...state.sidebarSections,
+            [section]: !state.sidebarSections[section],
+          },
+        })),
     }),
     {
       name: "abloop-player-storage",
+      storage: createJSONStorage(() => electronStorage),
       version: 3,
-      migrate: (persistedState: any, version) => {
-        if (!persistedState) return persistedState;
+      migrate: (persistedState: unknown, version) => {
+        const state = persistedState as PersistedPlayerStoreState | undefined;
 
-        if (version < 2 && persistedState.mediaFolders) {
-          persistedState.mediaFolders = Object.fromEntries(
-            Object.entries(persistedState.mediaFolders).map(
-              ([id, folder]: [string, any]) => [
-                id,
-                {
-                  ...folder,
-                  parentId:
-                    folder && "parentId" in folder ? folder.parentId ?? null : null,
-                },
-              ]
-            )
+        if (!state) return state;
+
+        if (version < 2 && state.mediaFolders) {
+          state.mediaFolders = Object.fromEntries(
+            Object.entries(state.mediaFolders).map(([id, folder]) => [
+              id,
+              {
+                ...folder,
+                parentId:
+                  folder && "parentId" in folder ? folder.parentId ?? null : null,
+              },
+            ])
           );
         }
 
         if (version < 2) {
-          if (persistedState.historyFolderFilter === "all") {
-            persistedState.historyFolderFilter = "unfiled";
+          if (state.historyFolderFilter === "all") {
+            state.historyFolderFilter = "unfiled";
           }
         }
 
-        return persistedState;
+        // v2 → v3: migrate single sourceFolder to sourceFolders array
+        if (version < 3) {
+          if (state.sourceFolder) {
+            state.sourceFolders = [state.sourceFolder];
+          } else {
+            state.sourceFolders = [];
+          }
+          delete state.sourceFolder;
+        }
+
+        return state;
       },
       onRehydrateStorage: () => (state, error) => {
         if (error || !state?.mediaTranscripts) {
@@ -1826,7 +2071,13 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         const legacyTranscripts = state.mediaTranscripts;
 
         Object.entries(legacyTranscripts).forEach(([mediaId, segments]) => {
-          void setStoredTranscript(mediaId, segments);
+          const studyBySegment =
+            state.mediaTranscriptStudy?.[mediaId] ||
+            buildTranscriptStudy(
+              segments,
+              inferTranscriptLevelSystem(state.transcriptLanguage)
+            );
+          void setStoredTranscript(mediaId, segments, studyBySegment);
         });
       },
       partialize: (state) => ({
@@ -1838,6 +2089,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         showWaveform: state.showWaveform,
         videoSize: state.videoSize,
         mediaBookmarks: state.mediaBookmarks,
+        glossaryEntries: state.glossaryEntries,
         showTranscript: state.showTranscript,
         transcriptLanguage: state.transcriptLanguage,
         recentYouTubeVideos: state.recentYouTubeVideos,
@@ -1849,6 +2101,12 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
         historyFolderFilter: state.historyFolderFilter,
         seekStepSeconds: state.seekStepSeconds,
         seekSmallStepSeconds: state.seekSmallStepSeconds,
+        seekMode: state.seekMode,
+        sourceFolders: state.sourceFolders,
+        isSidebarOpen: state.isSidebarOpen,
+        sidebarWidth: state.sidebarWidth,
+        activeSidebarTab: state.activeSidebarTab,
+        sidebarSections: state.sidebarSections,
       }),
     }
   )

@@ -458,6 +458,7 @@ export interface OpenAIRequest {
   functions?: Array<Record<string, unknown>>;
   function_call?: Record<string, unknown>;
   stream?: boolean;
+  response_format?: { type: "text" | "json_object" };
 }
 
 export interface OpenAIResponse {
@@ -555,6 +556,7 @@ export interface GrokRequest {
   max_tokens?: number;
   top_p?: number;
   stream?: boolean;
+  response_format?: { type: "text" | "json_object" };
 }
 
 export interface GrokResponse {
@@ -589,6 +591,7 @@ export interface AIServiceConfig {
   frequencyPenalty?: number;
   presencePenalty?: number;
   systemPrompt?: string;
+  responseFormat?: "text" | "json_object";
 }
 
 // Unified Response Type

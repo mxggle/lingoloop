@@ -41,7 +41,7 @@ export const I18nTest: React.FC = () => {
         </button>
         <button 
           onClick={() => i18n.changeLanguage('ja')}
-          className="px-3 py-1 bg-purple-500 text-white rounded text-sm"
+          className="px-3 py-1 bg-primary-500 text-white rounded text-sm"
         >
           日本語
         </button>

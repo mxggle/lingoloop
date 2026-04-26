@@ -20,7 +20,12 @@
     "show": "表示",
     "hide": "非表示",
     "remove": "削除",
-    "shadowing": "シャドーイング"
+    "shadowing": "シャドーイング",
+    "showInFinder": "Finderで表示",
+    "showInExplorer": "Windows Explorerで表示",
+    "showInFileManager": "ファイルマネージャーで表示",
+    "failedToOpenLocation": "場所を開けませんでした",
+    "comingSoon": "近日公開"
   },
   "shadowing": {
     "title": "シャドーイング",
@@ -30,7 +35,24 @@
     "delay": "停止遅延 (秒)",
     "recording": "録音中...",
     "enable": "シャドーイングを有効化",
-    "disable": "シャドーイングを無効化"
+    "disable": "シャドーイングを無効化",
+    "rearm": "もう一度録音",
+    "errors": {
+      "notSupported": "このブラウザーでは音声録音がサポートされていません。最新のブラウザーをご使用ください。",
+      "iosHttpsRequired": "iOS Safariでは録音にHTTPSが必要です。HTTPSまたはlocalhostでアクセスしてください。",
+      "permissionDenied": "マイクの許可が拒否されました。ブラウザー設定でマイクへのアクセスを許可してください。",
+      "noMicrophone": "このデバイスにマイクが見つかりません。",
+      "notSupportedIOS": "マイクへのアクセスがサポートされていません。iOSではHTTPSまたはlocalhostをご使用ください。",
+      "failedToAccess": "マイクへのアクセスに失敗しました：{{message}}",
+      "failedToStart": "録音の開始に失敗しました：{{message}}",
+      "unknownError": "不明なエラー"
+    },
+    "success": {
+      "saved": "シャドーイング録音を保存しました",
+      "trackDeleted": "シャドートラックを削除しました"
+    },
+    "recordingError": "録音エラー：{{message}}",
+    "failedToSave": "録音の保存に失敗しました"
   },
   "app": {
     "logoLabel": "LoopMateロゴ"
@@ -41,9 +63,31 @@
     "history": "履歴",
     "aiSettings": "AI設定"
   },
+  "glossary": {
+    "title": "用語集",
+    "description": "保存したトランスクリプトの選択範囲を、元のリスニング文脈と一緒に復習します。",
+    "openGlossary": "用語集を開く",
+    "saveSelection": "用語集に保存",
+    "saved": "用語集に保存しました",
+    "alreadySaved": "この選択範囲はすでに用語集にあります",
+    "loadMediaFirst": "用語集に保存するには先にメディアを読み込んでください",
+    "unknownMedia": "不明なメディア",
+    "entryCount": "{{count}} 件保存済み",
+    "emptyTitle": "保存したテキストはまだありません",
+    "emptyDescription": "トランスクリプト内のテキストを選択して保存すると、復習リストを作れます。",
+    "playContext": "文脈を再生",
+    "playingContext": "保存した文脈を再生しています",
+    "sourceMediaRequired": "この文脈を再生するには元のメディアを読み込んでください",
+    "deleteEntry": "用語集項目を削除"
+  },
   "settings": {
     "title": "設定",
     "playback": "再生",
+    "seekMode": "シークモード",
+    "seekModeHelp": "時間ベースまたは文章ベースのシークを選択します",
+    "seekModeSeconds": "時間ベース",
+    "seekModeSentence": "1文章ごと",
+    "seekModeSentenceShort": "文章",
     "seekStep": "シークステップ（秒）",
     "smallStep": "小ステップ（Shift + 矢印キー）",
     "interfaceLayout": "インターフェースレイアウト",
@@ -67,14 +111,35 @@
     "appearance": "外観",
     "interfaceLayout": "インターフェースレイアウト",
     "interfaceLayoutHelp": "プレーヤービューのセクションを表示または非表示にします。",
+    "theme": "テーマカラー",
+    "themeHelp": "インターフェースの色をカスタマイズします",
+    "resetTheme": "デフォルトに戻す",
+    "customPrimaryColor": "カスタムプライマリカラー",
     "playback": "再生",
+    "seekMode": "シークモード",
     "seekStep": "シークステップ",
-    "smallStep": "小ステップ"
+    "smallStep": "小ステップ",
+    "status": {
+      "ready": "すべて正常です"
+    },
+    "footer": {
+      "autoSaved": "設定はこのデバイスに自動保存されます",
+      "tagline": "LoopMate v1.2.0 • 言語学習者のために作られました"
+    }
   },
   "loop": {
     "controlsTitle": "ループ設定",
     "repeats": "繰り返し",
-    "gap": "間隔"
+    "gap": "間隔",
+    "infinite": "無限",
+    "none": "なし",
+    "times": "回",
+    "seconds": "秒",
+    "bpmNone": "—",
+    "speedHalf": "×½",
+    "speedDouble": "×2",
+    "pointA": "A",
+    "pointB": "B"
   },
   "aiSettingsPage": {
     "title": "AI設定",
@@ -173,7 +238,14 @@
     "chooseMediaSource": "メディアソースを選択",
     "youtubeVideo": "YouTube動画",
     "localMedia": "ローカルメディア",
-    "mediaLibrary": "メディアライブラリ"
+    "mediaLibrary": "メディアライブラリ",
+    "localFile": "ローカルファイル",
+    "cloudStream": "クラウドストリーム",
+    "startPracticing": "練習を開始",
+    "studioDesc": "ローカルメディアファイルを開くか、YouTubeからストリーミングして、言語習得セッションを開始してください。",
+    "proTip": "プロのヒント：バッチ練習",
+    "electronHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。",
+    "podcasts": "ポッドキャストとRSS"
   },
   "player": {
     "play": "再生",
@@ -201,6 +273,7 @@
     "playbackSpeed": "再生速度",
     "bookmarkNavigation": "ブックマークナビゲーション",
     "now": "再生中",
+    "speedIndicator": "{{rate}}x",
     "audioFile": "音声ファイル",
     "youtube": "YouTube",
     "toggleLooping": "ループの切り替え",
@@ -227,6 +300,7 @@
     "noMediaLoadedSimple": "メディアが読み込まれていません"
   },
   "upload": {
+    "openFile": "ファイルを開く",
     "dragDrop": "音声/動画ファイルをここにドラッグ＆ドロップ",
     "dropToUpload": "ドロップしてアップロード...",
     "browseFiles": "またはクリックしてファイルを参照",
@@ -301,6 +375,7 @@
     "generate": "生成",
     "explanation": "説明",
     "tokenUsage": "{{total}}トークン (プロンプト{{prompt}} + 生成{{completion}} )",
+    "providerInfo": "{{provider}} · {{model}} · {{tokens}} トークン",
     "languageSettings": "言語設定",
     "targetLanguage": "ターゲット言語",
     "languages": {
@@ -331,6 +406,7 @@
     "createBookmark": "このセグメントからブックマークを作成",
     "explainWithAI": "AIでこのテキストを説明",
     "segmentBookmarkName": "セグメント {{time}} 秒",
+    "timeRangeSeparator": "→",
     "apiKeySaved": "APIキーが保存されました",
     "noFileLoaded": "ファイルが読み込まれていません",
     "errorLoadingVideo": "動画の読み込み中にエラーが発生しました",
@@ -370,8 +446,23 @@
     "noTranscript": "トランスクリプトはありません",
     "uploadTranscript": "トランスクリプトをアップロード",
     "toggleSidebar": "サイドバーの切り替え",
+    "selectionContext": "文脈",
+    "selectionKnownItem": "{{type}} ・ {{level}}",
+    "explainSelection": "文脈で説明",
+    "levelToggle": "レベル表示の切り替え",
+    "levelsOn": "レベル表示 ON",
+    "levelsOff": "レベル表示 OFF",
+    "levelFilter": "レベル絞り込み",
+    "levelFilterAll": "すべてのレベルを表示",
+    "studyType": {
+      "word": "単語",
+      "expression": "表現"
+    },
+    "dropdownArrow": "▾",
     "generateTranscript": "トランスクリプトを生成",
     "exportTranscript": "トランスクリプトをエクスポート",
+    "scrollToCurrent": "再生中の文章を表示",
+    "autoScroll": "自動スクロール",
     "languages": {
       "en-US": "英語 (米国)",
       "en-GB": "英語 (英国)",
@@ -444,6 +535,9 @@
     "removeFromHistory": "履歴から削除",
     "deleteItemTitle": "メディアを削除",
     "deleteItemDescription": "「{{name}}」をメディアライブラリから削除しますか？ 保存済みのメディアデータも削除されます。",
+    "deleteFolder": "フォルダーを削除",
+    "deleteFolderTitle": "フォルダーを削除",
+    "deleteFolderDescription": "アイテムは未分類に移動されます。この操作は元に戻せません。",
     "closeRecentMedia": "最近のメディアを閉じる",
     "openRecentMedia": "最近のメディアを開く",
     "sort": "ソート",
@@ -504,6 +598,8 @@
     "switchToDarkTheme": "ダークテーマに切り替え",
     "openSettings": "設定を開く",
     "showKeyboardShortcuts": "キーボードショートカットを表示",
+    "hideSidebar": "サイドバーを隠す",
+    "showSidebar": "サイドバーを表示",
     "keyboardShortcuts": "キーボードショートカット",
     "playPause": "再生/一時停止",
     "setAPoint": "現在時刻にAポイントを設定",
@@ -520,6 +616,7 @@
     "moreCapabilities": "+{{count}} 件",
     "inputPrice": "入力: {{price}}/100万トークン",
     "outputPrice": "出力: {{price}}/100万トークン",
+    "pricePerMillion": "{{price}}/100万",
     "contextWindow": "{{value}}K コンテキスト",
     "noModels": "利用可能なモデルがありません",
     "selectProvider": "まずプロバイダーを選択してください",
@@ -562,6 +659,45 @@
     "desktopSelectHint": "波形をドラッグしてループ範囲を選択します",
     "youtubePlaceholder": "プレースホルダー波形を表示中。リアル波形機能は近日公開予定",
     "analyzing": "波形を解析中...",
-    "analysisError": "波形の解析に失敗しました。プレビューを表示しています。"
+    "analysisError": "波形の解析に失敗しました。プレビューを表示しています。",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "resetZoom": "ズームをリセット",
+    "mediaVolume": "メディア音量",
+    "recordingVolume": "録音音量",
+    "deleteShadowTrack": "シャドートラックを削除",
+    "confirmDelete": "確認",
+    "zoomLevel": "{{level}}x"
+  },
+  "playHistory": {
+    "title": "再生履歴",
+    "emptyState": "再生履歴がありません。ファイルまたはYouTube動画を開いてください。",
+    "clearHistory": "クリア"
+  },
+  "controls": {
+    "loopSettings": "ループ設定"
+  },
+  "folderBrowser": {
+    "title": "ソースフォルダー",
+    "addFolder": "フォルダーを追加",
+    "removeFolder": "フォルダーを削除",
+    "noFiles": "メディアファイルが見つかりません。",
+    "hint": "ソースフォルダーを追加してローカルの音声・動画ファイルを参照できます。",
+    "loading": "読み込み中..."
+  },
+  "sidebar": {
+    "explorer": "エクスプローラー",
+    "recent": "最近",
+    "addFolder": "フォルダーを追加",
+    "clearHistory": "履歴をクリア",
+    "noFolders": "フォルダーがまだ追加されていません。",
+    "noHistory": "最近のファイルはありません。",
+    "removeItem": "削除",
+    "timeAgo": {
+      "justNow": "たった今",
+      "minutesAgo": "{{count}}分前",
+      "hoursAgo": "{{count}}時間前",
+      "daysAgo": "{{count}}日前"
+    }
   }
 }

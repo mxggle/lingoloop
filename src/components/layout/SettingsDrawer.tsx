@@ -10,7 +10,6 @@ import {
   History as HistoryIcon, // Renamed to avoid conflict if History component is imported
   Eye,
   EyeOff,
-  Tv,
   Waves,
   FileText,
   SlidersHorizontal,
@@ -19,12 +18,7 @@ import {
 import { Input } from "../ui/input";
 import { LanguageSelector } from "../ui/LanguageSelector";
 
-interface LayoutSettings {
-  showPlayer: boolean;
-  showWaveform: boolean;
-  showTranscript: boolean;
-  showControls: boolean;
-}
+import { LayoutSettings } from "../../stores/layoutStore";
 
 interface SettingsDrawerProps {
   isOpen: boolean;
@@ -84,11 +78,6 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 
   const layoutOptions = [
     {
-      key: "showPlayer",
-      label: t("settings.mediaPlayer"),
-      icon: <Tv className="h-5 w-5 mr-3 text-sky-500" />,
-    },
-    {
       key: "showWaveform",
       label: t("settings.waveformDisplay"),
       icon: <Waves className="h-5 w-5 mr-3 text-teal-500" />,
@@ -101,7 +90,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
     {
       key: "showControls",
       label: t("settings.playbackControls"),
-      icon: <SlidersHorizontal className="h-5 w-5 mr-3 text-rose-500" />,
+      icon: <SlidersHorizontal className="h-5 w-5 mr-3 text-error-500" />,
     },
   ];
 
@@ -133,7 +122,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
           {/* Drawer Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-lg font-semibold flex items-center">
-              <LayoutDashboard className="h-5 w-5 mr-2 text-purple-500" />
+              <LayoutDashboard className="h-5 w-5 mr-2 text-primary-500" />
               {t("settings.title")}
             </h2>
             <Button
@@ -191,44 +180,44 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-3">
-                <h4 className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t("loop.controlsTitle") || "Loop Settings"}</h4>
+                <h4 className="text-xs font-medium text-gray-400 uppercase tracking-wider">{t("loop.controlsTitle")}</h4>
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-gray-700 dark:text-gray-200 flex-1">
-                    {t("loop.repeats") || "Repeats"}
+                    {t("loop.repeats")}
                   </label>
                   <div className="w-28">
                     <select
                       value={maxLoops}
                       onChange={(e) => setMaxLoops(Number(e.target.value))}
-                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800"
+                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                     >
-                      <option value={0}>∞ Infinite</option>
-                      <option value={1}>1x</option>
-                      <option value={2}>2x</option>
-                      <option value={3}>3x</option>
-                      <option value={4}>4x</option>
-                      <option value={5}>5x</option>
-                      <option value={10}>10x</option>
+                      <option value={0}>∞ {t("loop.infinite")}</option>
+                      <option value={1}>1{t("loop.times")}</option>
+                      <option value={2}>2{t("loop.times")}</option>
+                      <option value={3}>3{t("loop.times")}</option>
+                      <option value={4}>4{t("loop.times")}</option>
+                      <option value={5}>5{t("loop.times")}</option>
+                      <option value={10}>10{t("loop.times")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-sm text-gray-700 dark:text-gray-200 flex-1">
-                    {t("loop.gap") || "Gap"}
+                    {t("loop.gap")}
                   </label>
                   <div className="w-28">
                     <select
                       value={loopDelay}
                       onChange={(e) => setLoopDelay(Number(e.target.value))}
-                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800"
+                      className="w-full h-9 px-3 py-1 text-sm bg-transparent border border-gray-200 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                     >
-                      <option value={0}>None</option>
-                      <option value={0.5}>0.5s</option>
-                      <option value={1}>1.0s</option>
-                      <option value={2}>2.0s</option>
-                      <option value={3}>3.0s</option>
-                      <option value={5}>5.0s</option>
+                      <option value={0}>{t("loop.none")}</option>
+                      <option value={0.5}>0.5{t("common.seconds")}</option>
+                      <option value={1}>1.0{t("common.seconds")}</option>
+                      <option value={2}>2.0{t("common.seconds")}</option>
+                      <option value={3}>3.0{t("common.seconds")}</option>
+                      <option value={5}>5.0{t("common.seconds")}</option>
                     </select>
                   </div>
                 </div>
@@ -258,7 +247,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                           [option.key]: !prev[option.key as keyof LayoutSettings],
                         }))
                       }
-                      className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full flex items-center px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       {option.icon}
                       <span className="flex-grow text-left">{option.label}</span>
@@ -283,7 +272,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 onClick={handleOpenAISettings}
                 className="w-full justify-start text-sm"
               >
-                <Brain className="h-5 w-5 mr-3 text-purple-500" />
+                <Brain className="h-5 w-5 mr-3 text-primary-500" />
                 {t("settings.aiSettings")}
               </Button>
             </div>
@@ -298,7 +287,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
                 onClick={handleOpenHistory}
                 className="w-full justify-start text-sm"
               >
-                <HistoryIcon className="h-5 w-5 mr-3 text-indigo-500" />
+                <HistoryIcon className="h-5 w-5 mr-3 text-accent-500" />
                 {t("settings.viewMediaHistory")}
               </Button>
             </div>

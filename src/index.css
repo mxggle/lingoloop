@@ -4,8 +4,13 @@
 @tailwind utilities;
 @layer base {
      :root {
-        --primary: 139 92 246;
-        --primary-light: 167 139 250;
+        /* These are now driven by themeStore.ts and applied in App.tsx */
+        /* --theme-primary-rgb: ... */
+        /* --theme-accent-rgb: ... */
+
+        /* Legacy variables kept for compatibility but mapped to theme */
+        --primary: var(--theme-primary-rgb);
+        --primary-light: var(--theme-primary-rgb);
         --dark: 24 24 36;
         --dark-surface: 36 36 54;
         --light: 255 255 255;
@@ -15,16 +20,16 @@
 
 @layer components {
     .btn {
-        @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50;
+        @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-opacity-50;
     }
     .btn-primary {
-        @apply bg-purple-600 hover:bg-purple-700 text-white shadow-sm;
+        @apply bg-primary-600 hover:bg-primary-700 text-white shadow-sm;
     }
     .btn-secondary {
         @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200;
     }
     .input-field {
-        @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 transition-all duration-200;
+        @apply w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 transition-all duration-200;
     }
     .card {
         @apply bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700;
@@ -56,12 +61,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(139, 92, 246, 0.5);
+    background: rgb(var(--theme-primary-rgb) / 0.5);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(139, 92, 246, 0.7);
+    background: rgb(var(--theme-primary-rgb) / 0.7);
 }
 
 .dark ::-webkit-scrollbar-track {
@@ -69,11 +74,11 @@ body {
 }
 
 .dark ::-webkit-scrollbar-thumb {
-    background: rgba(167, 139, 250, 0.5);
+    background: rgb(var(--theme-primary-rgb) / 0.5);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(167, 139, 250, 0.7);
+    background: rgb(var(--theme-primary-rgb) / 0.7);
 }
 
 
@@ -212,4 +217,15 @@ body {
     background: #1e293b;
     color: #e2e8f0;
     border-color: #64748b;
+}
+
+/* Custom text selection */
+::selection {
+    background-color: rgb(var(--theme-primary-rgb) / 0.2);
+    color: inherit;
+}
+
+.dark ::selection {
+    background-color: rgb(var(--theme-primary-rgb) / 0.3);
+    color: #fff;
 }

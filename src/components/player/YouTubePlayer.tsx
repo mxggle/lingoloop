@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import { setCurrentTime as setCurrentTimeExternal } from "../../stores/currentTimeStore";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
@@ -70,6 +71,9 @@ export const YouTubePlayer = ({
   const [isSeeking, setIsSeeking] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const lastSeekTime = useRef<number>(0);
+  const playbackSyncFrameRef = useRef<number | null>(null);
+  const lastReportedTimeRef = useRef(0);
+  const lastZustandWriteRef = useRef(0);
 
   const {
     isPlaying,
@@ -84,6 +88,7 @@ export const YouTubePlayer = ({
     setCurrentTime,
     setDuration,
     setIsPlaying,
+    setIsTransitioning,
   } = usePlayerStore(
     useShallow((state) => ({
       isPlaying: state.isPlaying,
@@ -98,6 +103,7 @@ export const YouTubePlayer = ({
       setCurrentTime: state.setCurrentTime,
       setDuration: state.setDuration,
       setIsPlaying: state.setIsPlaying,
+      setIsTransitioning: state.setIsTransitioning,
     }))
   );
   const { t } = useTranslation();
@@ -143,14 +149,20 @@ export const YouTubePlayer = ({
           setDuration(event.target.getDuration());
         },
         onStateChange: (event) => {
+          if (usePlayerStore.getState().isTransitioning) return;
+
           if (event.data === window.YT.PlayerState.PLAYING) {
-            setIsPlaying(true);
+            if (!usePlayerStore.getState().isPlaying) {
+              setIsPlaying(true);
+            }
             // User may have used YouTube controls to seek
             const currentTime = event.target.getCurrentTime();
             setCurrentTime(currentTime);
             lastSeekTime.current = Date.now();
           } else if (event.data === window.YT.PlayerState.PAUSED) {
-            setIsPlaying(false);
+            if (usePlayerStore.getState().isPlaying) {
+              setIsPlaying(false);
+            }
             // User may have paused to seek
             setIsSeeking(true);
             // Get the current time to update our UI
@@ -172,7 +184,7 @@ export const YouTubePlayer = ({
         newPlayer.destroy();
       }
     };
-  }, [apiLoaded, videoId, setDuration, setIsPlaying, setCurrentTime]);
+  }, [apiLoaded, videoId, setDuration, setIsPlaying, setCurrentTime, t]);
 
   // Handle initial seek when player is ready
   const hasPerformedInitialSeek = useRef(false);
@@ -190,13 +202,23 @@ export const YouTubePlayer = ({
     if (!player) return;
 
     if (isPlaying) {
-      player.playVideo();
+      if (player.getPlayerState() !== window.YT.PlayerState.PLAYING) {
+        setIsTransitioning(true);
+        player.playVideo();
+        // YouTube API doesn't have a reliable callback for when play starts,
+        // but it's usually fast enough.
+        setTimeout(() => setIsTransitioning(false), 100);
+      }
       // Reset seeking state when playback resumes
       setIsSeeking(false);
     } else {
-      player.pauseVideo();
+      if (player.getPlayerState() !== window.YT.PlayerState.PAUSED) {
+        setIsTransitioning(true);
+        player.pauseVideo();
+        setIsTransitioning(false);
+      }
     }
-  }, [isPlaying, player]);
+  }, [isPlaying, player, setIsTransitioning]);
 
   // Handle volume changes
   useEffect(() => {
@@ -240,19 +262,37 @@ export const YouTubePlayer = ({
     previousTimeRef.current = currentTime;
   }, [currentTime, player, isSeeking]);
 
-  // Handle A-B loop
+  // Smooth current time updates and handle A-B loop checks while playing
   useEffect(() => {
     if (!player) return;
 
-    const checkTime = () => {
-      if (!player) return;
+    const stopSync = () => {
+      if (playbackSyncFrameRef.current !== null) {
+        window.cancelAnimationFrame(playbackSyncFrameRef.current);
+        playbackSyncFrameRef.current = null;
+      }
+    };
 
+    if (!isPlaying && !isLooping) {
+      stopSync();
+      return stopSync;
+    }
+
+    const syncTime = () => {
       const playerTime = player.getCurrentTime();
 
       // Update store time only if we're not currently seeking
       // This prevents overwriting the optimistic store update with the old player time
-      if (!isSeeking) {
-        setCurrentTime(playerTime);
+      if (!isSeeking && Math.abs(playerTime - lastReportedTimeRef.current) >= 1 / 30) {
+        lastReportedTimeRef.current = playerTime;
+        // Always push to lightweight external store at full rAF rate
+        setCurrentTimeExternal(playerTime);
+        // Throttle Zustand writes to ~4Hz
+        const now = performance.now();
+        if (now - lastZustandWriteRef.current >= 250) {
+          lastZustandWriteRef.current = now;
+          setCurrentTime(playerTime);
+        }
       }
 
       // Don't enforce loop boundaries if user is currently seeking
@@ -287,17 +327,13 @@ export const YouTubePlayer = ({
           console.log("YouTube Loop: Jumping to start point", loopStart);
         }
       }
+
+      playbackSyncFrameRef.current = window.requestAnimationFrame(syncTime);
     };
 
-    if (!isPlaying && !isLooping) {
-      return;
-    }
+    playbackSyncFrameRef.current = window.requestAnimationFrame(syncTime);
 
-    const checkInterval = setInterval(checkTime, 250);
-
-    return () => {
-      clearInterval(checkInterval);
-    };
+    return stopSync;
   }, [player, isPlaying, isLooping, isSeeking, loopStart, loopEnd, setCurrentTime]);
 
   // For hidden mode, render a minimal container but still initialize the player

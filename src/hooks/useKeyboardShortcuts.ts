@@ -3,6 +3,22 @@ import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '@/stores/playerStore'
 import { toast } from 'react-hot-toast'
 
+const isEditableTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target.isContentEditable) {
+    return true
+  }
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  )
+}
+
 export const useKeyboardShortcuts = () => {
   const { t } = useTranslation()
   const {
@@ -26,17 +42,20 @@ export const useKeyboardShortcuts = () => {
     getCurrentMediaBookmarks,
     seekStepSeconds,
     seekSmallStepSeconds,
+    seekForward,
+    seekBackward,
     toggleLooping,
   } = usePlayerStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input field
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
+      // Preserve native browser and OS shortcuts like copy/paste/select-all.
+      if (e.metaKey || e.ctrlKey || e.altKey) {
+        return
+      }
+
+      // Ignore if user is typing in an editable field.
+      if (isEditableTarget(e.target)) {
         return
       }
 
@@ -79,7 +98,6 @@ export const useKeyboardShortcuts = () => {
         case 'l':
         case 'L':
           e.preventDefault()
-          e.preventDefault()
           toggleLooping()
           break
 
@@ -95,11 +113,11 @@ export const useKeyboardShortcuts = () => {
         case 'ArrowLeft':
           e.preventDefault()
           if (e.shiftKey) {
-            // Shift + Left = small step
+            // Shift + Left = small step (always seconds)
             setCurrentTime(Math.max(0, currentTime - seekSmallStepSeconds))
           } else {
-            // Left = configured step
-            setCurrentTime(Math.max(0, currentTime - seekStepSeconds))
+            // Left = configured mode (seconds or sentence)
+            seekBackward(seekStepSeconds)
           }
           break
 
@@ -107,11 +125,11 @@ export const useKeyboardShortcuts = () => {
         case 'ArrowRight':
           e.preventDefault()
           if (e.shiftKey) {
-            // Shift + Right = small step
+            // Shift + Right = small step (always seconds)
             setCurrentTime(Math.min(duration, currentTime + seekSmallStepSeconds))
           } else {
-            // Right = configured step
-            setCurrentTime(Math.min(duration, currentTime + seekStepSeconds))
+            // Right = configured mode (seconds or sentence)
+            seekForward(seekStepSeconds)
           }
           break
 
@@ -222,6 +240,13 @@ export const useKeyboardShortcuts = () => {
     currentFile,
     currentYouTube,
     storeAddBookmark,
-    getCurrentMediaBookmarks
+    getCurrentMediaBookmarks,
+    deleteBookmark,
+    seekSmallStepSeconds,
+    seekStepSeconds,
+    seekForward,
+    seekBackward,
+    t,
+    toggleLooping
   ])
 }

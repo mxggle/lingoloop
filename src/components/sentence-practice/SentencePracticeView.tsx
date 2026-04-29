@@ -10,12 +10,17 @@ import {
   SkipForward,
   ArrowLeft,
   ListMusic,
+  Volume2,
+  VolumeX,
+  Gauge,
 } from "lucide-react";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
 import { useShallow } from "zustand/react/shallow";
 import { formatTime } from "../../utils/formatTime";
 import { SentenceRecorder } from "./SentenceRecorder";
+import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
+import { Slider } from "../ui/slider";
 
 export const SentencePracticeView = () => {
   const { t } = useTranslation();
@@ -29,6 +34,12 @@ export const SentencePracticeView = () => {
     setLoopPoints,
     setIsLooping,
     getCurrentMediaId,
+    playbackRate,
+    volume,
+    muted,
+    setPlaybackRate,
+    setVolume,
+    toggleMute,
   } = usePlayerStore(
     useShallow((state) => ({
       isPlaying: state.isPlaying,
@@ -38,6 +49,12 @@ export const SentencePracticeView = () => {
       setLoopPoints: state.setLoopPoints,
       setIsLooping: state.setIsLooping,
       getCurrentMediaId: state.getCurrentMediaId,
+      playbackRate: state.playbackRate,
+      volume: state.volume,
+      muted: state.muted,
+      setPlaybackRate: state.setPlaybackRate,
+      setVolume: state.setVolume,
+      toggleMute: state.toggleMute,
     }))
   );
 
@@ -70,6 +87,7 @@ export const SentencePracticeView = () => {
   const lastSegmentEndRef = useRef<number>(0);
   const isAdvancingRef = useRef(false);
   const lastAppliedSegmentRef = useRef<{ index: number; start: number; end: number } | null>(null);
+  const skipTimeSeekRef = useRef(false);
 
   const goNext = useCallback(() => {
     if (currentSentenceIndex < transcriptSegments.length - 1) {
@@ -139,7 +157,10 @@ export const SentencePracticeView = () => {
       setIsLooping(false);
     }
 
-    setCurrentTime(segment.startTime);
+    if (!skipTimeSeekRef.current) {
+      setCurrentTime(segment.startTime);
+    }
+    skipTimeSeekRef.current = false;
     lastSegmentEndRef.current = segment.endTime;
   }, [
     hasNavigatedToInitial,
@@ -185,6 +206,31 @@ export const SentencePracticeView = () => {
     transcriptSegments,
     setCurrentSentenceIndex,
     setIsPlaying,
+  ]);
+
+  // Follow current playback position and auto-switch displayed sentence
+  useEffect(() => {
+    if (!hasNavigatedToInitial || transcriptSegments.length === 0) return;
+
+    let foundIndex = currentSentenceIndex;
+    for (let i = 0; i < transcriptSegments.length; i++) {
+      const seg = transcriptSegments[i];
+      if (currentTime >= seg.startTime && currentTime < seg.endTime) {
+        foundIndex = i;
+        break;
+      }
+    }
+
+    if (foundIndex !== currentSentenceIndex) {
+      skipTimeSeekRef.current = true;
+      setCurrentSentenceIndex(foundIndex);
+    }
+  }, [
+    currentTime,
+    hasNavigatedToInitial,
+    transcriptSegments,
+    currentSentenceIndex,
+    setCurrentSentenceIndex,
   ]);
 
   // Keyboard shortcuts
@@ -258,7 +304,7 @@ export const SentencePracticeView = () => {
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-950">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/5 shrink-0">
         <button
           onClick={handleExit}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
@@ -273,14 +319,14 @@ export const SentencePracticeView = () => {
       </div>
 
       {/* Main sentence display */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-8 min-h-0">
-        <div className="w-full max-w-3xl text-center">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 sm:px-8 py-4 sm:py-6 overflow-hidden">
+        <div className="w-full max-w-4xl text-center max-h-full overflow-y-auto">
           {segment && (
             <>
-              <p className="text-2xl sm:text-4xl md:text-5xl font-semibold text-gray-900 dark:text-gray-100 leading-relaxed tracking-tight">
+              <p className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-gray-900 dark:text-gray-100 leading-relaxed tracking-tight break-words">
                 {segment.text}
               </p>
-              <div className="mt-6 flex items-center justify-center gap-3 text-sm text-gray-400 dark:text-gray-500 font-mono">
+              <div className="mt-4 sm:mt-6 flex items-center justify-center gap-3 text-sm text-gray-400 dark:text-gray-500 font-mono shrink-0">
                 <span>{formatTime(segment.startTime)}</span>
                 <span className="w-8 h-px bg-gray-200 dark:bg-gray-700" />
                 <span>{formatTime(segment.endTime)}</span>
@@ -292,16 +338,16 @@ export const SentencePracticeView = () => {
 
       {/* Recording section */}
       {segment && mediaId && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-2 shrink-0">
           <SentenceRecorder mediaId={mediaId} sentenceIndex={currentSentenceIndex} />
         </div>
       )}
 
       {/* Bottom controls */}
-      <div className="px-4 pb-6 pt-2 border-t border-gray-100 dark:border-white/5">
-        <div className="max-w-xl mx-auto space-y-4">
-          {/* Toggles */}
-          <div className="flex items-center justify-center gap-4">
+      <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-white/5 shrink-0">
+        <div className="max-w-xl mx-auto space-y-3">
+          {/* Settings row */}
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
               onClick={() => setLoopCurrent(!loopCurrent)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
@@ -324,6 +370,53 @@ export const SentencePracticeView = () => {
               <SkipForward size={13} />
               {t("sentencePractice.autoAdvance")}
             </button>
+
+            {/* Playback speed */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700`}
+                >
+                  <Gauge size={13} />
+                  {playbackRate.toFixed(2)}x
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="center" side="top">
+                <div className="grid grid-cols-4 gap-1">
+                  {[0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setPlaybackRate(rate)}
+                      className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        Math.abs(playbackRate - rate) < 0.01
+                          ? "bg-primary-600 text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      {rate.toFixed(2)}x
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Volume */}
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+              <button
+                onClick={toggleMute}
+                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+              >
+                {muted || volume === 0 ? <VolumeX size={13} /> : <Volume2 size={13} />}
+              </button>
+              <Slider
+                value={[muted ? 0 : volume]}
+                min={0}
+                max={1}
+                step={0.01}
+                onValueChange={(v) => setVolume(v[0])}
+                className="w-14 sm:w-20"
+              />
+            </div>
           </div>
 
           {/* Playback + Navigation */}

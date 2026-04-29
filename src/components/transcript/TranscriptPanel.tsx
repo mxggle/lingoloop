@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
@@ -17,6 +18,7 @@ import {
   Upload,
   Locate,
   LocateFixed,
+  ListMusic,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { transcriptionService } from "../../services/transcriptionService";
@@ -123,7 +125,9 @@ const findSegmentIndexAtTime = (
 
 export const TranscriptPanel = () => {
   const LARGE_TRANSCRIPTION_FILE_SIZE = 25 * 1024 * 1024;
+  const PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS = 8 * 60;
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const mediaId = usePlayerStore((state) => state.getCurrentMediaId());
   const {
     currentFile,
@@ -131,6 +135,7 @@ export const TranscriptPanel = () => {
     startTranscribing,
     stopTranscribing,
     addTranscriptSegment,
+    addTranscriptSegments,
     clearTranscript,
     exportTranscript,
     updateBookmark,
@@ -146,6 +151,7 @@ export const TranscriptPanel = () => {
     isPlaying,
     transcriptLanguage,
     setTranscriptLanguage,
+    duration,
   } = usePlayerStore(
     useShallow((state) => ({
       currentFile: state.currentFile,
@@ -153,6 +159,7 @@ export const TranscriptPanel = () => {
       startTranscribing: state.startTranscribing,
       stopTranscribing: state.stopTranscribing,
       addTranscriptSegment: state.addTranscriptSegment,
+      addTranscriptSegments: state.addTranscriptSegments,
       clearTranscript: state.clearTranscript,
       exportTranscript: state.exportTranscript,
       updateBookmark: state.updateBookmark,
@@ -168,6 +175,7 @@ export const TranscriptPanel = () => {
       isPlaying: state.isPlaying,
       transcriptLanguage: state.transcriptLanguage,
       setTranscriptLanguage: state.setTranscriptLanguage,
+      duration: state.duration,
     }))
   );
   const transcriptSegments = usePlayerStore(
@@ -514,11 +522,13 @@ export const TranscriptPanel = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [apiKey, setApiKey] = useState<string>("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [currentProvider, setCurrentProvider] = useState<TranscriptionProvider>("openai");
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const virtualizer = useVirtualizer({
     count: filteredSegments.length,
@@ -547,9 +557,21 @@ export const TranscriptPanel = () => {
     window.addEventListener("ai-settings-updated", handleSettingsUpdate);
     window.addEventListener("aiSettingsUpdated", handleSettingsUpdate);
 
+    // Cross-tab/window sync via BroadcastChannel
+    let broadcastChannel: BroadcastChannel | null = null;
+    if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+      broadcastChannel = new BroadcastChannel("abloop-settings");
+      broadcastChannel.onmessage = (event) => {
+        if (event.data?.type === "ai-settings-updated") {
+          loadSettings();
+        }
+      };
+    }
+
     return () => {
       window.removeEventListener("ai-settings-updated", handleSettingsUpdate);
       window.removeEventListener("aiSettingsUpdated", handleSettingsUpdate);
+      broadcastChannel?.close();
     };
   }, []);
 
@@ -635,6 +657,13 @@ export const TranscriptPanel = () => {
       unsubscribe();
     };
   }, [autoScrollEnabled, filteredSegments, scrollToSegmentIndex]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
 
   type TimeRange = { start: number; end: number };
 
@@ -802,7 +831,7 @@ export const TranscriptPanel = () => {
     }
 
     // Check if API key is provided for the current provider
-    if (!apiKey) {
+    if (!apiKey && currentProvider !== "local-whisper") {
       setShowApiKeyInput(true);
       return;
     }
@@ -822,12 +851,16 @@ export const TranscriptPanel = () => {
     try {
       setIsProcessing(true);
       setErrorMessage("");
+      setTranscriptionStatus(null);
 
       // Only clear if doing full transcript
       if (!range || options?.forceFullRange) {
         clearTranscript();
       }
 
+      abortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
       startTranscribing();
       setProcessingProgress(10);
 
@@ -847,55 +880,94 @@ export const TranscriptPanel = () => {
 
       setProcessingProgress(50);
 
+      const transcriptionConfig = {
+        provider: currentProvider,
+        apiKey: apiKey,
+        language: transcriptLanguage,
+      };
+      const shouldUseChunkedTranscription =
+        !range && duration >= PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS;
+
       // Call the unified transcription service
-      const result = await transcriptionService.transcribe(
-        {
-          provider: currentProvider,
-          apiKey: apiKey,
-        },
-        audioBlob
-      );
+      const result = shouldUseChunkedTranscription
+        ? await transcriptionService.transcribeInChunks(
+          transcriptionConfig,
+          audioBlob,
+          {
+            signal: abortController.signal,
+            onChunkComplete: (segments, chunkIndex, totalChunks) => {
+              setTranscriptionStatus(
+                t("transcript.processingChunk", {
+                  current: chunkIndex,
+                  total: totalChunks,
+                })
+              );
+              setProcessingProgress(
+                Math.min(95, 50 + Math.round((chunkIndex / totalChunks) * 45))
+              );
+              addTranscriptSegments(
+                segments.map((segment) => ({
+                  text: segment.text.trim(),
+                  startTime: Math.max(0, segment.start),
+                  endTime: Math.max(segment.start, segment.end),
+                  confidence: segment.confidence,
+                  isFinal: true,
+                }))
+              );
+            },
+          }
+        )
+        : await transcriptionService.transcribe(
+          transcriptionConfig,
+          audioBlob,
+          { signal: abortController.signal }
+        );
 
       setProcessingProgress(80);
 
       const startTimeOffset = range ? range.start : 0;
 
+      if (shouldUseChunkedTranscription) {
+        setProcessingProgress(100);
+        return;
+      }
+
       if (result.segments && result.segments.length > 0) {
-        result.segments.forEach((segment, index) => {
-          addTranscriptSegment({
+        addTranscriptSegments(
+          result.segments.map((segment) => ({
             text: segment.text.trim(),
             startTime: Math.max(0, segment.start + startTimeOffset),
             endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
             confidence: segment.confidence,
             isFinal: true,
-          });
-
-          // Update progress
-          const progress =
-            Math.round(((index + 1) / result.segments.length) * 20) + 80;
-          setProcessingProgress(Math.min(progress, 100));
-        });
+          }))
+        );
       } else {
         // If no segments are returned, use the full transcript with basic sentence breaking
         const sentences = await utilBreakIntoSentences(result.fullText);
 
-        sentences.forEach((sentence, index) => {
+        addTranscriptSegments(sentences.map((sentence, index) => {
           const startTime = (index * 30) / sentences.length;
           const endTime = ((index + 1) * 30) / sentences.length;
 
-          addTranscriptSegment({
+          return {
             text: sentence.trim(),
             startTime: Math.max(0, startTime + startTimeOffset),
             endTime: Math.max(startTime + startTimeOffset, endTime + startTimeOffset),
             confidence: 0.85,
             isFinal: true,
-          });
-        });
+          };
+        }));
       }
 
       setProcessingProgress(100);
     } catch (error) {
       console.error("Error transcribing media:", error);
+
+      if (error instanceof Error && error.name === "AbortError") {
+        toast(t("transcript.transcriptionCancelled"));
+        return;
+      }
 
       // More detailed error handling
       let errorMessage = t("transcript.transcriptionFailed");
@@ -930,10 +1002,11 @@ export const TranscriptPanel = () => {
 
       setErrorMessage(errorMessage);
       toast.error(errorMessage);
-
-      // Fall back to simulation for demo purposes
-      await simulateTranscription();
     } finally {
+      if (abortControllerRef.current?.signal.aborted || abortControllerRef.current) {
+        abortControllerRef.current = null;
+      }
+      setTranscriptionStatus(null);
       setIsProcessing(false);
       stopTranscribing();
     }
@@ -1380,7 +1453,7 @@ export const TranscriptPanel = () => {
               <div className="ml-2 flex items-center flex-shrink-0">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                  {t("transcript.processing", { progress: processingProgress })}
+                  {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
                 </span>
               </div>
             )}
@@ -1521,6 +1594,15 @@ export const TranscriptPanel = () => {
             </button>
 
             <button
+              onClick={() => navigate("/sentence-practice")}
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
+              title={t("sentencePractice.title")}
+              disabled={transcriptSegments.length === 0}
+            >
+              <ListMusic size={16} />
+            </button>
+
+            <button
               onClick={() => clearTranscript()}
               className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               title={t("transcript.clearTranscript")}
@@ -1533,7 +1615,7 @@ export const TranscriptPanel = () => {
 
         <div
           ref={transcriptRef}
-          className="flex-1 min-h-0 overflow-y-auto px-6 pt-12 pb-32 md:px-12 lg:px-24 md:pb-40"
+          className="flex-1 min-h-0 overflow-y-auto px-6 pt-12 pb-8 md:px-12 lg:px-24 md:pb-16"
         >
           {showApiKeyInput && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md mb-3">
@@ -1567,7 +1649,7 @@ export const TranscriptPanel = () => {
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Loader size={24} className="animate-spin text-blue-500 mb-2" />
               <p className="text-gray-600 dark:text-gray-400">
-                {t("transcript.processingTranscription")}
+                {transcriptionStatus || t("transcript.processingTranscription")}
               </p>
               <div className="w-full max-w-xs bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-3">
                 <div
@@ -1575,6 +1657,13 @@ export const TranscriptPanel = () => {
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
+              <button
+                type="button"
+                onClick={() => abortControllerRef.current?.abort()}
+                className="mt-3 rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                {t("transcript.cancelTranscription")}
+              </button>
             </div>
           )}
 

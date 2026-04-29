@@ -25,6 +25,7 @@ interface ElectronAPI {
   configGet: (key: string) => Promise<unknown>
   configSet: (key: string, value: unknown) => Promise<void>
   configGetAll: () => Promise<unknown>
+  fetch: (url: string, options?: RequestInit) => Promise<{ ok: boolean, status: number, statusText: string, data: string, headers: Record<string, string> }>
 }
 
 declare global {

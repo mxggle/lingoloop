@@ -54,6 +54,24 @@
     "recordingError": "录音错误：{{message}}",
     "failedToSave": "保存录音失败"
   },
+  "sentencePractice": {
+    "title": "逐句练习",
+    "exit": "退出",
+    "loopPlay": "循环",
+    "playOnce": "播放一次",
+    "autoAdvance": "自动下一句",
+    "record": "录音",
+    "stopRecording": "停止",
+    "noTranscript": "暂无字幕。请先加载媒体并生成字幕。",
+    "recordingCount": "{{count}} 条录音",
+    "recordingSaved": "录音已保存",
+    "recordingSaveFailed": "保存录音失败",
+    "recordingEmpty": "录音为空",
+    "recordingError": "录音错误：{{message}}",
+    "recordingNotFound": "找不到录音",
+    "recordingPlayError": "播放录音失败",
+    "recordingDeleted": "录音已删除"
+  },
   "app": {
     "logoLabel": "LoopMate 标志"
   },
@@ -172,14 +190,22 @@
       "openai": "OpenAI",
       "gemini": "Google Gemini",
       "grok": "xAI Grok",
-      "groq": "Groq"
+      "groq": "Groq",
+      "opencode": "OpenCode Go",
+      "deepseek": "DeepSeek"
     },
     "providerDescriptions": {
       "openai": "OpenAI GPT 模型",
       "gemini": "Google Gemini 模型",
       "grok": "xAI Grok 模型",
-      "groq": "Groq LPU 驱动的超快 Whisper 转录"
+      "groq": "Groq LPU 驱动的超快 Whisper 转录",
+      "opencode": "OpenCode Go 的 OpenAI 兼容 API",
+      "deepseek": "DeepSeek 官方 API (OpenAI 兼容)"
     },
+    "opencodeBaseUrl": "OpenCode 基础 URL",
+    "opencodeBaseUrlHelp": "请输入 OpenCode Go API 端点的基础 URL。默认值为 https://opencode.ai/zen/go/v1。",
+    "opencodeModel": "模型名称",
+    "opencodeModelHelp": "请输入 OpenCode Go 模型 ID，例如 glm-5、kimi-k2.6、deepseek-v4-flash。也可使用 opencode-go/glm-5 这类配置 ID。",
     "apiKeyLabel": "API 密钥",
     "apiKeyPlaceholderLabel": "请输入 {{provider}} 的 API 密钥",
     "invalidApiKeyFormat": "API 密钥格式无效",
@@ -392,6 +418,10 @@
   "transcript": {
     "title": "媒体转录",
     "processing": "处理中 {{progress}}%",
+    "processingTranscription": "正在处理转录...",
+    "processingChunk": "正在转录第 {{current}} / {{total}} 个分块...",
+    "cancelTranscription": "取消转录",
+    "transcriptionCancelled": "转录已取消",
     "transcribed": "已转录",
     "language": "语言",
     "exportAsTXT": "TXT",

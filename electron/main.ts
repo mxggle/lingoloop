@@ -65,6 +65,21 @@ function createWindow(): void {
     },
   })
 
+  // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000
+  win.webContents.session.webRequest.onHeadersReceived(
+    { urls: ['*://localhost:8000/*', '*://127.0.0.1:8000/*'] },
+    (details, callback) => {
+      const responseHeaders = details.responseHeaders || {}
+      const hasCorsOrigin = Object.keys(responseHeaders).some(
+        (k) => k.toLowerCase() === 'access-control-allow-origin'
+      )
+      if (!hasCorsOrigin) {
+        responseHeaders['Access-Control-Allow-Origin'] = ['*']
+      }
+      callback({ responseHeaders })
+    }
+  )
+
   // Open external links in the default browser, not in Electron
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
@@ -125,7 +140,7 @@ async function openSettingsWindow(
     minHeight: 560,
     title: 'Settings',
     titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
+    trafficLightPosition: { x: -100, y: -100 },
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -133,6 +148,10 @@ async function openSettingsWindow(
       webSecurity: true,
     },
   })
+
+  if (process.platform === 'darwin') {
+    nextSettingsWindow.setWindowButtonVisibility(false)
+  }
 
   nextSettingsWindow.on('closed', () => {
     if (settingsWindow === nextSettingsWindow) {
@@ -490,6 +509,29 @@ ipcMain.handle('config:set', (_event, key: string, value: unknown) => {
 ipcMain.handle('config:getAll', () => {
   return configStore.store
 })
+
+ipcMain.handle('net:fetch', async (_event, url: string, options: RequestInit) => {
+  try {
+    const response = await fetch(url, options)
+    const data = await response.text()
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      headers: Object.fromEntries(response.headers.entries())
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      status: 500,
+      statusText: 'Network Error',
+      data: error instanceof Error ? error.message : String(error),
+      headers: {}
+    }
+  }
+})
+
 
 app.whenReady().then(() => {
   // Serve local media files through the local-media:// protocol.

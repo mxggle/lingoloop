@@ -1,7 +1,9 @@
 
 import { usePlayerStore } from "../../stores/playerStore";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { formatTime } from "../../utils/formatTime";
+import { useAutoHide } from "../../hooks/useAutoHide";
 import {
   Play,
   Pause,
@@ -16,6 +18,7 @@ import {
   Music,
   Youtube,
   Settings2,
+  ListMusic,
 } from "lucide-react";
 import { Slider } from "../ui/slider";
 import { cn } from "../../utils/cn";
@@ -29,6 +32,8 @@ interface CombinedControlsProps {
 
 export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { isVisible, show: showControls, startHideTimer, pause } = useAutoHide(4000);
   const {
     currentFile,
     currentYouTube,
@@ -121,14 +126,36 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
     setIsLooping(!isLooping);
   };
 
+  const sidebarOffsetStyle =
+    showSidebarOffset && isSidebarOpen
+      ? { left: `calc(50% + ${sidebarWidth / 2}px)` }
+      : {};
+
   return (
-    <div
-      className={cn(
-        "fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-in-out",
-        "w-[90%] max-w-3xl backdrop-blur-xl bg-white/80 dark:bg-gray-900/85 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden"
-      )}
-      style={showSidebarOffset && isSidebarOpen ? { left: `calc(50% + ${sidebarWidth / 2}px)` } : {}}
-    >
+    <>
+      {/* Bottom trigger bar — shows when controls are hidden */}
+      <div
+        className={cn(
+          "fixed bottom-0 left-1/2 -translate-x-1/2 z-[59] w-24 h-1.5 rounded-t-full transition-all duration-300 cursor-pointer",
+          "bg-white/30 dark:bg-white/20 backdrop-blur-sm",
+          isVisible
+            ? "opacity-0 translate-y-full pointer-events-none"
+            : "opacity-100 translate-y-0"
+        )}
+        style={sidebarOffsetStyle}
+        onMouseEnter={showControls}
+      />
+
+      <div
+        className={cn(
+          "fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] transition-all duration-500 ease-out",
+          "w-[90%] max-w-3xl backdrop-blur-xl bg-white/80 dark:bg-gray-900/85 rounded-2xl border border-black/10 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden",
+          !isVisible && "translate-y-[calc(100%+3rem)] opacity-0 pointer-events-none"
+        )}
+        style={sidebarOffsetStyle}
+        onMouseEnter={pause}
+        onMouseLeave={startHideTimer}
+      >
       {/* Timeline Slider - Minimalist line at the top */}
       <div className="absolute top-0 left-0 right-0 h-1.5 group cursor-pointer z-10">
         <Slider
@@ -224,6 +251,14 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
             </Popover>
           </div>
 
+
+          <button
+            onClick={() => navigate("/sentence-practice")}
+            className="p-2 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+            title={t("sentencePractice.title")}
+          >
+            <ListMusic size={18} />
+          </button>
 
           <button
             onClick={toggleLooping}
@@ -345,6 +380,7 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
         </div>
       </div>
     </div>
+    </>
   );
 };
 

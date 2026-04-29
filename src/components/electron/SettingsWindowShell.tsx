@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { X } from "lucide-react";
 
 interface SettingsWindowShellProps {
   title: string;
@@ -16,30 +17,37 @@ export function SettingsWindowShell({
   children,
 }: SettingsWindowShellProps) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.14),_transparent_42%),linear-gradient(180deg,_rgba(248,250,252,0.96),_rgba(241,245,249,0.96))] p-4 text-gray-900 dark:bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_36%),linear-gradient(180deg,_rgba(2,6,23,0.98),_rgba(15,23,42,0.98))] dark:text-white">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col overflow-hidden rounded-[28px] border border-black/10 bg-white/80 shadow-[0_32px_90px_-40px_rgba(15,23,42,0.5)] backdrop-blur-2xl dark:border-white/10 dark:bg-gray-950/80 dark:shadow-black/50">
-        <header className="border-b border-black/5 px-6 py-5 dark:border-white/5">
-          <div className="[-webkit-app-region:drag] space-y-2">
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#020617] dark:text-white">
+      <div className="mx-auto flex min-h-screen max-w-6xl flex-col overflow-hidden border-x border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+        <header className="[-webkit-app-region:drag] flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               {title}
             </h1>
-            <p className="max-w-2xl text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               {subtitle}
             </p>
           </div>
+          <button
+            onClick={() => window.electronAPI?.closeSettingsWindow()}
+            className="[-webkit-app-region:no-drag] rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[220px_minmax(0,1fr)]">
-          <aside className="border-r border-black/5 bg-black/[0.02] px-4 py-5 dark:border-white/5 dark:bg-white/[0.02]">
+        <div className="grid min-h-0 flex-1 grid-cols-[200px_minmax(0,1fr)]">
+          <aside className="border-r border-gray-100 bg-gray-50/50 px-3 py-4 dark:border-gray-800 dark:bg-gray-900/30 overflow-y-auto">
             {navigation}
           </aside>
 
-          <main className="min-h-0 overflow-y-auto px-6 py-6 md:px-8 md:py-7">
+          <main className="min-h-0 overflow-y-auto px-6 py-6 md:px-8 md:py-8">
             {children}
           </main>
         </div>
 
-        <footer className="border-t border-black/5 bg-white/70 px-6 py-4 dark:border-white/5 dark:bg-white/[0.03]">
+        <footer className="border-t border-gray-100 bg-gray-50/50 px-6 py-3 dark:border-gray-800 dark:bg-gray-900/30">
           {footer}
         </footer>
       </div>

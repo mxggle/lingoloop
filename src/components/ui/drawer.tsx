@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { ScrollLock } from "../../hooks/useScrollLock";
 
 interface DrawerProps {
   children: React.ReactNode;
@@ -22,23 +23,12 @@ export const Drawer = ({
   // Handle open state
   useEffect(() => {
     if (open) {
-      // Show drawer
       setIsVisible(true);
-      // Prevent body scrolling
-      document.body.style.overflow = "hidden";
     } else {
-      // Start closing animation
       setTimeout(() => {
         setIsVisible(false);
-        // Restore body scrolling
-        document.body.style.overflow = "";
       }, 300); // Match transition duration
     }
-
-    return () => {
-      // Cleanup
-      document.body.style.overflow = "";
-    };
   }, [open]);
 
   // Handle close on backdrop click
@@ -82,6 +72,7 @@ export const Drawer = ({
       )}
       onClick={handleBackdropClick}
     >
+      <ScrollLock />
       <div
         className={cn(
           "fixed bottom-0 left-0 right-0 max-h-[80vh] bg-white dark:bg-gray-800 rounded-t-xl shadow-xl transform transition-transform duration-300 ease-in-out",

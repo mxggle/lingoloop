@@ -56,6 +56,24 @@
     "recordingError": "Recording error: {{message}}",
     "failedToSave": "Failed to save recording"
   },
+  "sentencePractice": {
+    "title": "Sentence Practice",
+    "exit": "Exit",
+    "loopPlay": "Loop",
+    "playOnce": "Play Once",
+    "autoAdvance": "Auto Advance",
+    "record": "Record",
+    "stopRecording": "Stop",
+    "noTranscript": "No transcript available. Load media and generate a transcript first.",
+    "recordingCount": "{{count}} recordings",
+    "recordingSaved": "Recording saved",
+    "recordingSaveFailed": "Failed to save recording",
+    "recordingEmpty": "Recording was empty",
+    "recordingError": "Recording error: {{message}}",
+    "recordingNotFound": "Recording not found",
+    "recordingPlayError": "Failed to play recording",
+    "recordingDeleted": "Recording deleted"
+  },
   "app": {
     "logoLabel": "LoopMate logo"
   },
@@ -183,19 +201,27 @@
       "gemini": "Google Gemini",
       "grok": "xAI Grok",
       "groq": "Groq",
-      "ollama": "Ollama (Local)"
+      "ollama": "Ollama (Local)",
+      "opencode": "OpenCode Go",
+      "deepseek": "DeepSeek"
     },
     "providerDescriptions": {
       "openai": "OpenAI GPT models",
       "gemini": "Google Gemini models",
       "grok": "xAI Grok models",
       "groq": "Ultra-fast Whisper transcription via Groq LPU",
-      "ollama": "Local LLM via Ollama — no API key required"
+      "ollama": "Local LLM via Ollama — no API key required",
+      "opencode": "OpenAI-compatible API via OpenCode Go",
+      "deepseek": "DeepSeek Official API (OpenAI compatible)"
     },
     "ollamaBaseUrl": "Ollama Base URL",
     "ollamaBaseUrlHelp": "URL where Ollama is running. Works when accessing this app via localhost.",
     "ollamaModel": "Model Name",
     "ollamaModelHelp": "Any model you have pulled locally, e.g. llama3.2, mistral, qwen2.5.",
+    "opencodeBaseUrl": "OpenCode Base URL",
+    "opencodeBaseUrlHelp": "Base URL of your OpenCode Go API endpoint. Defaults to https://opencode.ai/zen/go/v1.",
+    "opencodeModel": "Model Name",
+    "opencodeModelHelp": "OpenCode Go model ID, e.g. glm-5, kimi-k2.6, deepseek-v4-flash. Config-style IDs like opencode-go/glm-5 are accepted.",
     "apiKeyLabel": "API Key",
     "apiKeyPlaceholderLabel": "Enter your {{provider}} API key",
     "invalidApiKeyFormat": "Invalid API key format",
@@ -414,6 +440,10 @@
   "transcript": {
     "title": "Media Transcript",
     "processing": "Processing {{progress}}%",
+    "processingTranscription": "Processing transcription...",
+    "processingChunk": "Transcribing chunk {{current}} of {{total}}...",
+    "cancelTranscription": "Cancel transcription",
+    "transcriptionCancelled": "Transcription cancelled",
     "transcribed": "Transcribed",
     "language": "Language",
     "exportAsTXT": "TXT",

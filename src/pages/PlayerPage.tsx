@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
@@ -20,9 +20,11 @@ import { useLayoutSettings } from "../contexts/layoutSettings";
 export const PlayerPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
   const { isMobile } = useWindowSize();
   const layoutInitializedForRef = useRef<string | null>(null);
+  const isOnPlayer = location.pathname === "/player";
 
   const { currentFile, currentYouTube, showWaveform, isLoadingMedia } =
     usePlayerStore(
@@ -150,8 +152,8 @@ export const PlayerPage = () => {
                   <TranscriptPanel />
                 </div>
               )}
-              {/* Media controls (floating) */}
-              {layoutSettings.showControls && (
+              {/* Media controls (floating) — only show on the player route */}
+              {isOnPlayer && layoutSettings.showControls && (
                 isMobile ? <MobileControls /> : <CombinedControls showSidebarOffset={isElectron()} />
               )}
             </div>

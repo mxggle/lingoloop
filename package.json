@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@ai-sdk/xai": "^1.2.16",
+    "@emotion/is-prop-valid": "^1.4.0",
     "@google/genai": "^1.0.1",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -108,7 +109,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}-win-${arch}.${ext}"

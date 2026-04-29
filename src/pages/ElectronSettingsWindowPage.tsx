@@ -3,9 +3,7 @@ import { Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { SettingsWindowShell } from "../components/electron/SettingsWindowShell";
 import { SettingsWorkspace } from "../components/settings/SettingsWorkspace";
-import {
-  SettingsSidebar,
-} from "../components/settings/SettingsSidebar";
+import { SettingsSidebar } from "../components/settings/SettingsSidebar";
 import { useAiSettingsState } from "../hooks/useAiSettingsState";
 
 export function ElectronSettingsWindowPage() {
@@ -62,8 +60,8 @@ export function ElectronSettingsWindowPage() {
         />
       }
       footer={
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">
-          <Shield className="h-4 w-4 text-green-500" />
+        <div className="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+          <Shield className="h-3.5 w-3.5 text-success-500" />
           <span>{t("settingsPage.footer.autoSaved")}</span>
         </div>
       }

@@ -147,6 +147,10 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         provider: selectedProvider,
         model: selectedModel,
         apiKey: getApiKey(selectedProvider),
+        baseURL:
+          selectedProvider === "opencode"
+            ? localStorage.getItem("opencode_base_url") || undefined
+            : undefined,
         temperature: parseFloat(localStorage.getItem("ai_temperature") || "0.7"),
         maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "2000"),
         systemPrompt: AI_PROMPTS.system.languageTutor(targetLanguage),
@@ -241,7 +245,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+    <div className="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -258,14 +262,14 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
       {/* Content */}
       <div className="px-3 py-3">
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             <Loader size={14} className="animate-spin shrink-0" />
             <span>{t("explanation.generating")}</span>
           </div>
         )}
 
         {error && (
-          <p className="text-sm text-error-600 dark:text-error-400">{error}</p>
+          <p className="text-xs text-error-600 dark:text-error-400">{error}</p>
         )}
 
         {explanation && (
@@ -277,7 +281,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                   <h4 className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">
                     <span className="text-sm">👨‍🏫</span> Sensei’s Overview
                   </h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 italic leading-relaxed">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-relaxed">
                     "{explanation.structuredExplanation.senseiOverview}"
                   </p>
                 </div>
@@ -288,11 +292,11 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                     Translation
                   </h4>
                   <div className="space-y-1">
-                    <p className="text-base font-medium text-gray-900 dark:text-gray-100">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {explanation.structuredExplanation.translation.natural}
                     </p>
                     {explanation.structuredExplanation.translation.literal && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
                         (Literal: {explanation.structuredExplanation.translation.literal})
                       </p>
                     )}
@@ -306,7 +310,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                   </h4>
                   <div className="space-y-3">
                     {explanation.structuredExplanation.breakdown.map((item, idx) => (
-                      <div key={idx} className="flex gap-3 text-sm">
+                      <div key={idx} className="flex gap-3 text-xs">
                         <span className="font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                           {item.item}
                         </span>
@@ -329,17 +333,17 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                         <div className="px-3 py-2 bg-gray-50/50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                           <span className="font-bold text-gray-900 dark:text-gray-100">{gram.point}</span>
                         </div>
-                        <div className="p-3 space-y-2 text-sm">
+                        <div className="p-3 space-y-2 text-xs">
                           <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase mr-2">Form:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">Form:</span>
                             <code className="text-gray-800 dark:text-gray-200">{gram.form}</code>
                           </div>
                           <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase mr-2">Meaning:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase mr-2">Meaning:</span>
                             <span className="text-gray-700 dark:text-gray-300">{gram.meaning}</span>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-xs font-semibold text-gray-400 uppercase">Examples:</span>
+                            <span className="text-[10px] font-semibold text-gray-400 uppercase">Examples:</span>
                             <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 pl-1 space-y-1">
                               {gram.examples.map((ex, i) => (
                                 <li key={i}>{ex}</li>
@@ -358,7 +362,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                     <h4 className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider mb-1">
                       Sentence Logic Summary
                     </h4>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
+                    <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                       {explanation.structuredExplanation.logicSummary}
                     </p>
                   </div>
@@ -377,7 +381,7 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-sm [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-sm [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-sm [&_p]:mb-2 [&_li]:text-sm">
+              <div className="prose perror-sm dark:perror-invert max-w-none [&_h1]:text-xs [&_h1]:font-bold [&_h1]:text-blue-700 dark:[&_h1]:text-blue-400 [&_h1]:mb-1 [&_h1]:mt-3 [&_h1]:border-0 [&_h2]:text-xs [&_h2]:font-bold [&_h2]:text-blue-700 dark:[&_h2]:text-blue-400 [&_h2]:mb-1 [&_h2]:mt-3 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-gray-700 dark:[&_h3]:text-gray-300 [&_h3]:mb-1 [&_h3]:mt-2 [&_h4]:text-xs [&_h4]:font-semibold [&_h4]:text-gray-600 dark:[&_h4]:text-gray-400 [&_h4]:mb-1 [&_p]:text-xs [&_p]:mb-2 [&_li]:text-xs">
                 <MarkdownRenderer content={explanation.explanation} />
               </div>
             )}

@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke('config:set', key, value),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
+  fetch: (url: string, options?: RequestInit) => ipcRenderer.invoke('net:fetch', url, options),
 })

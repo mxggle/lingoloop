@@ -73,7 +73,7 @@ export const PlayerPage = () => {
     <AppLayout
       layoutSettings={layoutSettings}
       setLayoutSettings={setLayoutSettings}
-      bottomPaddingClassName="pb-28 sm:pb-24"
+      bottomPaddingClassName="pb-0"
     >
       <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
         {/* Show loading message if media is being loaded */}

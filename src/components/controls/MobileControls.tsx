@@ -2,6 +2,7 @@ import { useState } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { useAutoHide } from "../../hooks/useAutoHide";
 
 import { toast } from "react-hot-toast";
 import {
@@ -22,10 +23,12 @@ import {
   ListMusic,
 } from "lucide-react";
 import { Button } from "../ui/button";
+import { cn } from "../../utils/cn";
 
 export const MobileControls = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isVisible, startHideTimer, pause } = useAutoHide(4000);
 
   const {
     isPlaying,
@@ -216,8 +219,16 @@ export const MobileControls = () => {
   // Note: Loop jump functions removed as they're not used in the mobile interface
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg z-[60] pb-safe">
-      <div className="px-3 pt-2 pb-3">
+    <>
+      <div
+        className={cn(
+          "fixed bottom-0 left-0 right-0 z-[60] pb-safe transition-all duration-500 ease-out",
+          !isVisible && "translate-y-full opacity-0 pointer-events-none"
+        )}
+        onMouseEnter={pause}
+        onMouseLeave={startHideTimer}
+      >
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg px-3 pt-2 pb-3">
 
         {/* Main controls - reorganized for better vertical space usage */}
         <div className="space-y-4">
@@ -363,6 +374,7 @@ export const MobileControls = () => {
           )}
         </div>
       </div>
+      </div>
 
       {/* Volume Controls Panel */}
       {showVolumeDrawer && (
@@ -463,6 +475,6 @@ export const MobileControls = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

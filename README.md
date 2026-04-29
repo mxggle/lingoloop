@@ -9,9 +9,8 @@ LoopMate is a sleek and intuitive web app designed for language learners, musici
 🔁 **Loop:** Set custom A-B loop points to focus on specific sections.
 🎙️ **Shadow:** Record your voice over the track to practice pronunciation.
 
-
-<img width="2518" height="1712" alt="CleanShot 2025-12-13 at 09 47 17@2x" src="https://github.com/user-attachments/assets/5d85007c-04ad-44ee-9199-802e1fad4e5f" />
-<img width="2616" height="1776" alt="CleanShot 2025-12-13 at 09 48 41@2x" src="https://github.com/user-attachments/assets/b83ac8b5-a4a8-4ad6-a320-fae9f9371548" />
+<img width="2844" height="1874" alt="CleanShot 2026-04-29 at 21 32 03@2x" src="https://github.com/user-attachments/assets/25c9cac9-df0b-4ce5-a25f-20ec0e700f2b" />
+<img width="2844" height="1874" alt="CleanShot 2026-04-29 at 21 32 24@2x" src="https://github.com/user-attachments/assets/4ec4b59d-9c06-4615-8cba-beef5c1e88f0" />
 
 ## ✨ Features
 

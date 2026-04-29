@@ -13,6 +13,7 @@ import {
   Volume2,
   VolumeX,
   Gauge,
+  Brain,
 } from "lucide-react";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
@@ -21,6 +22,10 @@ import { formatTime } from "../../utils/formatTime";
 import { SentenceRecorder } from "./SentenceRecorder";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 import { Slider } from "../ui/slider";
+import { TranscriptTextRenderer } from "../transcript/TranscriptTextRenderer";
+import { TranscriptSelectionPopover } from "../transcript/TranscriptSelectionPopover";
+import { ExplanationDrawer } from "../transcript/ExplanationDrawer";
+import type { TranscriptSelectionState } from "../../types/transcriptStudy";
 
 export const SentencePracticeView = () => {
   const { t } = useTranslation();
@@ -84,6 +89,9 @@ export const SentencePracticeView = () => {
   );
 
   const [hasNavigatedToInitial, setHasNavigatedToInitial] = useState(false);
+  const [activeSelection, setActiveSelection] = useState<TranscriptSelectionState | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [wasPlayingBeforeSelection, setWasPlayingBeforeSelection] = useState(false);
   const lastSegmentEndRef = useRef<number>(0);
   const isAdvancingRef = useRef(false);
   const lastAppliedSegmentRef = useRef<{ index: number; start: number; end: number } | null>(null);
@@ -260,6 +268,44 @@ export const SentencePracticeView = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isPlaying, setIsPlaying, goNext, goPrevious]);
 
+  // Clear selection and explanation when sentence changes
+  useEffect(() => {
+    setActiveSelection(null);
+    setShowExplanation(false);
+  }, [currentSentenceIndex]);
+
+  // Auto-pause on text selection and resume on dismissal
+  useEffect(() => {
+    if (activeSelection) {
+      if (!wasPlayingBeforeSelection && isPlaying) {
+        setWasPlayingBeforeSelection(true);
+        setIsPlaying(false);
+      }
+    } else {
+      if (wasPlayingBeforeSelection) {
+        setIsPlaying(true);
+        setWasPlayingBeforeSelection(false);
+      }
+    }
+  }, [activeSelection, isPlaying, setIsPlaying, wasPlayingBeforeSelection]);
+
+  // Clear selection when clicking outside
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (
+        target.closest(".transcript-selection-popover") ||
+        target.closest("[data-sentence-text]")
+      ) {
+        return;
+      }
+      setActiveSelection(null);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
   const handleExit = () => {
     setIsActive(false);
     setLoopPoints(null, null);
@@ -320,13 +366,34 @@ export const SentencePracticeView = () => {
 
       {/* Main sentence display */}
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center px-4 sm:px-8 py-4 sm:py-6 overflow-hidden">
-        <div className="w-full max-w-4xl text-center max-h-full overflow-y-auto">
+        <div className="w-full max-w-4xl text-center max-h-full overflow-y-auto" data-sentence-text>
           {segment && (
             <>
-              <p className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-gray-900 dark:text-gray-100 leading-relaxed tracking-tight break-words">
-                {segment.text}
-              </p>
-              <div className="mt-4 sm:mt-6 flex items-center justify-center gap-3 text-sm text-gray-400 dark:text-gray-500 font-mono shrink-0">
+              <TranscriptTextRenderer
+                segmentId={segment.id}
+                text={segment.text}
+                study={undefined}
+                highlightsEnabled={false}
+                activeLevels={null}
+                selectionEnabled={true}
+                onSelectionChange={setActiveSelection}
+                isActive={true}
+                className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-gray-900 dark:text-gray-100 leading-relaxed tracking-tight break-words"
+              />
+              <div className="mt-4 sm:mt-6 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setShowExplanation((prev) => !prev)}
+                  className={`p-1.5 rounded-full transition-colors ${
+                    showExplanation
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-100/50 dark:bg-blue-900/30"
+                      : "text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                  title={t("transcript.explainWithAI")}
+                >
+                  <Brain size={16} />
+                </button>
+              </div>
+              <div className="mt-2 sm:mt-4 flex items-center justify-center gap-3 text-sm text-gray-400 dark:text-gray-500 font-mono shrink-0">
                 <span>{formatTime(segment.startTime)}</span>
                 <span className="w-8 h-px bg-gray-200 dark:bg-gray-700" />
                 <span>{formatTime(segment.endTime)}</span>
@@ -335,6 +402,17 @@ export const SentencePracticeView = () => {
           )}
         </div>
       </div>
+
+      {/* AI Explanation */}
+      {segment && showExplanation && (
+        <div className="px-4 pb-2 shrink-0">
+          <ExplanationDrawer
+            isOpen={showExplanation}
+            onClose={() => setShowExplanation(false)}
+            text={segment.text}
+          />
+        </div>
+      )}
 
       {/* Recording section */}
       {segment && mediaId && (
@@ -458,6 +536,15 @@ export const SentencePracticeView = () => {
           </div>
         </div>
       </div>
+
+      {activeSelection && segment && (
+        <TranscriptSelectionPopover
+          selection={activeSelection}
+          segment={segment}
+          segmentText={segment.text}
+          onClose={() => setActiveSelection(null)}
+        />
+      )}
     </div>
   );
 };

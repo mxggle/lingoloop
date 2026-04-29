@@ -20,6 +20,7 @@ interface TranscriptTextRendererProps {
   selectionEnabled: boolean;
   onSelectionChange: (selection: TranscriptSelectionState | null) => void;
   isActive?: boolean;
+  className?: string;
 }
 
 const MAX_SELECTION_LENGTH = 120;
@@ -34,6 +35,7 @@ export const TranscriptTextRenderer = memo(
     selectionEnabled,
     onSelectionChange,
     isActive,
+    className,
   }: TranscriptTextRendererProps) => {
     const containerRef = useRef<HTMLParagraphElement | null>(null);
     const items = useMemo(
@@ -145,7 +147,8 @@ export const TranscriptTextRenderer = memo(
           "text-base leading-relaxed select-text whitespace-pre-wrap font-medium transition-[color,opacity] duration-300 ease-out md:text-lg",
           isActive
             ? "text-gray-900 opacity-100 dark:text-white"
-            : "text-gray-600 opacity-90 dark:text-gray-400"
+            : "text-gray-600 opacity-90 dark:text-gray-400",
+          className
         )}
         onMouseUp={handleSelectionCapture}
         onKeyUp={handleSelectionCapture}

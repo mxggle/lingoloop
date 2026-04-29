@@ -1,5 +1,5 @@
 // AI Service Types and Configurations
-export type AIProvider = "openai" | "gemini" | "grok" | "ollama";
+export type AIProvider = "openai" | "gemini" | "grok" | "ollama" | "opencode" | "deepseek";
 
 // OpenAI Models - Updated March 2026 from official model docs.
 export interface OpenAIModel {
@@ -292,6 +292,15 @@ export interface OllamaModel {
   capabilities: string[];
 }
 
+export interface OpenCodeModel {
+  id: string;
+  name: string;
+  description: string;
+  contextWindow: number;
+  maxOutputTokens: number;
+  capabilities: string[];
+}
+
 export const GROK_MODELS: Record<string, GrokModel> = {
   "grok-4": {
     id: "grok-4",
@@ -430,6 +439,176 @@ export const OLLAMA_MODELS: Record<string, OllamaModel> = {
     description: "Official Ollama library entry for GPT OSS",
     contextWindow: 0,
     maxOutputTokens: 0,
+    capabilities: ["text", "reasoning"],
+  },
+};
+
+export const OPCODE_MODELS: Record<string, OpenCodeModel> = {
+  "glm-5.1": {
+    id: "glm-5.1",
+    name: "GLM-5.1",
+    description: "OpenCode Go coding model - Latest GLM",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "glm-5": {
+    id: "glm-5",
+    name: "GLM-5",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "kimi-k2.5": {
+    id: "kimi-k2.5",
+    name: "Kimi K2.5",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "kimi-k2.6": {
+    id: "kimi-k2.6",
+    name: "Kimi K2.6",
+    description: "OpenCode Go coding model - Improved Kimi",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "deepseek-v4-pro": {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    description: "OpenCode Go coding model - Powerful Pro version",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "deepseek-v4-flash": {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    description: "OpenCode Go coding model - Fast and efficient",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "qwen3.6-plus": {
+    id: "qwen3.6-plus",
+    name: "Qwen3.6 Plus",
+    description: "OpenCode Go coding model - Latest Qwen Plus",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "qwen3.5-plus": {
+    id: "qwen3.5-plus",
+    name: "Qwen3.5 Plus",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "minimax-m2.7": {
+    id: "minimax-m2.7",
+    name: "MiniMax M2.7",
+    description: "OpenCode Go coding model - High performance",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "minimax-m2.5": {
+    id: "minimax-m2.5",
+    name: "MiniMax M2.5",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "mimo-v2.5-pro": {
+    id: "mimo-v2.5-pro",
+    name: "MiMo-V2.5-Pro",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "mimo-v2.5": {
+    id: "mimo-v2.5",
+    name: "MiMo-V2.5",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "mimo-v2-pro": {
+    id: "mimo-v2-pro",
+    name: "MiMo-V2-Pro",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+  "mimo-v2-omni": {
+    id: "mimo-v2-omni",
+    name: "MiMo-V2-Omni",
+    description: "OpenCode Go coding model",
+    contextWindow: 128000,
+    maxOutputTokens: 4096,
+    capabilities: ["text", "code"],
+  },
+};
+
+// DeepSeek Models - Updated March 2026 from official model docs.
+export interface DeepSeekModel {
+  id: string;
+  name: string;
+  description: string;
+  contextWindow: number;
+  maxOutputTokens: number;
+  inputPricing: number; // per 1M tokens
+  outputPricing: number; // per 1M tokens
+  capabilities: string[];
+}
+
+export const DEEPSEEK_MODELS: Record<string, DeepSeekModel> = {
+  "deepseek-v4-flash": {
+    id: "deepseek-v4-flash",
+    name: "DeepSeek V4 Flash",
+    description: "Latest flagship flash model with 1M context",
+    contextWindow: 1048576,
+    maxOutputTokens: 384000,
+    inputPricing: 0.14,
+    outputPricing: 0.28,
+    capabilities: ["text", "code", "function-calling"],
+  },
+  "deepseek-v4-pro": {
+    id: "deepseek-v4-pro",
+    name: "DeepSeek V4 Pro",
+    description: "High-capability flagship pro model with 1M context",
+    contextWindow: 1048576,
+    maxOutputTokens: 384000,
+    inputPricing: 1.74,
+    outputPricing: 3.48,
+    capabilities: ["text", "code", "reasoning", "function-calling"],
+  },
+  "deepseek-chat": {
+    id: "deepseek-chat",
+    name: "DeepSeek Chat",
+    description: "Legacy model (maps to v4-flash non-thinking)",
+    contextWindow: 1048576,
+    maxOutputTokens: 8192,
+    inputPricing: 0.14,
+    outputPricing: 0.28,
+    capabilities: ["text", "code"],
+  },
+  "deepseek-reasoner": {
+    id: "deepseek-reasoner",
+    name: "DeepSeek Reasoner",
+    description: "Legacy model (maps to v4-flash thinking)",
+    contextWindow: 1048576,
+    maxOutputTokens: 8192,
+    inputPricing: 0.14,
+    outputPricing: 0.28,
     capabilities: ["text", "reasoning"],
   },
 };
@@ -693,6 +872,39 @@ export function getAllModels(): ModelOption[] {
     });
   });
 
+  Object.values(OPCODE_MODELS).forEach((model) => {
+    models.push({
+      id: model.id,
+      name: model.name,
+      description: model.description,
+      provider: "opencode",
+      contextWindow: model.contextWindow,
+      maxOutputTokens: model.maxOutputTokens,
+      pricing: {
+        input: 0,
+        output: 0,
+      },
+      capabilities: model.capabilities,
+    });
+  });
+
+  // Add DeepSeek models
+  Object.values(DEEPSEEK_MODELS).forEach((model) => {
+    models.push({
+      id: model.id,
+      name: model.name,
+      description: model.description,
+      provider: "deepseek",
+      contextWindow: model.contextWindow,
+      maxOutputTokens: model.maxOutputTokens,
+      pricing: {
+        input: model.inputPricing,
+        output: model.outputPricing,
+      },
+      capabilities: model.capabilities,
+    });
+  });
+
   return models;
 }
 
@@ -725,6 +937,7 @@ const LEGACY_MODEL_MIGRATIONS: Partial<Record<AIProvider, Record<string, string>
   ollama: {
     "llama3.1": "llama3.2",
   },
+  opencode: {},
 };
 
 export function normalizeModelId(
@@ -732,9 +945,15 @@ export function normalizeModelId(
   modelId?: string | null
 ): string {
   const fallback = DEFAULT_MODELS[provider];
-  if (!modelId) return fallback;
+  const trimmedModelId = modelId?.trim();
+  if (!trimmedModelId) return fallback;
 
-  const migrated = LEGACY_MODEL_MIGRATIONS[provider]?.[modelId] || modelId;
+  if (provider === "opencode") {
+    const apiModelId = trimmedModelId.replace(/^opencode-go\//, "");
+    return LEGACY_MODEL_MIGRATIONS.opencode?.[apiModelId] || apiModelId;
+  }
+
+  const migrated = LEGACY_MODEL_MIGRATIONS[provider]?.[trimmedModelId] || trimmedModelId;
   const resolved = getModelById(migrated);
 
   if (resolved?.provider === provider) {
@@ -750,6 +969,8 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
   gemini: "gemini-3-flash-preview",
   grok: "grok-4",
   ollama: "llama3.2",
+  opencode: "glm-5",
+  deepseek: "deepseek-v4-flash",
 };
 
 // Transcription Provider Types

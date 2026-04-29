@@ -82,6 +82,27 @@ body {
 }
 
 
+/* Thin scrollbar utility */
+.thin-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.thin-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(var(--theme-primary-rgb) / 0.35);
+    border-radius: 10px;
+}
+.thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--theme-primary-rgb) / 0.55);
+}
+.dark .thin-scrollbar::-webkit-scrollbar-thumb {
+    background: rgb(var(--theme-primary-rgb) / 0.35);
+}
+.dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--theme-primary-rgb) / 0.55);
+}
+
 /* Custom CSS for syntax highlighting and markdown */
 
 .markdown-content {

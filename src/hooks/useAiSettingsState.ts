@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
-import { aiService } from "../services/aiService";
+import {
+  DEFAULT_OPENCODE_BASE_URL,
+  aiService,
+  normalizeOpenCodeBaseUrl,
+} from "../services/aiService";
 import {
   AIProvider,
   AIServiceConfig,
@@ -22,11 +26,16 @@ type PersistedAiSettings = {
   geminiApiKey: string;
   grokApiKey: string;
   groqApiKey: string;
+  opencodeApiKey: string;
+  deepseekApiKey: string;
   openaiModel: string;
   geminiModel: string;
   grokModel: string;
+  deepseekModel: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  opencodeBaseUrl: string;
+  opencodeModel: string;
   localWhisperUrl: string;
   localWhisperModel: string;
   preferredProvider: AIProvider;
@@ -70,6 +79,8 @@ export interface AiProvidersState {
   testConnection: (provider: AIProvider) => Promise<void>;
   ollamaBaseUrl: string;
   setOllamaBaseUrl: (url: string) => void;
+  opencodeBaseUrl: string;
+  setOpencodeBaseUrl: (url: string) => void;
 }
 
 export interface AiTranscriptionState {
@@ -103,22 +114,33 @@ const DEFAULT_SHOW_API_KEYS: ProviderRecord<boolean> = {
   openai: false,
   gemini: false,
   grok: false,
+  deepseek: false,
   ollama: false,
+  opencode: false,
 };
 
 const DEFAULT_TESTING_CONNECTION: ProviderRecord<boolean> = {
   openai: false,
   gemini: false,
   grok: false,
+  deepseek: false,
   ollama: false,
+  opencode: false,
 };
 
 const DEFAULT_CONNECTION_STATUS: ProviderRecord<ConnectionStatus> = {
   openai: "idle",
   gemini: "idle",
   grok: "idle",
+  deepseek: "idle",
   ollama: "idle",
+  opencode: "idle",
 };
+
+const settingsBroadcastChannel =
+  typeof window !== "undefined" && "BroadcastChannel" in window
+    ? new BroadcastChannel("abloop-settings")
+    : null;
 
 const isPlausibleHttpUrl = (value: string) => {
   const trimmedValue = value.trim();
@@ -142,13 +164,20 @@ const getProviderConfigSignatures = (config: {
   geminiModel: string;
   grokApiKey: string;
   grokModel: string;
+  deepseekApiKey: string;
+  deepseekModel: string;
   ollamaBaseUrl: string;
   ollamaModel: string;
+  opencodeApiKey: string;
+  opencodeBaseUrl: string;
+  opencodeModel: string;
 }): ProviderRecord<string> => ({
   openai: `${config.openaiApiKey}\u0000${config.openaiModel}`,
   gemini: `${config.geminiApiKey}\u0000${config.geminiModel}`,
   grok: `${config.grokApiKey}\u0000${config.grokModel}`,
+  deepseek: `${config.deepseekApiKey}\u0000${config.deepseekModel}`,
   ollama: `${config.ollamaBaseUrl}\u0000${config.ollamaModel}`,
+  opencode: `${config.opencodeApiKey}\u0000${config.opencodeBaseUrl}\u0000${config.opencodeModel}`,
 });
 
 const serializeAiSettings = (settings: PersistedAiSettings) => JSON.stringify(settings);
@@ -173,12 +202,19 @@ const getLoadedAiSettings = (): PersistedAiSettings => {
     geminiApiKey: localStorage.getItem("gemini_api_key") || "",
     grokApiKey: localStorage.getItem("grok_api_key") || "",
     groqApiKey: localStorage.getItem("groq_api_key") || "",
+    opencodeApiKey: localStorage.getItem("opencode_api_key") || "",
+    deepseekApiKey: localStorage.getItem("deepseek_api_key") || "",
     openaiModel: normalizeModelId("openai", localStorage.getItem("openai_model")),
     geminiModel: normalizeModelId("gemini", localStorage.getItem("gemini_model")),
     grokModel: normalizeModelId("grok", localStorage.getItem("grok_model")),
+    deepseekModel: normalizeModelId("deepseek", localStorage.getItem("deepseek_model")),
     ollamaBaseUrl:
       localStorage.getItem("ollama_base_url") || DEFAULT_OLLAMA_BASE_URL,
     ollamaModel: normalizeModelId("ollama", localStorage.getItem("ollama_model")),
+    opencodeBaseUrl: normalizeOpenCodeBaseUrl(
+      localStorage.getItem("opencode_base_url")
+    ),
+    opencodeModel: normalizeModelId("opencode", localStorage.getItem("opencode_model")),
     localWhisperUrl:
       localStorage.getItem("local_whisper_url") || DEFAULT_LOCAL_WHISPER_URL,
     localWhisperModel:
@@ -202,26 +238,37 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     openai: "",
     gemini: "",
     grok: "",
+    deepseek: "",
     ollama: "",
+    opencode: "",
   });
   const providerConnectionRequestIdsRef = useRef<ProviderRecord<number>>({
     openai: 0,
     gemini: 0,
     grok: 0,
+    deepseek: 0,
     ollama: 0,
+    opencode: 0,
   });
 
   const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [geminiApiKey, setGeminiApiKey] = useState("");
   const [grokApiKey, setGrokApiKey] = useState("");
+  const [deepseekApiKey, setDeepseekApiKey] = useState("");
   const [groqApiKey, setGroqApiKey] = useState("");
+  const [opencodeApiKey, setOpencodeApiKey] = useState("");
 
   const [openaiModel, setOpenaiModel] = useState(DEFAULT_MODELS.openai);
   const [geminiModel, setGeminiModel] = useState(DEFAULT_MODELS.gemini);
   const [grokModel, setGrokModel] = useState(DEFAULT_MODELS.grok);
+  const [deepseekModel, setDeepseekModel] = useState(DEFAULT_MODELS.deepseek);
 
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState(DEFAULT_OLLAMA_BASE_URL);
   const [ollamaModel, setOllamaModel] = useState(DEFAULT_MODELS.ollama);
+  const [opencodeBaseUrl, setOpencodeBaseUrl] = useState(
+    DEFAULT_OPENCODE_BASE_URL
+  );
+  const [opencodeModel, setOpencodeModel] = useState(DEFAULT_MODELS.opencode);
   const [localWhisperUrl, setLocalWhisperUrl] = useState(DEFAULT_LOCAL_WHISPER_URL);
   const [localWhisperModel, setLocalWhisperModel] = useState(
     DEFAULT_LOCAL_WHISPER_MODEL
@@ -251,7 +298,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     model: string,
     baseURL?: string
   ) => {
-    if (provider === "ollama") {
+    if (provider === "ollama" || provider === "opencode") {
       if (!model.trim() || !baseURL?.trim()) {
         return {
           label: t("aiSettingsPage.status.missing"),
@@ -261,6 +308,22 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       }
 
       if (!isPlausibleHttpUrl(baseURL)) {
+        return {
+          label: t("aiSettingsPage.status.invalid"),
+          tone: "error" as const,
+          isConfigured: false,
+        };
+      }
+
+      if (provider === "opencode" && !apiKey.trim()) {
+        return {
+          label: t("aiSettingsPage.status.missing"),
+          tone: "warning" as const,
+          isConfigured: false,
+        };
+      }
+
+      if (provider === "opencode" && !aiService.validateApiKey(provider, apiKey)) {
         return {
           label: t("aiSettingsPage.status.invalid"),
           tone: "error" as const,
@@ -324,6 +387,27 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       setupStatus: getProviderSetupStatus("grok", grokApiKey, grokModel),
     },
     {
+      provider: "deepseek",
+      apiKey: deepseekApiKey,
+      setApiKey: setDeepseekApiKey,
+      model: deepseekModel,
+      setModel: setDeepseekModel,
+      setupStatus: getProviderSetupStatus("deepseek", deepseekApiKey, deepseekModel),
+    },
+    {
+      provider: "opencode",
+      apiKey: opencodeApiKey,
+      setApiKey: setOpencodeApiKey,
+      model: opencodeModel,
+      setModel: setOpencodeModel,
+      setupStatus: getProviderSetupStatus(
+        "opencode",
+        opencodeApiKey,
+        opencodeModel,
+        opencodeBaseUrl
+      ),
+    },
+    {
       provider: "ollama",
       apiKey: "",
       setApiKey: () => undefined,
@@ -343,11 +427,16 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     geminiApiKey,
     grokApiKey,
     groqApiKey,
+    opencodeApiKey,
+    deepseekApiKey,
     openaiModel,
     geminiModel,
     grokModel,
+    deepseekModel,
     ollamaBaseUrl,
     ollamaModel,
+    opencodeBaseUrl,
+    opencodeModel,
     localWhisperUrl,
     localWhisperModel,
     preferredProvider,
@@ -363,8 +452,13 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     geminiModel,
     grokApiKey,
     grokModel,
+    deepseekApiKey,
+    deepseekModel,
     ollamaBaseUrl,
     ollamaModel,
+    opencodeApiKey,
+    opencodeBaseUrl,
+    opencodeModel,
   });
 
   useEffect(() => {
@@ -373,12 +467,17 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setOpenaiApiKey(loadedSettings.openaiApiKey);
     setGeminiApiKey(loadedSettings.geminiApiKey);
     setGrokApiKey(loadedSettings.grokApiKey);
+    setDeepseekApiKey(loadedSettings.deepseekApiKey);
     setGroqApiKey(loadedSettings.groqApiKey);
+    setOpencodeApiKey(loadedSettings.opencodeApiKey);
     setOpenaiModel(loadedSettings.openaiModel);
     setGeminiModel(loadedSettings.geminiModel);
     setGrokModel(loadedSettings.grokModel);
+    setDeepseekModel(loadedSettings.deepseekModel);
     setOllamaBaseUrl(loadedSettings.ollamaBaseUrl);
     setOllamaModel(loadedSettings.ollamaModel);
+    setOpencodeBaseUrl(loadedSettings.opencodeBaseUrl);
+    setOpencodeModel(loadedSettings.opencodeModel);
     setLocalWhisperUrl(loadedSettings.localWhisperUrl);
     setLocalWhisperModel(loadedSettings.localWhisperModel);
     setPreferredProvider(loadedSettings.preferredProvider);
@@ -420,12 +519,17 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       localStorage.setItem("openai_api_key", openaiApiKey);
       localStorage.setItem("gemini_api_key", geminiApiKey);
       localStorage.setItem("grok_api_key", grokApiKey);
+      localStorage.setItem("deepseek_api_key", deepseekApiKey);
       localStorage.setItem("groq_api_key", groqApiKey);
+      localStorage.setItem("opencode_api_key", opencodeApiKey);
       localStorage.setItem("openai_model", openaiModel);
       localStorage.setItem("gemini_model", geminiModel);
       localStorage.setItem("grok_model", grokModel);
+      localStorage.setItem("deepseek_model", deepseekModel);
       localStorage.setItem("ollama_base_url", ollamaBaseUrl);
       localStorage.setItem("ollama_model", ollamaModel);
+      localStorage.setItem("opencode_base_url", opencodeBaseUrl);
+      localStorage.setItem("opencode_model", opencodeModel);
       localStorage.setItem("local_whisper_url", localWhisperUrl);
       localStorage.setItem("local_whisper_model", localWhisperModel);
       localStorage.setItem("preferred_ai_provider", preferredProvider);
@@ -441,6 +545,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       pendingAiSettingsSaveRef.current = null;
       window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
       window.dispatchEvent(new CustomEvent("ai-settings-updated"));
+      settingsBroadcastChannel?.postMessage({ type: "ai-settings-updated" });
     }, 400);
 
     return () => {
@@ -454,12 +559,17 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     geminiModel,
     grokApiKey,
     grokModel,
+    deepseekApiKey,
+    deepseekModel,
     groqApiKey,
+    opencodeApiKey,
     localWhisperModel,
     localWhisperUrl,
     maxTokens,
     ollamaBaseUrl,
     ollamaModel,
+    opencodeBaseUrl,
+    opencodeModel,
     openaiApiKey,
     openaiModel,
     preferredProvider,
@@ -480,8 +590,13 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       geminiModel,
       grokApiKey,
       grokModel,
+      deepseekApiKey,
+      deepseekModel,
       ollamaBaseUrl,
       ollamaModel,
+      opencodeApiKey,
+      opencodeBaseUrl,
+      opencodeModel,
     });
 
     if (previousProviderConfigSignaturesRef.current === null) {
@@ -514,8 +629,13 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     geminiModel,
     grokApiKey,
     grokModel,
+    deepseekApiKey,
+    deepseekModel,
     ollamaBaseUrl,
     ollamaModel,
+    opencodeApiKey,
+    opencodeBaseUrl,
+    opencodeModel,
     openaiApiKey,
     openaiModel,
   ]);
@@ -547,15 +667,21 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
     setConnectionStatus((current) => ({ ...current, [provider]: "idle" }));
 
     try {
+      const getBaseURL = () => {
+        if (provider === "ollama") return ollamaBaseUrl.trim();
+        if (provider === "opencode") return opencodeBaseUrl.trim();
+        return undefined;
+      };
+
       const requestConfig: AIServiceConfig = {
         provider,
         model: config.model,
         apiKey: config.apiKey,
-        baseURL: provider === "ollama" ? ollamaBaseUrl.trim() : undefined,
+        baseURL: getBaseURL(),
         temperature: 0.1,
-        maxTokens: 10,
+        maxTokens: 100,
       };
-      const success = await aiService.testConnection(requestConfig);
+      const result = await aiService.testConnection(requestConfig);
       const isLatestRequest =
         providerConnectionRequestIdsRef.current[provider] === requestId;
       const hasMatchingSignature =
@@ -565,7 +691,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         return;
       }
 
-      if (success) {
+      if (result.success) {
         setConnectionStatus((current) => ({ ...current, [provider]: "success" }));
         toast.success(
           t("aiSettingsPage.connectionSuccess", {
@@ -574,11 +700,20 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
         );
       } else {
         setConnectionStatus((current) => ({ ...current, [provider]: "error" }));
-        toast.error(
-          t("aiSettingsPage.connectionFailed", {
-            provider: providerDisplayName(provider),
-          })
-        );
+        if (result.message) {
+          toast.error(
+            t("aiSettingsPage.connectionFailedWithError", {
+              provider: providerDisplayName(provider),
+              message: result.message,
+            })
+          );
+        } else {
+          toast.error(
+            t("aiSettingsPage.connectionFailed", {
+              provider: providerDisplayName(provider),
+            })
+          );
+        }
       }
     } catch (error) {
       const isLatestRequest =
@@ -633,6 +768,8 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       testConnection,
       ollamaBaseUrl,
       setOllamaBaseUrl,
+      opencodeBaseUrl,
+      setOpencodeBaseUrl,
     },
     transcriptionState: {
       preferredTranscriptionProvider,

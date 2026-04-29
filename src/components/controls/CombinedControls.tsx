@@ -1,6 +1,7 @@
 
 import { usePlayerStore } from "../../stores/playerStore";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { formatTime } from "../../utils/formatTime";
 import {
   Play,
@@ -16,6 +17,7 @@ import {
   Music,
   Youtube,
   Settings2,
+  ListMusic,
 } from "lucide-react";
 import { Slider } from "../ui/slider";
 import { cn } from "../../utils/cn";
@@ -29,6 +31,7 @@ interface CombinedControlsProps {
 
 export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     currentFile,
     currentYouTube,
@@ -224,6 +227,14 @@ export const CombinedControls = ({ showSidebarOffset = true }: CombinedControlsP
             </Popover>
           </div>
 
+
+          <button
+            onClick={() => navigate("/sentence-practice")}
+            className="p-2 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+            title={t("sentencePractice.title")}
+          >
+            <ListMusic size={18} />
+          </button>
 
           <button
             onClick={toggleLooping}

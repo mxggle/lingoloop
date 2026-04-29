@@ -77,6 +77,14 @@ async function safeFetch(url: string, options?: RequestInit): Promise<Response> 
       return res;
     }
 
+    // For web, route DeepSeek requests through our proxy to avoid CORS
+    if (url.includes("api.deepseek.com")) {
+      const proxyUrl = url.replace("https://api.deepseek.com", "/api/deepseek");
+      const res = await fetch(proxyUrl, options);
+      finishLog(res);
+      return res;
+    }
+
     const res = await fetch(url, options);
     finishLog(res);
     return res;
@@ -133,14 +141,13 @@ export class UnifiedAIService {
     config: AIServiceConfig,
     prompt: string
   ): Promise<AIResponse> {
-    const normalizedModel = normalizeModelId("openai", config.model);
-    const model = getModelById(normalizedModel, "openai");
+    const model = getModelById(config.model);
     if (!model || model.provider !== "openai") {
       throw new Error(`Invalid OpenAI model: ${config.model}`);
     }
 
     const request: OpenAIRequest = {
-      model: normalizedModel,
+      model: config.model,
       messages: [
         ...(config.systemPrompt
           ? [{ role: "system" as const, content: config.systemPrompt }]
@@ -181,7 +188,7 @@ export class UnifiedAIService {
         completionTokens: data.usage.completion_tokens,
         totalTokens: data.usage.total_tokens,
       },
-      model: normalizedModel,
+      model: config.model,
       provider: "openai",
       finishReason: data.choices[0]?.finish_reason,
     };
@@ -193,7 +200,7 @@ export class UnifiedAIService {
     prompt: string
   ): Promise<AIResponse> {
     const normalizedModel = normalizeModelId("gemini", config.model);
-    const model = getModelById(normalizedModel, "gemini");
+    const model = getModelById(normalizedModel);
     if (!model || model.provider !== "gemini") {
       throw new Error(`Invalid Gemini model: ${config.model}`);
     }
@@ -369,14 +376,13 @@ export class UnifiedAIService {
     config: AIServiceConfig,
     prompt: string
   ): Promise<AIResponse> {
-    const normalizedModel = normalizeModelId("grok", config.model);
-    const model = getModelById(normalizedModel, "grok");
+    const model = getModelById(config.model);
     if (!model || model.provider !== "grok") {
       throw new Error(`Invalid Grok model: ${config.model}`);
     }
 
     const request: GrokRequest = {
-      model: normalizedModel,
+      model: config.model,
       messages: [
         ...(config.systemPrompt
           ? [{ role: "system" as const, content: config.systemPrompt }]
@@ -415,7 +421,7 @@ export class UnifiedAIService {
         completionTokens: data.usage.completion_tokens,
         totalTokens: data.usage.total_tokens,
       },
-      model: normalizedModel,
+      model: config.model,
       provider: "grok",
       finishReason: data.choices[0]?.finish_reason,
     };
@@ -472,7 +478,7 @@ export class UnifiedAIService {
         completionTokens: data.usage.completion_tokens,
         totalTokens: data.usage.total_tokens,
       },
-      model: normalizedModel,
+      model: config.model,
       provider: "deepseek",
       finishReason: data.choices[0]?.finish_reason,
     };

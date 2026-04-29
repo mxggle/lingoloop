@@ -147,6 +147,10 @@ export const ExplanationDrawer: React.FC<ExplanationDrawerProps> = ({
         provider: selectedProvider,
         model: selectedModel,
         apiKey: getApiKey(selectedProvider),
+        baseURL:
+          selectedProvider === "opencode"
+            ? localStorage.getItem("opencode_base_url") || undefined
+            : undefined,
         temperature: parseFloat(localStorage.getItem("ai_temperature") || "0.7"),
         maxTokens: parseInt(localStorage.getItem("ai_max_tokens") || "2000"),
         systemPrompt: AI_PROMPTS.system.languageTutor(targetLanguage),

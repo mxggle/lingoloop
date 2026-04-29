@@ -22,6 +22,10 @@ const SettingsWindowPage = lazy(async () => {
   const module = await import("../pages/ElectronSettingsWindowPage");
   return { default: module.ElectronSettingsWindowPage };
 });
+const SentencePracticePage = lazy(async () => {
+  const module = await import("../pages/SentencePracticePage");
+  return { default: module.SentencePracticePage };
+});
 
 // Static object — same reference on every render, so React's style diffing is a no-op
 // when visibility doesn't change.
@@ -31,7 +35,6 @@ const HIDDEN_STYLE: React.CSSProperties = {
   top: 0,
   width: "100%",
   pointerEvents: "none",
-  visibility: "hidden",
 };
 
 const ROUTE_FALLBACK = (
@@ -65,6 +68,7 @@ const AppRouterInner = () => {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/glossary" element={<GlossaryPage />} />
           <Route path="/settings-window" element={<SettingsWindowPage />} />
+          <Route path="/sentence-practice" element={<SentencePracticePage />} />
           {/* When media is loaded, player is rendered persistently below; otherwise redirect home */}
           <Route
             path="/player"

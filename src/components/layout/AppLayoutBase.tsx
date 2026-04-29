@@ -10,6 +10,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Popover from "@radix-ui/react-popover";
 import { cn } from "../../utils/cn";
+import { ScrollLock } from "../../hooks/useScrollLock";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -151,6 +152,7 @@ export const AppLayoutBase = ({
                     sideOffset={8}
                     align="end"
                   >
+                    <ScrollLock />
                     <div className="space-y-3">
                       <h3 className="font-medium text-gray-900 dark:text-white text-sm">
                         {t("layout.layoutSettings")}
@@ -250,6 +252,7 @@ export const AppLayoutBase = ({
               <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
                 <Dialog.Content className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 p-6 rounded-xl shadow-xl max-w-md w-full border border-gray-100 dark:border-gray-700">
+                  <ScrollLock />
                   <Dialog.Title className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
                     {t("layout.keyboardShortcuts")}
                   </Dialog.Title>

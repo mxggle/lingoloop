@@ -915,10 +915,11 @@ export function getModelsByProvider(provider: AIProvider): ModelOption[] {
 
 // Get model by ID
 export function getModelById(modelId: string, provider?: AIProvider): ModelOption | undefined {
+  const models = getAllModels();
   if (provider) {
-    return getAllModels().find((model) => model.id === modelId && model.provider === provider);
+    return models.find((model) => model.id === modelId && model.provider === provider);
   }
-  return getAllModels().find((model) => model.id === modelId);
+  return models.find((model) => model.id === modelId);
 }
 
 const LEGACY_MODEL_MIGRATIONS: Partial<Record<AIProvider, Record<string, string>>> = {
@@ -940,11 +941,11 @@ const LEGACY_MODEL_MIGRATIONS: Partial<Record<AIProvider, Record<string, string>
   ollama: {
     "llama3.1": "llama3.2",
   },
+  opencode: {},
   deepseek: {
     "deepseek-chat": "deepseek-v4-flash",
-    "deepseek-reasoner": "deepseek-v4-pro",
+    "deepseek-reasoner": "deepseek-v4-flash",
   },
-  opencode: {},
 };
 
 export function normalizeModelId(
@@ -963,7 +964,7 @@ export function normalizeModelId(
   const migrated = LEGACY_MODEL_MIGRATIONS[provider]?.[trimmedModelId] || trimmedModelId;
   const resolved = getModelById(migrated, provider);
 
-  if (resolved) {
+  if (resolved?.provider === provider) {
     return resolved.id;
   }
 

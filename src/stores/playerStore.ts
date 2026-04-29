@@ -241,6 +241,7 @@ export interface PlayerActions {
   stopTranscribing: () => void;
   toggleTranscribing: () => void;
   addTranscriptSegment: (segment: Omit<TranscriptSegment, "id">) => void;
+  addTranscriptSegments: (segments: Array<Omit<TranscriptSegment, "id">>) => void;
   updateTranscriptSegment: (
     id: string,
     changes: Partial<TranscriptSegment>
@@ -1466,35 +1467,51 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       },
 
       addTranscriptSegment(segment) {
-        const id = crypto.randomUUID();
-        const newSegment = { ...segment, id };
+        get().addTranscriptSegments([segment]);
+      },
+
+      addTranscriptSegments(segments) {
         const { getCurrentMediaId } = get();
         const mediaId = getCurrentMediaId();
         if (!mediaId) return;
+        if (segments.length === 0) return;
 
         let updatedSegments: TranscriptSegment[] | null = null;
         let updatedStudyBySegment: MediaTranscriptStudy | null = null;
 
         set((state) => {
           const currentSegments = state.mediaTranscripts[mediaId] || [];
+          const nextSegments = [...currentSegments];
+          const acceptedSegments: TranscriptSegment[] = [];
 
-          // Check for duplicates: same start time (approx) and same text
-          const isDuplicate = currentSegments.some(
-            (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 && s.text === newSegment.text
-          );
+          segments.forEach((segment) => {
+            const newSegment = { ...segment, id: crypto.randomUUID() };
+            const isDuplicate = nextSegments.some(
+              (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 && s.text === newSegment.text
+            );
 
-          if (isDuplicate) return state;
+            if (!isDuplicate) {
+              nextSegments.push(newSegment);
+              acceptedSegments.push(newSegment);
+            }
+          });
 
-          updatedSegments = [...currentSegments, newSegment].sort(
+          if (acceptedSegments.length === 0) return state;
+
+          updatedSegments = nextSegments.sort(
             (a, b) => a.startTime - b.startTime
           );
           updatedStudyBySegment = {
             ...(state.mediaTranscriptStudy[mediaId] || {}),
-            [newSegment.id]: buildSegmentTranscriptStudy(
-              newSegment.text,
-              inferTranscriptLevelSystem(state.transcriptLanguage)
-            ),
           };
+          const levelSystem = inferTranscriptLevelSystem(state.transcriptLanguage);
+
+          acceptedSegments.forEach((segment) => {
+            updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(
+              segment.text,
+              levelSystem
+            );
+          });
 
           return {
             mediaTranscripts: {

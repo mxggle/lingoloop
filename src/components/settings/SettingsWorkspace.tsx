@@ -1,5 +1,4 @@
 import type { TFunction } from "i18next";
-import { useTranslation } from "react-i18next";
 import { Brain, SlidersHorizontal } from "lucide-react";
 import { GeneralSettingsPanel } from "./GeneralSettingsPanel";
 import {
@@ -7,7 +6,6 @@ import {
   type AiSettingsSection,
 } from "./AISettingsPanel";
 import {
-  SettingsSidebar,
   type SettingsSidebarItem,
   type SettingsTab,
 } from "./SettingsSidebar";
@@ -57,13 +55,11 @@ const getSettingsWorkspaceNavItems = (
     {
       id: "general" as const,
       label: t("settingsPage.tabs.general"),
-      description: t("settingsPage.interfaceLayoutHelp"),
       Icon: SlidersHorizontal,
     },
     {
       id: "ai" as const,
       label: t("settingsPage.tabs.ai"),
-      description: t("aiSettingsPage.providerSetupDescription"),
       Icon: Brain,
     },
   ];
@@ -88,59 +84,21 @@ type SettingsWorkspaceComponent = ((
 
 const SettingsWorkspaceComponent = ({
   activeTab,
-  onTabChange,
   aiSettingsState,
   activeSection,
   onSectionChange,
-  variant = "page",
 }: SettingsWorkspaceProps) => {
-  const { t } = useTranslation();
-  const navItems = getSettingsWorkspaceNavItems(t);
-
-  if (variant === "standalone") {
-    return (
-      <div className="min-w-0">
-        {activeTab === "general" ? (
-          <GeneralSettingsPanel />
-        ) : (
-          <AISettingsPanel
-            state={aiSettingsState}
-            initialSection={activeSection}
-            onSectionChange={onSectionChange}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      <SettingsSidebar
-        activeTab={activeTab}
-        items={navItems}
-        onTabChange={onTabChange}
-        orientation="horizontal"
-        className="w-full max-w-[280px] shrink-0 lg:hidden"
-      />
-
-      <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <div className="hidden lg:block">
-          <SettingsSidebar
-            activeTab={activeTab}
-            items={navItems}
-            onTabChange={onTabChange}
-            variant="page"
-          />
-        </div>
-
-        <div>
-          {activeTab === "general" ? (
-            <GeneralSettingsPanel />
-          ) : (
-            <AISettingsPanel state={aiSettingsState} />
-          )}
-        </div>
-      </div>
+    <div className="min-w-0">
+      {activeTab === "general" ? (
+        <GeneralSettingsPanel />
+      ) : (
+        <AISettingsPanel
+          state={aiSettingsState}
+          initialSection={activeSection}
+          onSectionChange={onSectionChange}
+        />
+      )}
     </div>
   );
 };

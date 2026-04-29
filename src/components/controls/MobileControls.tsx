@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 
 import { toast } from "react-hot-toast";
 import {
@@ -18,11 +19,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
+  ListMusic,
 } from "lucide-react";
 import { Button } from "../ui/button";
 
 export const MobileControls = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const {
     isPlaying,
@@ -276,6 +279,14 @@ export const MobileControls = () => {
               }
             >
               <ChevronsRight size={20} />
+            </button>
+
+            <button
+              onClick={() => navigate("/sentence-practice")}
+              className="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+              aria-label={t("sentencePractice.title")}
+            >
+              <ListMusic size={20} />
             </button>
 
             <button

@@ -9,6 +9,8 @@
 
 import OpenAI from "openai";
 import { TranscriptionProvider, TRANSCRIPTION_PROVIDERS } from "../types/aiService";
+import { encodeWAV } from "../utils/wavEncoder";
+import { buildChunkRanges, dedupeOverlappingSegments } from "../utils/transcriptionChunks";
 
 // --- Types ---
 
@@ -32,6 +34,27 @@ export interface TranscriptionConfig {
     provider: TranscriptionProvider;
     apiKey: string;
     language?: string; // e.g., "en", "ja"
+}
+
+export interface TranscriptionRequestOptions {
+    signal?: AbortSignal;
+}
+
+export interface ChunkedTranscriptionProgress {
+    chunkIndex: number;
+    totalChunks: number;
+    progress: number;
+}
+
+export interface ChunkedTranscriptionOptions extends TranscriptionRequestOptions {
+    chunkDurationSeconds?: number;
+    overlapSeconds?: number;
+    onChunkComplete: (
+        segments: TranscriptionSegment[],
+        chunkIndex: number,
+        totalChunks: number
+    ) => void;
+    onProgress?: (progress: ChunkedTranscriptionProgress) => void;
 }
 
 // Raw Whisper response types (shared by OpenAI and Groq)
@@ -74,7 +97,8 @@ class TranscriptionService {
      */
     public async transcribe(
         config: TranscriptionConfig,
-        audioBlob: Blob
+        audioBlob: Blob,
+        options: TranscriptionRequestOptions = {}
     ): Promise<TranscriptionResult> {
         if (!config.apiKey && config.provider !== "local-whisper") {
             throw new Error(`API key is required for ${config.provider} transcription`);
@@ -82,16 +106,76 @@ class TranscriptionService {
 
         switch (config.provider) {
             case "openai":
-                return this.transcribeWithOpenAI(config, audioBlob);
+                return this.transcribeWithOpenAI(config, audioBlob, options);
             case "groq":
-                return this.transcribeWithGroq(config, audioBlob);
+                return this.transcribeWithGroq(config, audioBlob, options);
             case "gemini":
-                return this.transcribeWithGemini(config, audioBlob);
+                return this.transcribeWithGemini(config, audioBlob, options);
             case "local-whisper":
-                return this.transcribeWithLocalWhisper(config, audioBlob);
+                return this.transcribeWithLocalWhisper(config, audioBlob, options);
             default:
                 throw new Error(`Unsupported transcription provider: ${config.provider}`);
         }
+    }
+
+    public async transcribeInChunks(
+        config: TranscriptionConfig,
+        audioBlob: Blob,
+        options: ChunkedTranscriptionOptions
+    ): Promise<TranscriptionResult> {
+        const chunkDurationSeconds = options.chunkDurationSeconds ?? 120;
+        const overlapSeconds = options.overlapSeconds ?? 5;
+        const audioBuffer = await this.decodeAudioBlob(audioBlob);
+        const ranges = buildChunkRanges(
+            audioBuffer.duration,
+            chunkDurationSeconds,
+            overlapSeconds
+        );
+        const acceptedSegments: TranscriptionSegment[] = [];
+        const fullTextParts: string[] = [];
+
+        for (let index = 0; index < ranges.length; index++) {
+            this.throwIfAborted(options.signal);
+
+            const range = ranges[index];
+            const chunkBlob = this.encodeAudioBufferRange(audioBuffer, range.start, range.end);
+            const chunkResult = await this.transcribe(config, chunkBlob, {
+                signal: options.signal,
+            });
+            const offsetSegments = chunkResult.segments.map((segment, segmentIndex) => ({
+                ...segment,
+                id: acceptedSegments.length + segmentIndex,
+                start: segment.start + range.start,
+                end: segment.end + range.start,
+            }));
+            const acceptedChunkSegments = dedupeOverlappingSegments(
+                acceptedSegments,
+                offsetSegments,
+                { chunkStart: range.start, overlapSeconds }
+            ).map((segment, segmentIndex) => ({
+                ...segment,
+                id: acceptedSegments.length + segmentIndex,
+            }));
+
+            acceptedSegments.push(...acceptedChunkSegments);
+            fullTextParts.push(...acceptedChunkSegments.map((segment) => segment.text));
+
+            const chunkIndex = index + 1;
+            options.onChunkComplete(acceptedChunkSegments, chunkIndex, ranges.length);
+            options.onProgress?.({
+                chunkIndex,
+                totalChunks: ranges.length,
+                progress: Math.round((chunkIndex / ranges.length) * 100),
+            });
+        }
+
+        return {
+            segments: acceptedSegments.map((segment, index) => ({ ...segment, id: index })),
+            fullText: fullTextParts.join(" "),
+            language: undefined,
+            duration: audioBuffer.duration,
+            provider: config.provider,
+        };
     }
 
     /**
@@ -134,7 +218,8 @@ class TranscriptionService {
 
     private async transcribeWithOpenAI(
         config: TranscriptionConfig,
-        audioBlob: Blob
+        audioBlob: Blob,
+        options: TranscriptionRequestOptions
     ): Promise<TranscriptionResult> {
         const openai = new OpenAI({
             apiKey: config.apiKey,
@@ -154,15 +239,19 @@ class TranscriptionService {
                 prompt:
                     "Please transcribe this audio with proper sentence breaks and punctuation. Break long sentences into shorter, more natural segments.",
                 temperature: 0.0,
-            });
-        } catch {
+            }, options.signal ? { signal: options.signal } : undefined);
+        } catch (error) {
+            if (error instanceof Error && error.name === "AbortError") {
+                throw error;
+            }
+
             // Fallback to basic parameters
             response = await openai.audio.transcriptions.create({
                 file: audioFile,
                 model: "whisper-1",
                 response_format: "verbose_json",
                 temperature: 0.0,
-            });
+            }, options.signal ? { signal: options.signal } : undefined);
         }
 
         const whisperResponse = response as unknown as WhisperVerboseResponse;
@@ -173,7 +262,8 @@ class TranscriptionService {
 
     private async transcribeWithGroq(
         config: TranscriptionConfig,
-        audioBlob: Blob
+        audioBlob: Blob,
+        options: TranscriptionRequestOptions
     ): Promise<TranscriptionResult> {
         const formData = new FormData();
         formData.append("file", new File([audioBlob], "audio.wav", { type: "audio/wav" }));
@@ -194,6 +284,7 @@ class TranscriptionService {
                     Authorization: `Bearer ${config.apiKey}`,
                 },
                 body: formData,
+                signal: options.signal,
             }
         );
 
@@ -210,7 +301,8 @@ class TranscriptionService {
 
     private async transcribeWithGemini(
         config: TranscriptionConfig,
-        audioBlob: Blob
+        audioBlob: Blob,
+        options: TranscriptionRequestOptions
     ): Promise<TranscriptionResult> {
         // Convert audio to base64
         const arrayBuffer = await audioBlob.arrayBuffer();
@@ -259,7 +351,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
             ],
             generationConfig: {
                 temperature: 0.0,
-                maxOutputTokens: 8192,
+                maxOutputTokens: 65536,
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: "object",
@@ -307,6 +399,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
+            signal: options.signal,
         });
 
         if (!response.ok) {
@@ -324,7 +417,8 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
 
     private async transcribeWithLocalWhisper(
         config: TranscriptionConfig,
-        audioBlob: Blob
+        audioBlob: Blob,
+        options: TranscriptionRequestOptions
     ): Promise<TranscriptionResult> {
         const baseURL =
             localStorage.getItem("local_whisper_url") || "http://localhost:8000";
@@ -344,6 +438,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
         const response = await fetch(`${baseURL}/v1/audio/transcriptions`, {
             method: "POST",
             body: formData,
+            signal: options.signal,
         });
 
         if (!response.ok) {
@@ -353,6 +448,61 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
 
         const whisperResponse: WhisperVerboseResponse = await response.json();
         return this.parseWhisperResponse(whisperResponse, "local-whisper");
+    }
+
+    private async decodeAudioBlob(audioBlob: Blob): Promise<AudioBuffer> {
+        const AudioContextClass =
+            window.AudioContext ||
+            (window as Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext })
+                .webkitAudioContext;
+
+        if (!AudioContextClass) {
+            throw new Error("Web Audio API is not supported in this browser");
+        }
+
+        const audioContext = new AudioContextClass();
+        try {
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            return await audioContext.decodeAudioData(arrayBuffer);
+        } finally {
+            void audioContext.close();
+        }
+    }
+
+    private encodeAudioBufferRange(
+        audioBuffer: AudioBuffer,
+        startSeconds: number,
+        endSeconds: number
+    ): Blob {
+        const startFrame = Math.max(0, Math.floor(startSeconds * audioBuffer.sampleRate));
+        const endFrame = Math.min(
+            audioBuffer.length,
+            Math.ceil(endSeconds * audioBuffer.sampleRate)
+        );
+        const frameCount = endFrame - startFrame;
+
+        if (frameCount <= 0) {
+            throw new Error("Invalid transcription chunk range");
+        }
+
+        const samples = new Float32Array(frameCount);
+
+        for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+            const channelData = audioBuffer.getChannelData(channel);
+            for (let index = 0; index < frameCount; index++) {
+                samples[index] += channelData[startFrame + index] / audioBuffer.numberOfChannels;
+            }
+        }
+
+        return encodeWAV(samples, audioBuffer.sampleRate);
+    }
+
+    private throwIfAborted(signal?: AbortSignal) {
+        if (!signal?.aborted) {
+            return;
+        }
+
+        throw new DOMException("Transcription cancelled", "AbortError");
     }
 
     // ─── Response Parsers ──────────────────────────────────────────
@@ -399,17 +549,133 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
         };
     }
 
+    /**
+     * Attempt to repair truncated JSON by closing open strings, arrays, and objects.
+     * This handles cases where the Gemini response is cut off due to token limits.
+     */
+    private repairTruncatedJson(jsonStr: string): string | null {
+        let str = jsonStr.trim();
+
+        // Track whether we're inside a string
+        let inString = false;
+        let escapeNext = false;
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (escapeNext) {
+                escapeNext = false;
+                continue;
+            }
+            if (char === "\\") {
+                escapeNext = true;
+                continue;
+            }
+            if (char === '"') {
+                inString = !inString;
+            }
+        }
+
+        // If we're still in a string, close it properly
+        if (inString) {
+            // If the last character is an escape backslash, escape it
+            if (str.endsWith("\\")) {
+                str += "\\";
+            }
+            str += '"';
+        }
+
+        // Now track structural brackets/braces, ignoring those inside strings
+        const stack: string[] = [];
+        inString = false;
+        escapeNext = false;
+
+        for (let i = 0; i < str.length; i++) {
+            const char = str[i];
+            if (escapeNext) {
+                escapeNext = false;
+                continue;
+            }
+            if (char === "\\") {
+                escapeNext = true;
+                continue;
+            }
+            if (char === '"') {
+                inString = !inString;
+                continue;
+            }
+            if (inString) continue;
+
+            if (char === "{" || char === "[") {
+                stack.push(char === "{" ? "}" : "]");
+            } else if (char === "}" || char === "]") {
+                if (stack.length > 0 && stack[stack.length - 1] === char) {
+                    stack.pop();
+                }
+            }
+        }
+
+        // Close all open structures in reverse order
+        const closing = stack.reverse().join("");
+        const repaired = str + closing;
+
+        try {
+            JSON.parse(repaired);
+            return repaired;
+        } catch {
+            return null;
+        }
+    }
+
     private parseGeminiResponse(content: string): TranscriptionResult {
         // Try to extract JSON from the response (handle possible markdown wrapping)
         let jsonStr = content.trim();
+
+        // Strip BOM and other zero-width characters that break JSON.parse
+        jsonStr = jsonStr.replace(/^\uFEFF/, "").replace(/[\u200B-\u200D\uFEFF]/g, "");
+
+        // Handle markdown code blocks
         const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) {
             jsonStr = jsonMatch[1].trim();
         }
 
-        try {
-            const parsed = JSON.parse(jsonStr);
+        // If direct parse fails, try to extract the outermost JSON object
+        let parsed: {
+            text?: string;
+            language?: string;
+            segments?: Array<{ start: number; end: number; text: string }>;
+        } | null = null;
 
+        try {
+            parsed = JSON.parse(jsonStr);
+        } catch (parseError) {
+            console.warn("Gemini transcription: direct JSON.parse failed, trying regex extraction", parseError);
+
+            // Attempt to find the outermost JSON object by matching first { to last }
+            const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (objectMatch) {
+                try {
+                    parsed = JSON.parse(objectMatch[0]);
+                } catch (e) {
+                    console.warn("Gemini transcription: regex JSON extraction also failed", e);
+                }
+            }
+
+            // If regex extraction also failed, try to repair truncated JSON
+            if (!parsed) {
+                const repaired = this.repairTruncatedJson(jsonStr);
+                if (repaired) {
+                    try {
+                        parsed = JSON.parse(repaired);
+                        console.warn("Gemini transcription: successfully repaired truncated JSON");
+                    } catch (e) {
+                        console.warn("Gemini transcription: repaired JSON still failed to parse", e);
+                    }
+                }
+            }
+        }
+
+        if (parsed) {
             let segments: TranscriptionSegment[] = (parsed.segments || []).map(
                 (seg: { start: number; end: number; text: string }, index: number) => ({
                     id: index,
@@ -475,23 +741,23 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
                     segments.length > 0 ? segments[segments.length - 1].end : undefined,
                 provider: "gemini",
             };
-        } catch {
-            // If JSON parsing fails, treat the entire response as plain text
-            console.warn("Gemini transcription: failed to parse structured response, using plain text");
-            return {
-                segments: [
-                    {
-                        id: 0,
-                        text: content,
-                        start: 0,
-                        end: 0,
-                        confidence: 0.7,
-                    },
-                ],
-                fullText: content,
-                provider: "gemini",
-            };
         }
+
+        // Fallback: treat the entire response as plain text
+        console.warn("Gemini transcription: failed to parse structured response, using plain text");
+        return {
+            segments: [
+                {
+                    id: 0,
+                    text: content,
+                    start: 0,
+                    end: 0,
+                    confidence: 0.7,
+                },
+            ],
+            fullText: content,
+            provider: "gemini",
+        };
     }
 }
 

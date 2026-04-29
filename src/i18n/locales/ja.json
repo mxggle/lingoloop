@@ -54,6 +54,24 @@
     "recordingError": "録音エラー：{{message}}",
     "failedToSave": "録音の保存に失敗しました"
   },
+  "sentencePractice": {
+    "title": "一文ずつ練習",
+    "exit": "終了",
+    "loopPlay": "リピート",
+    "playOnce": "1回再生",
+    "autoAdvance": "自動次へ",
+    "record": "録音",
+    "stopRecording": "停止",
+    "noTranscript": "字幕がありません。先にメディアを読み込んで字幕を生成してください。",
+    "recordingCount": "{{count}} 件の録音",
+    "recordingSaved": "録音を保存しました",
+    "recordingSaveFailed": "録音の保存に失敗しました",
+    "recordingEmpty": "録音が空です",
+    "recordingError": "録音エラー：{{message}}",
+    "recordingNotFound": "録音が見つかりません",
+    "recordingPlayError": "録音の再生に失敗しました",
+    "recordingDeleted": "録音を削除しました"
+  },
   "app": {
     "logoLabel": "LoopMateロゴ"
   },
@@ -172,14 +190,22 @@
       "openai": "OpenAI",
       "gemini": "Google Gemini",
       "grok": "xAI Grok",
-      "groq": "Groq"
-    },
-    "providerDescriptions": {
-      "openai": "OpenAI GPTモデル",
-      "gemini": "Google Geminiモデル",
-      "grok": "xAI Grokモデル",
-      "groq": "Groq LPUによる超高速Whisper文字起こし"
-    },
+      "groq": "Groq",
+      "opencode": "OpenCode Go",
+      "deepseek": "DeepSeek"
+      },
+      "providerDescriptions": {
+      "openai": "OpenAI GPT モデル",
+      "gemini": "Google Gemini モデル",
+      "grok": "xAI Grok モデル",
+      "groq": "Groq LPU 駆動の超快 Whisper 文字起こし",
+      "opencode": "OpenCode Go の OpenAI 互換 API",
+      "deepseek": "DeepSeek 公式 API (OpenAI 互換)"
+      },
+    "opencodeBaseUrl": "OpenCodeベースURL",
+    "opencodeBaseUrlHelp": "OpenCode Go APIエンドポイントのベースURLを入力してください。既定値は https://opencode.ai/zen/go/v1 です。",
+    "opencodeModel": "モデル名",
+    "opencodeModelHelp": "OpenCode GoのモデルIDを入力してください。例: glm-5、kimi-k2.6、deepseek-v4-flash。opencode-go/glm-5 のような設定用IDも使えます。",
     "apiKeyLabel": "APIキー",
     "apiKeyPlaceholderLabel": "{{provider}}のAPIキーを入力してください",
     "invalidApiKeyFormat": "APIキーの形式が正しくありません",
@@ -392,6 +418,10 @@
   "transcript": {
     "title": "メディアトランスクリプト",
     "processing": "処理中 {{progress}}%",
+    "processingTranscription": "文字起こし処理中...",
+    "processingChunk": "チャンク {{current}} / {{total}} を文字起こし中...",
+    "cancelTranscription": "文字起こしをキャンセル",
+    "transcriptionCancelled": "文字起こしをキャンセルしました",
     "transcribed": "文字起こし完了",
     "language": "言語",
     "exportAsTXT": "TXT",

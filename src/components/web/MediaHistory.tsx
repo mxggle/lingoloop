@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { StorageUsageInfo } from "./StorageUsageInfo";
 import { useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { useScrollLock } from "../../hooks/useScrollLock";
 import {
   Dialog,
   DialogContent,
@@ -418,17 +419,8 @@ export const MediaHistory = ({
     setIsDrawerOpen(!isDrawerOpen);
   };
 
-  // Lock body scroll when drawer is open
-  useEffect(() => {
-    if (embedded) return; // do not lock body for embedded panel
-    if (isDrawerOpen) {
-      const original = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = original;
-      };
-    }
-  }, [embedded, isDrawerOpen]);
+  // Lock scroll when drawer is open
+  useScrollLock(!embedded && isDrawerOpen);
 
   const byTab = useMemo(() => {
     return mediaHistory.filter((item) => {

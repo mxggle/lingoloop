@@ -5,7 +5,6 @@ import {
   Eye,
   EyeOff,
   Globe,
-  Shield,
   TestTube,
 } from "lucide-react";
 import type {
@@ -14,17 +13,18 @@ import type {
 } from "../../hooks/useAiSettingsState";
 import type { AIProvider } from "../../types/aiService";
 import { cn } from "../../utils/cn";
-import { DesktopCard, DesktopCardContent } from "../ui/DesktopCard";
+import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { ModelSelector } from "../ui/ModelSelector";
 
+
 const setupToneClassName = {
   success:
-    "border border-success-200 bg-success-50 text-success-700 dark:border-success-900/60 dark:bg-success-950/40 dark:text-success-300",
+    "border-success-200 bg-success-50 text-success-700 dark:border-success-900/40 dark:bg-success-950/30 dark:text-success-300",
   warning:
-    "border border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-900/60 dark:bg-warning-950/40 dark:text-warning-300",
+    "border-warning-200 bg-warning-50 text-warning-700 dark:border-warning-900/40 dark:bg-warning-950/30 dark:text-warning-300",
   error:
-    "border border-error-200 bg-red-50 text-error-700 dark:border-error-900/60 dark:bg-red-950/40 dark:text-error-300",
+    "border-error-200 bg-red-50 text-error-700 dark:border-error-900/40 dark:bg-red-950/30 dark:text-error-300",
 } as const;
 
 interface AIProviderDetailProps {
@@ -35,6 +35,8 @@ interface AIProviderDetailProps {
   testingConnection: boolean;
   ollamaBaseUrl: string;
   setOllamaBaseUrl: (url: string) => void;
+  opencodeBaseUrl: string;
+  setOpencodeBaseUrl: (url: string) => void;
   onToggleApiKeyVisibility: () => void;
   onTestConnection: () => void;
 }
@@ -47,6 +49,8 @@ export function AIProviderDetail({
   testingConnection,
   ollamaBaseUrl,
   setOllamaBaseUrl,
+  opencodeBaseUrl,
+  setOpencodeBaseUrl,
   onToggleApiKeyVisibility,
   onTestConnection,
 }: AIProviderDetailProps) {
@@ -54,9 +58,8 @@ export function AIProviderDetail({
   const { provider, apiKey, setApiKey, model, setModel, setupStatus } = providerConfig;
   const providerName = t(`aiSettingsPage.providers.${provider}`);
   const isOllama = provider === "ollama";
+  const isOpencode = provider === "opencode";
   const isPreferred = preferredProvider === provider;
-  const hasOllamaBaseUrl = ollamaBaseUrl.trim().length > 0;
-  const hasOllamaModel = model.trim().length > 0;
 
   const connectionFeedback =
     connectionStatus === "success"
@@ -73,46 +76,38 @@ export function AIProviderDetail({
           }
         : null;
   const ConnectionFeedbackIcon = connectionFeedback?.Icon;
-  const connectionStatusLabel = t("aiSettingsPage.testConnection");
-  const ollamaStatusDescription = setupStatus.isConfigured || !hasOllamaBaseUrl
-    ? t("aiSettingsPage.ollamaBaseUrlHelp")
-    : !hasOllamaModel
-      ? t("aiSettingsPage.ollamaModelHelp")
-      : t("aiSettingsPage.ollamaBaseUrlHelp");
 
   return (
-    <DesktopCard className="h-full min-h-[440px]">
-      <DesktopCardContent className="flex h-full flex-col gap-8 p-6 sm:p-8">
-        <div className="flex flex-col gap-5 border-b border-black/5 pb-6 dark:border-white/5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h3 className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
-              {providerName}
-            </h3>
-            {isPreferred ? (
-              <span className="rounded-full bg-primary-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
-                {t("aiSettingsPage.status.default")}
-              </span>
-            ) : null}
-            <span
-              className={cn(
-                "rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
-                setupToneClassName[setupStatus.tone]
-              )}
-            >
-              {setupStatus.label}
+    <Card className="h-full">
+      <CardContent className="flex h-full flex-col gap-6 p-6">
+        <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4 dark:border-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {providerName}
+          </h3>
+          {isPreferred ? (
+            <span className="rounded-full bg-primary-500 px-2.5 py-0.5 text-[10px] font-semibold text-white">
+              {t("aiSettingsPage.status.default")}
             </span>
-          </div>
-
-          <p className="max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-            {t(`aiSettingsPage.providerDescriptions.${provider}`)}
-          </p>
+          ) : null}
+          <span
+            className={cn(
+              "rounded-full border px-2.5 py-0.5 text-[10px] font-semibold",
+              setupToneClassName[setupStatus.tone]
+            )}
+          >
+            {setupStatus.label}
+          </span>
         </div>
 
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {t(`aiSettingsPage.providerDescriptions.${provider}`)}
+        </p>
+
         {isOllama ? (
-          <>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div className="space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t("aiSettingsPage.ollamaBaseUrl")}
                 </label>
                 <Input
@@ -120,15 +115,14 @@ export function AIProviderDetail({
                   value={ollamaBaseUrl}
                   onChange={(event) => setOllamaBaseUrl(event.target.value)}
                   placeholder="http://localhost:11434"
-                  className="h-12 rounded-2xl border-black/5 font-mono text-sm dark:border-white/5"
+                  className="font-mono text-sm"
                 />
-                <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t("aiSettingsPage.ollamaBaseUrlHelp")}
                 </p>
               </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t("aiSettingsPage.ollamaModel")}
                 </label>
                 <Input
@@ -136,124 +130,135 @@ export function AIProviderDetail({
                   value={model}
                   onChange={(event) => setModel(event.target.value)}
                   placeholder="llama3.2"
-                  className="h-12 rounded-2xl border-black/5 text-sm font-bold dark:border-white/5"
                 />
-                <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t("aiSettingsPage.ollamaModelHelp")}
                 </p>
               </div>
             </div>
 
-            <div className="mt-auto rounded-3xl border border-black/5 bg-black/[0.02] p-4 dark:border-white/5 dark:bg-white/[0.02]">
+            <div className="rounded-lg border border-gray-100 bg-gray-50/50 p-4 dark:border-gray-800 dark:bg-gray-900/50">
               <div className="flex items-start gap-3">
-                <div className="rounded-2xl bg-primary-500/10 p-2.5 text-primary-500">
-                  <Globe className="h-5 w-5" />
+                <div className="rounded-md bg-primary-500/10 p-2 text-primary-500">
+                  <Globe className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {setupStatus.label}
                   </p>
-                  <p className="mt-1 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                    {ollamaStatusDescription}
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t("aiSettingsPage.ollamaBaseUrlHelp")}
                   </p>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         ) : (
-          <>
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                    {t("aiSettingsPage.apiKeyLabel")}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={onTestConnection}
-                    disabled={!apiKey.trim() || testingConnection}
-                    className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-600 disabled:opacity-50 dark:text-primary-400"
-                  >
-                    {testingConnection ? (
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-600 border-t-transparent dark:border-primary-400" />
-                    ) : (
-                      <TestTube className="h-4 w-4" />
-                    )}
-                    {t("aiSettingsPage.testConnection")}
-                  </button>
-                </div>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("aiSettingsPage.apiKeyLabel")}
+                </label>
+                <button
+                  type="button"
+                  onClick={onTestConnection}
+                  disabled={!apiKey.trim() || testingConnection}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 disabled:opacity-50 dark:text-primary-400"
+                >
+                  {testingConnection ? (
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary-600 border-t-transparent dark:border-primary-400" />
+                  ) : (
+                    <TestTube className="h-3.5 w-3.5" />
+                  )}
+                  {t("aiSettingsPage.testConnection")}
+                </button>
+              </div>
 
-                <div className="relative">
+              <div className="relative">
+                <Input
+                  type={showApiKey ? "text" : "password"}
+                  value={apiKey}
+                  onChange={(event) => setApiKey(event.target.value)}
+                  placeholder={t("aiSettingsPage.apiKeyPlaceholderLabel", {
+                    provider: providerName,
+                  })}
+                  className="pr-10 font-mono text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={onToggleApiKeyVisibility}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t("aiSettingsPage.storedLocally")}
+              </p>
+            </div>
+
+            {connectionFeedback ? (
+              <div className="flex items-center gap-2 text-sm">
+                {ConnectionFeedbackIcon ? (
+                  <ConnectionFeedbackIcon className={cn("h-4 w-4", connectionFeedback.className)} />
+                ) : null}
+                <span className={connectionFeedback.className}>
+                  {connectionFeedback.label}
+                </span>
+              </div>
+            ) : null}
+
+            {isOpencode ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("aiSettingsPage.opencodeBaseUrl")}
+                  </label>
                   <Input
-                    type={showApiKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                    placeholder={t("aiSettingsPage.apiKeyPlaceholderLabel", {
+                    type="text"
+                    value={opencodeBaseUrl}
+                    onChange={(event) => setOpencodeBaseUrl(event.target.value)}
+                    placeholder="https://opencode.ai/zen/go/v1"
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {t("aiSettingsPage.opencodeBaseUrlHelp")}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {t("aiSettingsPage.opencodeModel")}
+                  </label>
+                  <ModelSelector
+                    selectedModel={model}
+                    onModelSelect={setModel}
+                    provider={provider}
+                    placeholder={t("aiSettingsPage.selectModelPlaceholder", {
                       provider: providerName,
                     })}
-                    className="h-12 rounded-2xl border-black/5 pr-12 font-mono text-sm dark:border-white/5"
                   />
-                  <button
-                    type="button"
-                    onClick={onToggleApiKeyVisibility}
-                    className="absolute inset-y-0 right-4 flex items-center text-gray-400 transition-colors hover:text-primary-500"
-                  >
-                    {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-
-                <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">
-                  {t("aiSettingsPage.storedLocally")}
-                </p>
-              </div>
-
-              <div className="rounded-3xl border border-black/5 bg-black/[0.02] p-4 dark:border-white/5 dark:bg-white/[0.02]">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-2xl bg-primary-500/10 p-2.5 text-primary-500">
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                      {connectionStatusLabel}
-                    </p>
-                    {connectionFeedback ? (
-                      <div
-                        className={cn(
-                          "flex items-center gap-2 text-sm font-medium",
-                          connectionFeedback.className
-                        )}
-                      >
-                        {ConnectionFeedbackIcon ? (
-                          <ConnectionFeedbackIcon className="h-4 w-4" />
-                        ) : null}
-                        <span>{connectionFeedback.label}</span>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {setupStatus.label}
-                      </p>
-                    )}
-                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-4 border-t border-black/5 pt-6 dark:border-white/5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500">
-                {t("aiSettingsPage.defaultModel")}
-              </label>
-              <ModelSelector
-                selectedModel={model}
-                onModelSelect={setModel}
-                provider={provider}
-                placeholder={t("aiSettingsPage.selectModelPlaceholder", {
-                  provider: providerName,
-                })}
-              />
-            </div>
-          </>
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {t("aiSettingsPage.defaultModel")}
+                </label>
+                <ModelSelector
+                  selectedModel={model}
+                  onModelSelect={setModel}
+                  provider={provider}
+                  placeholder={t("aiSettingsPage.selectModelPlaceholder", {
+                    provider: providerName,
+                  })}
+                />
+              </div>
+            )}
+          </div>
         )}
-      </DesktopCardContent>
-    </DesktopCard>
+      </CardContent>
+    </Card>
   );
 }

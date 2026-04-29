@@ -13,3 +13,7 @@ export const SettingsPage = lazy(() =>
 export const GlossaryPage = lazy(() =>
   import("./GlossaryPage").then((module) => ({ default: module.GlossaryPage }))
 );
+
+export const SentencePracticePage = lazy(() =>
+  import("./SentencePracticePage").then((module) => ({ default: module.SentencePracticePage }))
+);

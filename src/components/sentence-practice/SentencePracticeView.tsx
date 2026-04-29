@@ -108,6 +108,8 @@ export const SentencePracticeView = () => {
 
   // Apply loop points when sentence changes or loopCurrent changes
   useEffect(() => {
+    // Wait until init effect has determined the correct currentSentenceIndex
+    if (!hasNavigatedToInitial) return;
     if (transcriptSegments.length === 0) return;
 
     const segment = transcriptSegments[currentSentenceIndex];
@@ -140,6 +142,7 @@ export const SentencePracticeView = () => {
     setCurrentTime(segment.startTime);
     lastSegmentEndRef.current = segment.endTime;
   }, [
+    hasNavigatedToInitial,
     currentSentenceIndex,
     loopCurrent,
     transcriptSegments,

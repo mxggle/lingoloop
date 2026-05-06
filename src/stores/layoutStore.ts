@@ -7,6 +7,13 @@ export interface LayoutSettings {
   showWaveform: boolean;
   showTranscript: boolean;
   showControls: boolean;
+  // panel visibility states
+  transcriptPanelVisible: boolean;
+  transcriptPanelCollapsed: boolean;
+  videoPanelVisible: boolean;
+  videoPanelCollapsed: boolean;
+  timelinePanelVisible: boolean;
+  timelinePanelCollapsed: boolean;
 }
 
 export interface LayoutState {
@@ -20,6 +27,12 @@ const defaultLayoutSettings: LayoutSettings = {
   showWaveform: true,
   showTranscript: true,
   showControls: true,
+  transcriptPanelVisible: true,
+  transcriptPanelCollapsed: false,
+  videoPanelVisible: true,
+  videoPanelCollapsed: false,
+  timelinePanelVisible: true,
+  timelinePanelCollapsed: false,
 };
 
 export const useLayoutStore = create<LayoutState>()(

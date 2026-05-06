@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
-import { usePlayerStore, type LoopBookmark } from "../../stores/playerStore";
+import { usePlayerStore } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useShadowingStore } from "../../stores/shadowingStore";
 import { useShallow } from "zustand/react/shallow";
@@ -14,7 +14,13 @@ import {
   ZoomIn,
   ZoomOut,
   X,
+  ChevronUp,
+  ChevronDown,
+  Mic,
+  Radio,
+  Trash2,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../../stores/themeStore";
 import { hexToRgba } from "../../utils/theme";
@@ -42,7 +48,7 @@ type ShadowingSegmentView = {
 };
 
 const EMPTY_SEGMENTS: readonly ShadowingSegmentView[] = Object.freeze([]);
-const EMPTY_BOOKMARKS: readonly LoopBookmark[] = Object.freeze([]);
+const EMPTY_BOOKMARKS: readonly any[] = Object.freeze([]);
 
 const normalizeCachedWaveform = (
   waveform: CachedWaveformData
@@ -90,7 +96,6 @@ interface WaveformVisualizerProps {
 
 export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   const { t } = useTranslation();
-  const { colors } = useThemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -131,6 +136,8 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   // Detect if device is mobile
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  const { colors } = useThemeStore();
 
   const {
     currentTime,
@@ -174,12 +181,16 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     currentRecording,
     currentRecordingRevision,
     isShadowingMode, setShadowingMode,
+    isRecording,
+    deleteAllSegments,
   } = useShadowingStore(
     useShallow((state) => ({
       currentRecording: state.currentRecording,
       currentRecordingRevision: state.currentRecordingRevision,
       isShadowingMode: state.isShadowingMode,
       setShadowingMode: state.setShadowingMode,
+      isRecording: state.isRecording,
+      deleteAllSegments: state.deleteAllSegments,
     }))
   );
 
@@ -206,6 +217,20 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   const [fadingRecording, setFadingRecording] = useState<RecordingOverlay | null>(null);
   const previousCurrentRecordingRef = useRef<typeof currentRecording>(null);
   const [fadeFrame, setFadeFrame] = useState(0);
+
+  // Shadowing panel expand/collapse state
+  const [isShadowingExpanded, setIsShadowingExpanded] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const prevShouldExpandRef = useRef(false);
+
+  // Auto-expand shadowing when recording or segments exist
+  useEffect(() => {
+    const shouldExpand = isShadowingMode || shadowingSegments.length > 0 || !!currentRecording;
+    if (shouldExpand && !prevShouldExpandRef.current) {
+      setIsShadowingExpanded(true);
+    }
+    prevShouldExpandRef.current = shouldExpand;
+  }, [isShadowingMode, shadowingSegments.length, currentRecording]);
 
   // Initialize Shadowing Player & Recorder
   useShadowingPlayer();
@@ -235,7 +260,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
             if (!file) return null;
 
             const arrayBuffer = await file.arrayBuffer();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
@@ -324,7 +348,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     () => new Map(bookmarks.map((bookmark) => [bookmark.id, bookmark])),
     [bookmarks]
   );
-  
   const getBookmarkById = useCallback(
     (id: string) => bookmarkMap.get(id) ?? null,
     [bookmarkMap]
@@ -376,7 +399,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
     const scheduleBackgroundAnalysis = (task: () => void) => {
       if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         idleId = (window as any).requestIdleCallback(() => task());
         return;
       }
@@ -488,7 +510,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     loadAudio();
     return () => {
       cancelled = true;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) (window as any).cancelIdleCallback(idleId);
       if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
     };
@@ -615,7 +636,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       }
     }
 
-    const mainWaveformHeight = canvas.height / 2;
+    const mainWaveformHeight = isShadowingExpanded ? canvas.height / 2 : canvas.height;
     const mainWaveformPadding = 2 * dpr;
     const mainWaveformDrawHeight = Math.max(0, mainWaveformHeight - mainWaveformPadding * 2);
     ctx.fillStyle = colors.primary;
@@ -625,8 +646,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     const sliceWidth = (sampleDuration / visibleDuration) * canvas.width;
     const mainCenterY = mainWaveformHeight / 2;
     const amplitudeScale = mainWaveformDrawHeight;
-    const gap = sliceWidth > 4 * dpr ? 1 * dpr : 0;
-    const barWidth = Math.max(1 * dpr, sliceWidth - gap);
+    const cssSliceWidth = sliceWidth / dpr;
+    const cssBarWidth = Math.max(0.5, Math.min(cssSliceWidth, 2));
+    const barWidth = cssBarWidth * dpr;
 
     ctx.save();
     ctx.beginPath();
@@ -679,18 +701,15 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
           if (t < startOffset || t > endOffset) continue;
           const val = seg.data[i];
           const x = ((t - startOffset) / visibleDuration) * canvas.width;
-          const barW = Math.max(1 * dpr, (sDur / visibleDuration) * canvas.width);
+          const cssBarW = Math.max(0.5, Math.min((sDur / visibleDuration) * canvas.width / dpr, 2));
+          const barW = cssBarW * dpr;
           const h = Math.min(shadowDrawHeight, Math.max(2 * dpr, val * shadowDrawHeight * 1.6));
           const y = Math.max(shadowTop + shadowPadding, shadowCenterY - h / 2);
           ctx.fillRect(x, y, barW, h);
         }
       });
 
-      const drawRecordingOverlay = (
-        recording: { startTime: number; peaks: number[]; peakTimes: number[] },
-        color: string,
-        alpha = 1
-      ) => {
+      const drawRecordingOverlay = (recording: any, color: string, alpha = 1) => {
         if (!recording.peaks?.length || shadowHeight <= 0) return;
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -745,7 +764,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
     if (loopStart !== null && canvasLoopStart >= 0 && canvasLoopStart <= canvas.width) drawMarker(ctx, canvasLoopStart, canvas.height, "A");
     if (loopEnd !== null && canvasLoopEnd >= 0 && canvasLoopEnd <= canvas.width) drawMarker(ctx, canvasLoopEnd, canvas.height, "B");
-  }, [waveformData, currentTime, duration, loopStart, loopEnd, waveformZoom, scrollOffset, showWaveform, bookmarks, selectedBookmarkId, shadowingWaveforms, currentRecording, currentRecordingRevision, fadingRecording, fadeFrame, isDragging, dragStart, dragEnd, isMobile, colors.error, colors.primary, colors.success]);
+  }, [waveformData, currentTime, duration, loopStart, loopEnd, waveformZoom, scrollOffset, showWaveform, bookmarks, selectedBookmarkId, shadowingWaveforms, currentRecording, currentRecordingRevision, fadingRecording, fadeFrame, isDragging, dragStart, dragEnd, isMobile, colors.error, colors.primary, colors.success, isShadowingExpanded]);
 
   const drawMarker = (ctx: CanvasRenderingContext2D, x: number, height: number, label: string) => {
     const dpr = window.devicePixelRatio || 1;
@@ -1049,9 +1068,85 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
           )}
 
           <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-            <button onClick={(e) => { e.stopPropagation(); zoomIn(); }} className="p-1.5 bg-gray-900/40 backdrop-blur hover:bg-gray-900/60 text-white rounded-md border border-white/10 transition-colors" title={t("waveform.zoomIn")}><ZoomIn size={14} /></button>
-            <button onClick={(e) => { e.stopPropagation(); zoomOut(); }} className="p-1.5 bg-gray-900/40 backdrop-blur hover:bg-gray-900/60 text-white rounded-md border border-white/10 transition-colors" title={t("waveform.zoomOut")}><ZoomOut size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); zoomIn(); }} className="p-1.5 bg-black/30 dark:bg-white/20 backdrop-blur hover:bg-black/40 dark:hover:bg-white/30 text-white rounded-md border border-white/20 transition-colors" title={t("waveform.zoomIn")}><ZoomIn size={14} /></button>
+            <button onClick={(e) => { e.stopPropagation(); zoomOut(); }} className="p-1.5 bg-black/30 dark:bg-white/20 backdrop-blur hover:bg-black/40 dark:hover:bg-white/30 text-white rounded-md border border-white/20 transition-colors" title={t("waveform.zoomOut")}><ZoomOut size={14} /></button>
           </div>
+
+          {/* Shadowing control float */}
+          {mediaId && (
+            <div
+              className="absolute right-2 z-20 pointer-events-auto transition-all duration-200"
+              style={{ bottom: isShadowingExpanded ? "8px" : "8px" }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center gap-1 bg-black/60 backdrop-blur-md border border-white/15 rounded-2xl text-white/80 shadow-[0_8px_24px_rgba(0,0,0,0.18)] py-1.5 px-1.5">
+                {/* Expand / Collapse */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIsShadowingExpanded((v) => !v); }}
+                  className="inline-flex items-center justify-center rounded-full text-white/70 hover:bg-white/10 active:bg-white/20 transition-colors w-7 h-7"
+                  title={isShadowingExpanded ? t("shadowing.collapse", { defaultValue: "Collapse Shadowing" }) : t("shadowing.expand", { defaultValue: "Expand Shadowing" })}
+                >
+                  {isShadowingExpanded ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                </button>
+
+                {/* Recording toggle */}
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShadowingMode(!isShadowingMode); }}
+                  aria-pressed={isShadowingMode}
+                  className={`group relative inline-flex items-center justify-center rounded-full border-2 transition-all duration-200 focus:outline-none w-7 h-7 ${
+                    isRecording
+                      ? "border-error-500/70 bg-gradient-to-b from-error-700 to-error-500 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+                      : isShadowingMode
+                        ? "border-warning-400/50 bg-warning-500/20 shadow-[0_0_8px_rgba(251,191,36,0.25)] hover:bg-warning-500/28"
+                        : "border-white/12 bg-white/8 hover:bg-white/13"
+                  }`}
+                  title={isShadowingMode ? t("shadowing.disable") : t("shadowing.enable")}
+                >
+                  {isRecording ? (
+                    <Radio size={11} className="animate-pulse text-white" />
+                  ) : isShadowingMode ? (
+                    <Mic size={11} className="text-warning-300" />
+                  ) : (
+                    <Mic size={11} className="text-white/60" />
+                  )}
+                </button>
+
+                {/* Delete track */}
+                {shadowingSegments.length > 0 && (
+                  !isConfirmingDelete ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full text-white/35 hover:text-error-400 hover:bg-white/8 transition-colors w-7 h-7"
+                      onClick={(e) => { e.stopPropagation(); setIsConfirmingDelete(true); }}
+                      title={t("shadowing.deleteTrack", { defaultValue: "Delete Shadow Track" })}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full text-error-400 bg-error-500/20 hover:bg-error-500/30 transition-colors w-7 h-7 text-[10px] font-bold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (mediaId) {
+                          deleteAllSegments(mediaId);
+                          toast.success(t("shadowing.success.trackDeleted"));
+                        }
+                        setIsConfirmingDelete(false);
+                      }}
+                      title={t("common.remove")}
+                    >
+                      ?
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

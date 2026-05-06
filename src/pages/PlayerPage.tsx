@@ -1,11 +1,12 @@
 // src/pages/PlayerPage.tsx
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
 import { MediaPreviewPanel } from "../components/player/MediaPreviewPanel";
 import { TimelinePanel } from "../components/player/TimelinePanel";
+import { PanelHeader } from "../components/player/PanelHeader";
 import { isElectron } from "../utils/platform";
 import { MediaHistory } from "../components/web/MediaHistory";
 import { TranscriptPanel } from "../components/transcript";
@@ -15,12 +16,14 @@ import { AppLayout } from "../components/layout/AppLayout";
 import { useLayoutSettings } from "../contexts/layoutSettings";
 import { Panel, Group, Separator } from "react-resizable-panels";
 import { cn } from "../utils/cn";
+import { MediaPlayer } from "../components/player/MediaPlayer";
 
 export const PlayerPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
   const layoutInitializedForRef = useRef<string | null>(null);
+  const [activeResizeAxis, setActiveResizeAxis] = useState<"horizontal" | "vertical" | null>(null);
 
   const { currentFile, currentYouTube, isLoadingMedia } = usePlayerStore(
     useShallow((state) => ({
@@ -58,6 +61,22 @@ export const PlayerPage = () => {
     }
   }, [currentYouTube, currentFile, setLayoutSettings]);
 
+  useEffect(() => {
+    if (!activeResizeAxis) return;
+
+    const stopResizing = () => setActiveResizeAxis(null);
+
+    window.addEventListener("pointerup", stopResizing);
+    window.addEventListener("pointercancel", stopResizing);
+    window.addEventListener("blur", stopResizing);
+
+    return () => {
+      window.removeEventListener("pointerup", stopResizing);
+      window.removeEventListener("pointercancel", stopResizing);
+      window.removeEventListener("blur", stopResizing);
+    };
+  }, [activeResizeAxis]);
+
   // Auto-hide video panel for audio files
   const isAudioOnly = currentFile?.type.includes("audio") && !currentFile?.type.includes("video");
   const effectiveVideoVisible = layoutSettings.videoPanelVisible && !isAudioOnly;
@@ -77,7 +96,17 @@ export const PlayerPage = () => {
 
   return (
     <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
-      <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
+      <div className="relative flex flex-1 min-h-0 flex-col h-full overflow-hidden">
+        {activeResizeAxis && (
+          <div
+            className={cn(
+              "absolute inset-0 z-[80] bg-transparent",
+              activeResizeAxis === "horizontal" ? "cursor-col-resize" : "cursor-row-resize"
+            )}
+            aria-hidden="true"
+          />
+        )}
+
         {/* Loading / no media states */}
         {isLoadingMedia && (
           <div className="flex items-center justify-center py-12">
@@ -94,79 +123,73 @@ export const PlayerPage = () => {
         )}
 
         {hasMedia && (
-          <Group orientation="vertical" className="flex-1 min-h-0">
+          <>
+            {/* Audio-only files need a hidden MediaPlayer since video panel is hidden */}
+            {isAudioOnly && (
+              <div className="sr-only" aria-hidden="true">
+                <MediaPlayer hiddenMode={true} />
+              </div>
+            )}
+            <Group orientation="vertical" className="flex-1 min-h-0">
             {/* Upper area: Transcript + Video */}
             <Panel
-              defaultSize={65}
-              minSize={20}
-              maxSize={85}
+              id="player-main-panel"
+              defaultSize="65%"
+              minSize="20%"
+              maxSize="85%"
               collapsible
-              collapsedSize={0}
+              collapsedSize="0%"
               className={cn(!layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
             >
-              <Group orientation="horizontal" className="h-full">
+              <Group id="player-upper-layout" orientation="horizontal" className="h-full">
                 {/* Transcript Panel */}
                 {layoutSettings.transcriptPanelVisible && (
-                  <>
-                    <Panel
-                      defaultSize={60}
-                      minSize={25}
-                      maxSize={80}
-                      collapsible
-                      collapsedSize={5}
-                      className="min-w-0"
-                    >
-                      <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mr-1">
-                        {/* Transcript header */}
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none">
-                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 tracking-wider truncate">
-                            {t("transcript.title")}
-                          </span>
-                          <div className="flex items-center gap-0.5">
-                            {layoutSettings.transcriptPanelCollapsed ? (
-                              <button
-                                onClick={() => collapsePanel("transcript", false)}
-                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => collapsePanel("transcript", true)}
-                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
-                              >
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => togglePanel("transcript")}
-                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            </button>
-                          </div>
+                  <Panel
+                    id="player-transcript-panel"
+                    defaultSize="60%"
+                    minSize="25%"
+                    maxSize="80%"
+                    collapsible
+                    collapsedSize="5%"
+                    className="min-w-0"
+                  >
+                    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                      <PanelHeader
+                        title={t("transcript.title")}
+                        collapsed={layoutSettings.transcriptPanelCollapsed}
+                        onCollapse={() => collapsePanel("transcript", true)}
+                        onExpand={() => collapsePanel("transcript", false)}
+                        onHide={() => togglePanel("transcript")}
+                      />
+                      {!layoutSettings.transcriptPanelCollapsed && (
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                          <TranscriptPanel />
                         </div>
-                        {!layoutSettings.transcriptPanelCollapsed && (
-                          <div className="flex-1 min-h-0 overflow-hidden">
-                            <TranscriptPanel />
-                          </div>
-                        )}
-                      </div>
-                    </Panel>
-                    <Separator className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-col-resize flex items-center justify-center">
-                      <div className="w-0.5 h-6 bg-gray-400 dark:bg-gray-500 rounded-full" />
-                    </Separator>
-                  </>
+                      )}
+                    </div>
+                  </Panel>
+                )}
+
+                {/* Horizontal resize handle */}
+                {layoutSettings.transcriptPanelVisible && effectiveVideoVisible && (
+                  <Separator
+                    id="player-transcript-video-resize"
+                    className="w-3 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-col-resize flex items-center justify-center mx-[-4px]"
+                    onPointerDownCapture={() => setActiveResizeAxis("horizontal")}
+                  >
+                    <div className="w-0.5 h-6 bg-gray-400 dark:bg-gray-500 rounded-full pointer-events-none" />
+                  </Separator>
                 )}
 
                 {/* Video Panel */}
                 {effectiveVideoVisible && (
                   <Panel
-                    defaultSize={40}
-                    minSize={20}
-                    maxSize={75}
+                    id="player-video-panel"
+                    defaultSize="40%"
+                    minSize="20%"
+                    maxSize="75%"
                     collapsible
-                    collapsedSize={5}
+                    collapsedSize="5%"
                     className="min-w-0"
                   >
                     <MediaPreviewPanel
@@ -175,7 +198,7 @@ export const PlayerPage = () => {
                       onCollapse={() => collapsePanel("video", true)}
                       onExpand={() => collapsePanel("video", false)}
                       onHide={() => togglePanel("video")}
-                      className="h-full ml-1"
+                      className="h-full"
                     />
                   </Panel>
                 )}
@@ -184,19 +207,24 @@ export const PlayerPage = () => {
 
             {/* Vertical resize handle */}
             {layoutSettings.timelinePanelVisible && (layoutSettings.transcriptPanelVisible || effectiveVideoVisible) && (
-              <Separator className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-row-resize flex items-center justify-center my-0.5">
-                <div className="w-6 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full" />
+              <Separator
+                id="player-main-timeline-resize"
+                className="h-3 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-row-resize flex items-center justify-center my-[-2px]"
+                onPointerDownCapture={() => setActiveResizeAxis("vertical")}
+              >
+                <div className="w-6 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full pointer-events-none" />
               </Separator>
             )}
 
             {/* Bottom: Timeline Panel */}
             {layoutSettings.timelinePanelVisible && (
               <Panel
-                defaultSize={35}
-                minSize={10}
-                maxSize={60}
+                id="player-timeline-panel"
+                defaultSize="35%"
+                minSize="10%"
+                maxSize="60%"
                 collapsible
-                collapsedSize={6}
+                collapsedSize="6%"
                 className="min-h-0"
               >
                 <TimelinePanel
@@ -210,6 +238,7 @@ export const PlayerPage = () => {
               </Panel>
             )}
           </Group>
+          </>
         )}
 
         {/* Media History – web only */}

@@ -39,6 +39,9 @@
     "enable": "Enable Shadowing",
     "disable": "Disable Shadowing",
     "rearm": "Record again",
+    "collapse": "Collapse Shadowing",
+    "expand": "Expand Shadowing",
+    "deleteTrack": "Delete Shadow Track",
     "errors": {
       "notSupported": "Audio recording is not supported in this browser. Please use a modern browser.",
       "iosHttpsRequired": "iOS Safari requires HTTPS for recording. Please access this site via HTTPS or use localhost.",

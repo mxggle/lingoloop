@@ -1449,15 +1449,25 @@ export const TranscriptPanel = () => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
-        <div className="flex items-center justify-end p-2 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md gap-1.5">
-          {isProcessing && (
-            <div className="mr-auto flex items-center flex-shrink-0 pl-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
-              </span>
-            </div>
-          )}
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md">
+          <div className="flex items-center min-w-0 mr-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+              {activeTabId
+                ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
+                : t("transcript.title")
+              }
+            </h3>
+            {isProcessing && (
+              <div className="ml-2 flex items-center flex-shrink-0">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                  {transcriptionStatus || t("transcript.processing", { progress: processingProgress })}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
@@ -1791,6 +1801,7 @@ export const TranscriptPanel = () => {
             </div>
           )}
         </div>
+      </div>
 
       {/* Edit bookmark dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

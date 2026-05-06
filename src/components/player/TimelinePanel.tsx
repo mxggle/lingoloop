@@ -66,7 +66,7 @@ export const TimelinePanel = ({
       </div>
 
       {/* Waveform */}
-      <div className="flex-1 min-h-0 bg-[#0a0a1a] dark:bg-[#0a0a1a] relative">
+      <div className="flex-1 min-h-0 bg-gray-100 dark:bg-[#0a0a1a] relative">
         <WaveformVisualizer className="w-full h-full" />
       </div>
     </div>

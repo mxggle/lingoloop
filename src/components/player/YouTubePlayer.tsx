@@ -137,7 +137,7 @@ export const YouTubePlayer = ({
       videoId,
       playerVars: {
         autoplay: 0,
-        controls: 0,
+        controls: 1,
         disablekb: 1,
         enablejsapi: 1,
         modestbranding: 1,

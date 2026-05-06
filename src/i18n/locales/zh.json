@@ -37,6 +37,9 @@
     "enable": "启用跟读",
     "disable": "禁用跟读",
     "rearm": "重新录音",
+    "collapse": "收起跟读",
+    "expand": "展开跟读",
+    "deleteTrack": "删除跟读音轨",
     "errors": {
       "notSupported": "此浏览器不支持录音功能，请使用现代浏览器。",
       "iosHttpsRequired": "iOS Safari 需要 HTTPS 才能录音。请通过 HTTPS 访问或使用 localhost。",
@@ -416,7 +419,7 @@
     "mockExplanation": "这是针对“{{snippet}}”生成的说明"
   },
   "transcript": {
-    "title": "媒体转录",
+    "title": "转录文本",
     "processing": "处理中 {{progress}}%",
     "processingTranscription": "正在处理转录...",
     "processingChunk": "正在转录第 {{current}} / {{total}} 个分块...",

@@ -37,6 +37,9 @@
     "enable": "シャドーイングを有効化",
     "disable": "シャドーイングを無効化",
     "rearm": "もう一度録音",
+    "collapse": "シャドーイングを折りたたむ",
+    "expand": "シャドーイングを展開",
+    "deleteTrack": "シャドートラックを削除",
     "errors": {
       "notSupported": "このブラウザーでは音声録音がサポートされていません。最新のブラウザーをご使用ください。",
       "iosHttpsRequired": "iOS Safariでは録音にHTTPSが必要です。HTTPSまたはlocalhostでアクセスしてください。",
@@ -416,7 +419,7 @@
     "mockExplanation": "生成された説明: \"{{snippet}}\""
   },
   "transcript": {
-    "title": "メディアトランスクリプト",
+    "title": "トランスクリプト",
     "processing": "処理中 {{progress}}%",
     "processingTranscription": "文字起こし処理中...",
     "processingChunk": "チャンク {{current}} / {{total}} を文字起こし中...",

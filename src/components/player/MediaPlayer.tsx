@@ -639,7 +639,7 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
         <video
           ref={videoRef}
           src={currentFile.url}
-          className="w-full h-auto max-h-[calc(100vh-220px)] sm:max-h-[calc(100vh-200px)] rounded-lg shadow-lg"
+          className="w-full h-full object-contain"
           onLoadedMetadata={handleLoadedMetadata}
           onDurationChange={handleDurationChange}
           onEnded={handleEnded}

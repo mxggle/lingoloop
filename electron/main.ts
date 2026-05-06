@@ -9,8 +9,28 @@ const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
 const transientApprovedFolders = new Set<string>()
 let settingsWindow: BrowserWindow | null = null
+let nextMediaTreeWatchId = 1
+
+type MediaTreeWatcher = {
+  watcher: fs.FSWatcher
+  debounceTimer: NodeJS.Timeout | null
+  ownerWebContentsId: number
+}
+
+const mediaTreeWatchers = new Map<number, MediaTreeWatcher>()
 
 type SettingsWindowTab = 'general' | 'ai'
+
+function closeMediaTreeWatch(watchId: number): void {
+  const entry = mediaTreeWatchers.get(watchId)
+  if (!entry) return
+
+  if (entry.debounceTimer) {
+    clearTimeout(entry.debounceTimer)
+  }
+  entry.watcher.close()
+  mediaTreeWatchers.delete(watchId)
+}
 
 // Register custom protocol for serving local media files.
 // Must be called before app.whenReady() so the scheme is available.
@@ -65,10 +85,18 @@ function createWindow(): void {
     },
   })
 
-  // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000
+  // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000.
+  // Electron webRequest URL patterns do not accept explicit ports, so match the
+  // local hosts and gate on the port inside the callback.
   win.webContents.session.webRequest.onHeadersReceived(
-    { urls: ['*://localhost:8000/*', '*://127.0.0.1:8000/*'] },
+    { urls: ['http://localhost/*', 'http://127.0.0.1/*'] },
     (details, callback) => {
+      const requestUrl = new URL(details.url)
+      if (requestUrl.port !== '8000') {
+        callback({})
+        return
+      }
+
       const responseHeaders = details.responseHeaders || {}
       const hasCorsOrigin = Object.keys(responseHeaders).some(
         (k) => k.toLowerCase() === 'access-control-allow-origin'
@@ -495,6 +523,68 @@ async function buildMediaTree(
 ipcMain.handle('fs:listMediaTree', async (_event, folderPath: string) => {
   await assertPathInSourceFolders(folderPath)
   return buildMediaTree(folderPath, 10, new Set())
+})
+
+ipcMain.handle('fs:watchMediaTree', async (event, folderPath: string) => {
+  await assertPathInSourceFolders(folderPath)
+
+  const normalizedFolderPath = normalize(folderPath)
+  const watchId = nextMediaTreeWatchId++
+  const sender = event.sender
+
+  const handleChange = (_eventType: string, changedName: string | Buffer | null) => {
+    const entry = mediaTreeWatchers.get(watchId)
+    if (entry?.debounceTimer) {
+      clearTimeout(entry.debounceTimer)
+    }
+
+    const debounceTimer = setTimeout(() => {
+      if (sender.isDestroyed()) {
+        closeMediaTreeWatch(watchId)
+        return
+      }
+
+      sender.send('fs:mediaTreeChanged', {
+        folderPath,
+        changedPath: changedName
+          ? join(normalizedFolderPath, changedName.toString())
+          : null,
+      })
+    }, 250)
+
+    if (entry) {
+      entry.debounceTimer = debounceTimer
+    }
+  }
+
+  let watcher: fs.FSWatcher
+  try {
+    watcher = fs.watch(normalizedFolderPath, { recursive: true }, handleChange)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
+      throw error
+    }
+    watcher = fs.watch(normalizedFolderPath, handleChange)
+  }
+
+  mediaTreeWatchers.set(watchId, {
+    watcher,
+    debounceTimer: null,
+    ownerWebContentsId: sender.id,
+  })
+
+  sender.once('destroyed', () => {
+    closeMediaTreeWatch(watchId)
+  })
+
+  return watchId
+})
+
+ipcMain.handle('fs:unwatchMediaTree', (event, watchId: number) => {
+  const entry = mediaTreeWatchers.get(watchId)
+  if (entry?.ownerWebContentsId === event.sender.id) {
+    closeMediaTreeWatch(watchId)
+  }
 })
 
 // IPC: config store

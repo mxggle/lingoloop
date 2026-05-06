@@ -160,9 +160,9 @@ export const AppLayoutBase = ({
 
                       {(
                         [
-                          ["showWaveform", "layout.waveform"],
-                          ["showTranscript", "layout.transcript"],
-                          ["showControls", "layout.controls"],
+                          ["transcriptPanelVisible", "layout.transcript"],
+                          ["videoPanelVisible", "player.video"],
+                          ["timelinePanelVisible", "layout.waveform"],
                         ] as const
                       ).map(([key, labelKey]) => (
                         <div key={key} className="flex items-center justify-between">
@@ -178,7 +178,10 @@ export const AppLayoutBase = ({
                           </div>
                           <button
                             onClick={() =>
-                              setLayoutSettings({ ...layoutSettings, [key]: !layoutSettings[key] })
+                              setLayoutSettings((current) => ({
+                                ...current,
+                                [key]: !current[key],
+                              }))
                             }
                             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                               layoutSettings[key]
@@ -293,7 +296,7 @@ export const AppLayoutBase = ({
           </div>
         </header>
 
-        <main className={`flex flex-1 min-h-0 w-full flex-col overflow-y-auto ${bottomPaddingClassName}`}>
+        <main className={`flex flex-1 min-h-0 w-full flex-col overflow-y-auto overflow-x-hidden ${bottomPaddingClassName}`}>
           {children}
         </main>
       </div>

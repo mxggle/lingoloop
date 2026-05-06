@@ -103,6 +103,80 @@ body {
     background: rgb(var(--theme-primary-rgb) / 0.55);
 }
 
+/* Resizable media workspace: hide secondary controls before text or frames crush. */
+.timeline-panel-shell,
+.transcript-panel-main {
+    container-type: inline-size;
+}
+
+.timeline-panel-shell {
+    container-name: timeline-panel;
+}
+
+.transcript-panel-main {
+    container-name: transcript-panel;
+}
+
+@container timeline-panel (max-width: 720px) {
+    .timeline-time {
+        display: none !important;
+    }
+}
+
+@container timeline-panel (max-width: 560px) {
+    .timeline-secondary-action {
+        display: none !important;
+    }
+    .timeline-panel-controls {
+        margin-left: 0;
+        padding-left: 0.25rem;
+    }
+}
+
+@container timeline-panel (max-width: 420px) {
+    .timeline-toolbar {
+        gap: 0.25rem;
+        padding-inline: 0.5rem;
+    }
+    .timeline-ruler {
+        display: none;
+    }
+    .timeline-waveform-frame {
+        min-height: 72px;
+    }
+}
+
+@container transcript-panel (max-width: 620px) {
+    .transcript-secondary-control {
+        display: none !important;
+    }
+    .transcript-content-scroll {
+        padding-inline: 1rem !important;
+        padding-top: 1.5rem !important;
+    }
+}
+
+@container transcript-panel (max-width: 460px) {
+    .transcript-header {
+        padding-inline: 0.75rem;
+    }
+    .transcript-header-title {
+        max-width: 9rem;
+    }
+    .transcript-language-select select {
+        max-width: 7rem;
+    }
+}
+
+@container transcript-panel (max-width: 360px) {
+    .transcript-language-select {
+        display: none;
+    }
+    .transcript-content-scroll {
+        padding-inline: 0.75rem !important;
+    }
+}
+
 /* Custom CSS for syntax highlighting and markdown */
 
 .markdown-content {

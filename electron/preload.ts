@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { IpcRendererEvent } from 'electron'
 
 type SettingsWindowTab = 'general' | 'ai'
+type MediaTreeChangedPayload = {
+  folderPath: string
+  changedPath: string | null
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
@@ -16,6 +21,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('fs:listMediaFiles', folderPath),
   listMediaTree: (folderPath: string) =>
     ipcRenderer.invoke('fs:listMediaTree', folderPath),
+  watchMediaTree: (
+    folderPath: string,
+    onChange: (payload: MediaTreeChangedPayload) => void,
+  ) => {
+    let active = true
+    let watchId: number | null = null
+    const listener = (_event: IpcRendererEvent, payload: MediaTreeChangedPayload) => {
+      if (active && payload.folderPath === folderPath) {
+        onChange(payload)
+      }
+    }
+
+    ipcRenderer.on('fs:mediaTreeChanged', listener)
+    void ipcRenderer
+      .invoke('fs:watchMediaTree', folderPath)
+      .then((id: number) => {
+        if (!active) {
+          void ipcRenderer.invoke('fs:unwatchMediaTree', id)
+          return
+        }
+        watchId = id
+      })
+      .catch((error) => {
+        ipcRenderer.removeListener('fs:mediaTreeChanged', listener)
+        console.error('Failed to watch media tree:', error)
+      })
+
+    return () => {
+      active = false
+      ipcRenderer.removeListener('fs:mediaTreeChanged', listener)
+      if (watchId !== null) {
+        void ipcRenderer.invoke('fs:unwatchMediaTree', watchId)
+      }
+    }
+  },
   configGet: (key: string) => ipcRenderer.invoke('config:get', key),
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke('config:set', key, value),

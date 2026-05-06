@@ -207,7 +207,6 @@ export const TranscriptSelectionPopover = ({
 
     if (saved) {
       toast.success(t("glossary.saved"));
-      onClose();
     }
   };
 

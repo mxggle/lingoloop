@@ -7,6 +7,13 @@ export interface LayoutSettings {
   showWaveform: boolean;
   showTranscript: boolean;
   showControls: boolean;
+  // panel visibility states
+  transcriptPanelVisible: boolean;
+  transcriptPanelCollapsed: boolean;
+  videoPanelVisible: boolean;
+  videoPanelCollapsed: boolean;
+  timelinePanelVisible: boolean;
+  timelinePanelCollapsed: boolean;
 }
 
 export interface LayoutState {
@@ -15,11 +22,42 @@ export interface LayoutState {
   updateLayoutSettings: (changes: Partial<LayoutSettings>) => void;
 }
 
-const defaultLayoutSettings: LayoutSettings = {
+export const defaultLayoutSettings: LayoutSettings = {
   showPlayer: true,
   showWaveform: true,
   showTranscript: true,
   showControls: true,
+  transcriptPanelVisible: true,
+  transcriptPanelCollapsed: false,
+  videoPanelVisible: true,
+  videoPanelCollapsed: false,
+  timelinePanelVisible: true,
+  timelinePanelCollapsed: false,
+};
+
+const isLayoutSettingsLike = (value: unknown): value is Partial<LayoutSettings> =>
+  typeof value === "object" && value !== null;
+
+export const mergePersistedLayoutState = (
+  persistedState: unknown,
+  currentState: LayoutState,
+): LayoutState => {
+  if (typeof persistedState !== "object" || persistedState === null) {
+    return currentState;
+  }
+
+  const persisted = persistedState as { layoutSettings?: unknown };
+  const persistedLayoutSettings = isLayoutSettingsLike(persisted.layoutSettings)
+    ? persisted.layoutSettings
+    : {};
+
+  return {
+    ...currentState,
+    layoutSettings: {
+      ...defaultLayoutSettings,
+      ...persistedLayoutSettings,
+    },
+  };
 };
 
 export const useLayoutStore = create<LayoutState>()(
@@ -38,6 +76,7 @@ export const useLayoutStore = create<LayoutState>()(
     {
       name: "layout-storage",
       storage: createJSONStorage(() => electronStorage),
+      merge: mergePersistedLayoutState,
     }
   )
 );

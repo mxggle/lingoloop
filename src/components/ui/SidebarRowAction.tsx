@@ -7,7 +7,7 @@ interface SidebarRowActionProps extends React.ButtonHTMLAttributes<HTMLButtonEle
 }
 
 export const SidebarRowAction = React.forwardRef<HTMLButtonElement, SidebarRowActionProps>(
-  ({ icon, variant = "default", className, title, ...props }, ref) => {
+  ({ icon, variant = "default", className, title, onClick, ...props }, ref) => {
     const variants = {
       default: "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5",
       error: "text-gray-400 hover:text-error-600 dark:hover:text-error-400 hover:bg-error-50 dark:hover:bg-error-950/30",
@@ -27,7 +27,7 @@ export const SidebarRowAction = React.forwardRef<HTMLButtonElement, SidebarRowAc
         )}
         onClick={(e) => {
           e.stopPropagation();
-          props.onClick?.(e);
+          onClick?.(e);
         }}
         {...props}
       >

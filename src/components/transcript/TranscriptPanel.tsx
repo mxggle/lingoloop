@@ -1389,10 +1389,18 @@ export const TranscriptPanel = () => {
           )}
 
           {bookmarks.map(b => (
-            <button
+            <div
               key={b.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleTabSelect(b.id)}
-              className={`group w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center justify-between outline-none focus-visible:ring-1 focus-visible:ring-primary-500 ${activeTabId === b.id
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleTabSelect(b.id);
+                }
+              }}
+              className={`group w-full text-left px-3 py-2 rounded text-sm transition-colors flex items-center justify-between outline-none focus-visible:ring-1 focus-visible:ring-primary-500 cursor-pointer ${activeTabId === b.id
                 ? "bg-primary-100 dark:bg-primary-900/30"
                 : "hover:bg-gray-100 dark:hover:bg-gray-800"
                 }`}
@@ -1434,7 +1442,7 @@ export const TranscriptPanel = () => {
                   <Trash size={14} />
                 </button>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>

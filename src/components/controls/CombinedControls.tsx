@@ -1,4 +1,7 @@
-
+/**
+ * @deprecated Playback controls have been moved to TimelineToolbar inside TimelinePanel.
+ * This component is kept for reference but no longer rendered in PlayerPage.
+ */
 import { usePlayerStore } from "../../stores/playerStore";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";

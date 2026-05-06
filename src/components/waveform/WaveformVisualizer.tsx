@@ -27,6 +27,7 @@ import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useThemeStore } from "../../stores/themeStore";
 import { hexToRgba } from "../../utils/theme";
+import { cn } from "../../utils/cn";
 import { checkAudioRecordingSupport, getRecordingUnsupportedMessage } from "../../utils/browserCheck";
 import { useShadowingRecorder } from "../../hooks/useShadowingRecorder";
 import {
@@ -101,7 +102,11 @@ const formatTime = (time: number): string => {
 };
 
 
-export const WaveformVisualizer = () => {
+interface WaveformVisualizerProps {
+  className?: string;
+}
+
+export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   const { t } = useTranslation();
   const { colors } = useThemeStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1731,8 +1736,8 @@ export const WaveformVisualizer = () => {
   };
 
   return (
-    <>
-      <div className="mt-2 backdrop-blur-sm rounded-lg overflow-hidden border border-primary-500/30 relative">
+    <div className={cn("flex flex-col w-full h-full", className)}>
+      <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Zoom controls - moved to top-left; hidden on mobile (use pinch) */}
         {/* {!isMobile && (
         <div className={`absolute top-1 left-1 z-10 flex items-center gap-1 bg-gray-900/60 backdrop-blur rounded-full ring-1 ring-white/10 shadow-md px-1.5 py-1`}>
@@ -1766,8 +1771,7 @@ export const WaveformVisualizer = () => {
         {/* Waveform visualization with drag selection and touch support */}
         <div
           ref={containerRef}
-          className={`${isMobile ? "h-56" : "h-40 sm:h-48 lg:h-56"
-            } overflow-hidden relative touch-none select-none`}
+          className={`flex-1 min-h-0 overflow-hidden relative touch-none select-none`}
           style={{ touchAction: "none" }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
@@ -2235,6 +2239,6 @@ export const WaveformVisualizer = () => {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };

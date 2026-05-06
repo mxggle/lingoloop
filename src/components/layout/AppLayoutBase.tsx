@@ -296,7 +296,7 @@ export const AppLayoutBase = ({
           </div>
         </header>
 
-        <main className={`flex flex-1 min-h-0 w-full flex-col overflow-y-auto ${bottomPaddingClassName}`}>
+        <main className={`flex flex-1 min-h-0 w-full flex-col overflow-y-auto overflow-x-hidden ${bottomPaddingClassName}`}>
           {children}
         </main>
       </div>

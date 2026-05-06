@@ -28,7 +28,7 @@ export const TimelinePanel = ({
   // Collapsed mode: only toolbar + thin progress bar
   if (collapsed) {
     return (
-      <div className={cn("flex flex-col bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
+      <div className={cn("timeline-panel-shell flex flex-col bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
         <TimelineToolbar
           collapsed={collapsed}
           onCollapse={onCollapse}
@@ -52,7 +52,7 @@ export const TimelinePanel = ({
 
   // Full mode: toolbar + time ruler + waveform
   return (
-    <div className={cn("flex flex-col min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-hidden", className)}>
+    <div className={cn("timeline-panel-shell flex flex-col min-h-0 max-h-[360px] bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       <TimelineToolbar
         collapsed={collapsed}
         onCollapse={onCollapse}
@@ -60,14 +60,14 @@ export const TimelinePanel = ({
         onHide={onHide}
       />
 
-      {/* Time ruler */}
-      <div className="h-5 px-3 bg-white dark:bg-gray-950/40 border-b border-gray-100 dark:border-white/5 relative select-none">
+      {/* Time ruler – hides on very narrow panels */}
+      <div className="timeline-ruler h-5 shrink-0 px-3 bg-white dark:bg-gray-950/40 border-b border-gray-100 dark:border-white/5 relative select-none min-w-0 overflow-hidden">
         <TimeRuler duration={duration} />
       </div>
 
       {/* Waveform */}
-      <div className="flex-1 min-h-0 bg-gray-100 dark:bg-[#0a0a1a] relative">
-        <WaveformVisualizer className="w-full h-full" />
+      <div className="timeline-waveform-frame flex-1 min-h-[96px] max-h-[260px] bg-gray-100 dark:bg-[#0a0a1a] relative overflow-hidden">
+        <WaveformVisualizer className="mx-auto h-full max-h-[260px] w-full max-w-[1280px]" />
       </div>
     </div>
   );
@@ -79,13 +79,13 @@ function TimeRuler({ duration }: { duration: number }) {
 
   const markers = 5;
   return (
-    <div className="flex items-end h-full relative">
+    <div className="flex items-end h-full relative min-w-0 overflow-hidden">
       {Array.from({ length: markers }).map((_, i) => {
         const time = (duration / (markers - 1)) * i;
         return (
           <div
             key={i}
-            className="absolute bottom-0 text-[9px] text-gray-400 font-mono tabular-nums"
+            className="absolute bottom-0 text-[9px] text-gray-400 font-mono tabular-nums whitespace-nowrap"
             style={{ left: `${(i / (markers - 1)) * 100}%`, transform: "translateX(-50%)" }}
           >
             {formatTime(time)}

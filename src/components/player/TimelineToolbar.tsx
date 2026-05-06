@@ -83,7 +83,7 @@ export const TimelineToolbar = ({
   const toggleShadowing = () => setShadowingMode(!isShadowingMode);
 
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
+    <div className="timeline-toolbar flex min-w-0 items-center gap-1.5 sm:gap-2 overflow-hidden px-2 sm:px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
       {/* Playback controls */}
       <div className="flex items-center gap-0.5 sm:gap-1">
         <button
@@ -112,18 +112,19 @@ export const TimelineToolbar = ({
         </button>
       </div>
 
-      {/* Time display */}
-      <div className="hidden sm:block text-xs font-mono text-gray-700 dark:text-gray-300 tabular-nums whitespace-nowrap">
+      {/* Time display – hides on narrow panels */}
+      <div className="timeline-time hidden md:block text-xs font-mono text-gray-700 dark:text-gray-300 tabular-nums whitespace-nowrap">
         {formatTime(currentTime)} / {formatTime(duration)}
       </div>
 
-      <div className="flex-1" />
+      <div className="min-w-1 flex-1" />
 
       {/* Function buttons */}
-      <div className="flex items-center gap-0.5 sm:gap-1">
+      <div className="timeline-actions flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
         <button
           onClick={toggleShadowing}
           className={cn(
+            "timeline-secondary-action",
             "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors",
             isShadowingMode
               ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
@@ -161,6 +162,7 @@ export const TimelineToolbar = ({
         <button
           onClick={() => setIsLooping(!isLooping)}
           className={cn(
+            "timeline-secondary-action",
             "p-1.5 rounded-full transition-colors active:scale-90",
             isLooping
               ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
@@ -173,7 +175,7 @@ export const TimelineToolbar = ({
 
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <button className="timeline-secondary-action flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
               <span>{playbackRate.toFixed(2)}x</span>
               <ChevronDown size={12} />
             </button>
@@ -193,7 +195,7 @@ export const TimelineToolbar = ({
 
         <button
           onClick={() => navigate("/sentence-practice")}
-          className="p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+          className="timeline-secondary-action hidden lg:flex p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
           title={t("sentencePractice.title")}
         >
           <ListMusic size={16} />
@@ -201,7 +203,7 @@ export const TimelineToolbar = ({
 
         <Popover>
           <PopoverTrigger asChild>
-            <button className="p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
+            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
               {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
           </PopoverTrigger>
@@ -217,7 +219,7 @@ export const TimelineToolbar = ({
 
         <Popover>
           <PopoverTrigger asChild>
-            <button className="p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
+            <button className="timeline-secondary-action hidden sm:flex p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
               <Settings2 size={16} />
             </button>
           </PopoverTrigger>
@@ -242,7 +244,7 @@ export const TimelineToolbar = ({
       </div>
 
       {/* Panel controls */}
-      <div className="flex items-center gap-0.5 ml-1 pl-2 border-l border-gray-200 dark:border-white/10">
+      <div className="timeline-panel-controls flex shrink-0 items-center gap-0.5 ml-1 pl-2 border-l border-gray-200 dark:border-white/10">
         {collapsed ? (
           <button onClick={onExpand} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Expand">
             <Square size={12} />

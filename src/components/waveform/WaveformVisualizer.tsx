@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
+import type { LoopBookmark } from "../../stores/playerStore";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useShadowingStore } from "../../stores/shadowingStore";
 import { useShallow } from "zustand/react/shallow";
@@ -48,7 +49,12 @@ type ShadowingSegmentView = {
 };
 
 const EMPTY_SEGMENTS: readonly ShadowingSegmentView[] = Object.freeze([]);
-const EMPTY_BOOKMARKS: readonly any[] = Object.freeze([]);
+const EMPTY_BOOKMARKS: readonly LoopBookmark[] = Object.freeze([]);
+
+type BrowserWindowWithLegacyAudio = Window &
+  typeof globalThis & {
+    webkitAudioContext?: typeof AudioContext;
+  };
 
 const normalizeCachedWaveform = (
   waveform: CachedWaveformData
@@ -70,10 +76,13 @@ type ShadowWaveform = {
   duration: number;
 };
 
-type RecordingOverlay = {
+type CurrentRecordingOverlay = {
   startTime: number;
   peaks: number[];
   peakTimes: number[];
+};
+
+type RecordingOverlay = CurrentRecordingOverlay & {
   startedAt: number;
 };
 
@@ -215,7 +224,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   const [shadowingWaveforms, setShadowingWaveforms] = useState<ShadowWaveform[]>([]);
   const [fadingRecording, setFadingRecording] = useState<RecordingOverlay | null>(null);
-  const previousCurrentRecordingRef = useRef<typeof currentRecording>(null);
+  const previousCurrentRecordingRef = useRef<CurrentRecordingOverlay | null>(null);
   const [fadeFrame, setFadeFrame] = useState(0);
 
   // Shadowing panel expand/collapse state
@@ -260,7 +269,11 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
             if (!file) return null;
 
             const arrayBuffer = await file.arrayBuffer();
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContextCtor =
+              window.AudioContext ||
+              (window as BrowserWindowWithLegacyAudio).webkitAudioContext;
+            if (!AudioContextCtor) return null;
+            const audioContext = new AudioContextCtor();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
             const fileOffset = seg.fileOffset || 0;
@@ -399,7 +412,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
     const scheduleBackgroundAnalysis = (task: () => void) => {
       if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-        idleId = (window as any).requestIdleCallback(() => task());
+        idleId = window.requestIdleCallback(() => task());
         return;
       }
       timeoutId = globalThis.setTimeout(task, 0);
@@ -510,7 +523,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     loadAudio();
     return () => {
       cancelled = true;
-      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) (window as any).cancelIdleCallback(idleId);
+      if (idleId !== null && typeof window !== "undefined" && "cancelIdleCallback" in window) window.cancelIdleCallback(idleId);
       if (timeoutId !== null) globalThis.clearTimeout(timeoutId);
     };
   }, [currentFile, currentYouTube, duration]);
@@ -709,7 +722,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
         }
       });
 
-      const drawRecordingOverlay = (recording: any, color: string, alpha = 1) => {
+      const drawRecordingOverlay = (recording: CurrentRecordingOverlay, color: string, alpha = 1) => {
         if (!recording.peaks?.length || shadowHeight <= 0) return;
         ctx.save();
         ctx.globalAlpha = alpha;
@@ -1009,7 +1022,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   if (!showWaveform || !hasMedia) return null;
 
   return (
-    <div className={cn("flex flex-col w-full h-full", className)}>
+    <div className={cn("flex flex-col w-full h-full max-w-[1280px] max-h-[260px]", className)}>
       <div className="relative flex flex-col flex-1 min-h-0 overflow-hidden">
         <div
           ref={containerRef}

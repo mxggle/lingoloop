@@ -39,16 +39,18 @@ export const MediaPreviewPanel = ({
         onHide={onHide}
       />
       {!collapsed && (
-        <div className="flex-1 min-h-0 bg-black flex items-center justify-center">
-          {youtubeId && !currentFile && (
-            <YouTubePlayer videoId={youtubeId} />
-          )}
-          {currentFile && <MediaPlayer />}
-          {!currentFile && !youtubeId && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {t("player.noMediaLoaded")}
-            </span>
-          )}
+        <div className="flex-1 min-h-0 bg-black flex items-center justify-center overflow-hidden">
+          <div className="w-full h-full max-h-[60vh] flex items-center justify-center">
+            {youtubeId && !currentFile && (
+              <YouTubePlayer videoId={youtubeId} />
+            )}
+            {currentFile && <MediaPlayer />}
+            {!currentFile && !youtubeId && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {t("player.noMediaLoaded")}
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

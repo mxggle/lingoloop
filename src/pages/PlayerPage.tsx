@@ -96,7 +96,7 @@ export const PlayerPage = () => {
 
   return (
     <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
-      <div className="relative flex flex-1 min-h-0 flex-col h-full overflow-hidden">
+      <div className="relative flex flex-1 min-h-0 flex-col h-full overflow-hidden overflow-x-hidden">
         {activeResizeAxis && (
           <div
             className={cn(
@@ -130,17 +130,17 @@ export const PlayerPage = () => {
                 <MediaPlayer hiddenMode={true} />
               </div>
             )}
-            <Group orientation="vertical" className="flex-1 min-h-0">
-            {/* Upper area: Transcript + Video */}
-            <Panel
-              id="player-main-panel"
-              defaultSize="65%"
-              minSize="20%"
-              maxSize="85%"
-              collapsible
-              collapsedSize="0%"
-              className={cn(!layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
-            >
+            <Group orientation="vertical" className="flex-1 min-h-0 overflow-hidden">
+              {/* Upper area: Transcript + Video */}
+              <Panel
+                id="player-main-panel"
+                defaultSize="70%"
+                minSize="20%"
+                maxSize="88%"
+                collapsible
+                collapsedSize="0%"
+                className={cn(!layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
+              >
               <Group id="player-upper-layout" orientation="horizontal" className="h-full">
                 {/* Transcript Panel */}
                 {layoutSettings.transcriptPanelVisible && (
@@ -153,7 +153,7 @@ export const PlayerPage = () => {
                     collapsedSize="5%"
                     className="min-w-0"
                   >
-                    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden overflow-x-hidden">
                       <PanelHeader
                         title={t("transcript.title")}
                         collapsed={layoutSettings.transcriptPanelCollapsed}
@@ -162,7 +162,7 @@ export const PlayerPage = () => {
                         onHide={() => togglePanel("transcript")}
                       />
                       {!layoutSettings.transcriptPanelCollapsed && (
-                        <div className="flex-1 min-h-0 overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-hidden overflow-x-hidden">
                           <TranscriptPanel />
                         </div>
                       )}
@@ -198,7 +198,7 @@ export const PlayerPage = () => {
                       onCollapse={() => collapsePanel("video", true)}
                       onExpand={() => collapsePanel("video", false)}
                       onHide={() => togglePanel("video")}
-                      className="h-full"
+                      className="h-full overflow-hidden"
                     />
                   </Panel>
                 )}
@@ -220,12 +220,12 @@ export const PlayerPage = () => {
             {layoutSettings.timelinePanelVisible && (
               <Panel
                 id="player-timeline-panel"
-                defaultSize="35%"
-                minSize="10%"
-                maxSize="60%"
+                defaultSize="30%"
+                minSize="12%"
+                maxSize="38%"
                 collapsible
                 collapsedSize="6%"
-                className="min-h-0"
+                className="min-h-0 max-h-[380px] overflow-hidden"
               >
                 <TimelinePanel
                   visible={true}

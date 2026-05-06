@@ -1448,10 +1448,10 @@ export const TranscriptPanel = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md">
-          <div className="flex items-center min-w-0 mr-4">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+      <div className="transcript-panel-main flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-transparent">
+        <div className="transcript-header flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 dark:border-white/5 bg-white dark:bg-gray-950/60 backdrop-blur-md min-w-0 gap-2">
+          <div className="flex items-center min-w-0 mr-2">
+            <h3 className="transcript-header-title text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
               {activeTabId
                 ? bookmarks.find(b => b.id === activeTabId)?.name || t("transcript.title")
                 : t("transcript.title")
@@ -1467,7 +1467,7 @@ export const TranscriptPanel = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="transcript-header-actions flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-hidden">
             <button
               onClick={() => setHighlightsEnabled((previous) => !previous)}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${highlightsEnabled
@@ -1479,12 +1479,14 @@ export const TranscriptPanel = () => {
               <span className="text-[10px] font-semibold uppercase tracking-wide">
                 {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
               </span>
-              {highlightsEnabled
-                ? t("transcript.levelsOn")
-                : t("transcript.levelsOff")}
+              <span className="hidden sm:inline">
+                {highlightsEnabled
+                  ? t("transcript.levelsOn")
+                  : t("transcript.levelsOff")}
+              </span>
             </button>
 
-            <div className="relative">
+            <div className="transcript-secondary-control relative hidden sm:block">
               <button
                 onClick={() => setLevelFilterOpen((open) => !open)}
                 disabled={!highlightsEnabled}
@@ -1528,7 +1530,7 @@ export const TranscriptPanel = () => {
               )}
             </div>
 
-            <div className="relative">
+            <div className="transcript-language-select relative">
               <select
                 value={transcriptLanguage}
                 onChange={(e) => setTranscriptLanguage(e.target.value)}
@@ -1545,14 +1547,14 @@ export const TranscriptPanel = () => {
               </span>
             </div>
 
-            <div className="relative">
+            <div className="transcript-secondary-control relative hidden md:block">
               <button
                 onClick={() => setExportOpen((o) => !o)}
                 disabled={transcriptSegments.length === 0}
                 className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               >
                 <Download size={13} />
-                {t("common.export")}
+                <span className="hidden lg:inline">{t("common.export")}</span>
                 <span className="text-[10px]">{t("transcript.dropdownArrow")}</span>
               </button>
               {exportOpen && (
@@ -1586,7 +1588,7 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={scrollToActiveSegment}
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
+              className="transcript-secondary-control hidden sm:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
               title={t("transcript.scrollToCurrent")}
               disabled={filteredSegments.length === 0}
             >
@@ -1595,7 +1597,7 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={handleOpenAISettings}
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+              className="transcript-secondary-control hidden sm:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
               title={t("transcript.openAiSettings")}
             >
               <Settings size={16} />
@@ -1603,7 +1605,7 @@ export const TranscriptPanel = () => {
 
             <button
               onClick={() => navigate("/sentence-practice")}
-              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
+              className="transcript-secondary-control hidden lg:flex p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 disabled:opacity-40 transition-all duration-200 active:scale-90"
               title={t("sentencePractice.title")}
               disabled={transcriptSegments.length === 0}
             >
@@ -1623,7 +1625,7 @@ export const TranscriptPanel = () => {
 
         <div
           ref={transcriptRef}
-          className="flex-1 min-h-0 overflow-y-auto px-6 pt-12 pb-8 md:px-12 lg:px-24 md:pb-16"
+          className="transcript-content-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 pt-8 pb-6 md:px-8 lg:px-16 md:pb-12"
         >
           {showApiKeyInput && (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md mb-3">

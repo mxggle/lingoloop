@@ -21,14 +21,14 @@ export const PanelHeader = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none",
+        "flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none min-w-0",
         className
       )}
     >
-      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+      <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 mr-2">
         {title}
       </span>
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 flex-shrink-0">
         {collapsed ? (
           <button
             onClick={onExpand}

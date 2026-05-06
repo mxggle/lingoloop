@@ -616,7 +616,6 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
             onDurationChange={handleDurationChange}
             onEnded={handleEnded}
             onError={handleError}
-            controls
             preload="metadata"
           />
         ) : (
@@ -645,7 +644,6 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
           onDurationChange={handleDurationChange}
           onEnded={handleEnded}
           onError={handleError}
-          controls
           preload="metadata"
         />
       ) : (

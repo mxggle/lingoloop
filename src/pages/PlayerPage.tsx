@@ -119,7 +119,7 @@ export const PlayerPage = () => {
                       <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mr-1">
                         {/* Transcript header */}
                         <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none">
-                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 tracking-wider truncate">
                             {t("transcript.title")}
                           </span>
                           <div className="flex items-center gap-0.5">

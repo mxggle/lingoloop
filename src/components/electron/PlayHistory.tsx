@@ -103,9 +103,10 @@ export const PlayHistory = () => {
               primaryText={item.name}
               secondaryText={getSubtext(item)}
               className="h-auto py-1.5"
+              actionAreaClassName="bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm rounded-md"
               actions={
                 <>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums group-hover:hidden mr-1">
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums group-hover:hidden group-focus-within:hidden mr-1">
                     {timeAgo(item.accessedAt, t)}
                   </span>
                   {nativePath && (
@@ -113,7 +114,7 @@ export const PlayHistory = () => {
                       icon={<SquareArrowOutUpRight />}
                       onClick={() => void revealInFileManager(nativePath)}
                       title={showInFileManagerLabel}
-                      className="hidden group-hover:flex"
+                      className="hidden group-hover:flex group-focus-within:flex"
                     />
                   )}
                   <SidebarRowAction
@@ -121,7 +122,7 @@ export const PlayHistory = () => {
                     icon={<X />}
                     onClick={(e) => handleRemove(e as React.MouseEvent, item.id)}
                     title={t("sidebar.removeItem", "Remove")}
-                    className="hidden group-hover:flex"
+                    className="hidden group-hover:flex group-focus-within:flex"
                   />
                 </>
               }
@@ -132,4 +133,3 @@ export const PlayHistory = () => {
     </ul>
   );
 };
-

@@ -12,6 +12,11 @@ export interface FolderTreeNode {
   children?: FolderTreeNode[]
 }
 
+export interface MediaTreeChangedPayload {
+  folderPath: string
+  changedPath: string | null
+}
+
 interface ElectronAPI {
   isElectron: boolean
   platform: string
@@ -22,6 +27,10 @@ interface ElectronAPI {
   showInFileManager: (targetPath: string) => Promise<boolean>
   listMediaFiles: (folderPath: string) => Promise<ElectronMediaFile[]>
   listMediaTree: (folderPath: string) => Promise<FolderTreeNode[]>
+  watchMediaTree: (
+    folderPath: string,
+    onChange: (payload: MediaTreeChangedPayload) => void,
+  ) => () => void
   configGet: (key: string) => Promise<unknown>
   configSet: (key: string, value: unknown) => Promise<void>
   configGetAll: () => Promise<unknown>

@@ -1,57 +1,46 @@
+// src/pages/PlayerPage.tsx
 import { useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
 import { useShallow } from "zustand/react/shallow";
-import { MediaPlayer } from "../components/player/MediaPlayer";
-import { YouTubePlayer } from "../components/player/YouTubePlayer";
-import { CombinedControls } from "../components/controls/CombinedControls";
-import { MobileControls } from "../components/controls/MobileControls";
+import { MediaPreviewPanel } from "../components/player/MediaPreviewPanel";
+import { TimelinePanel } from "../components/player/TimelinePanel";
 import { isElectron } from "../utils/platform";
 import { MediaHistory } from "../components/web/MediaHistory";
-import { WaveformVisualizer } from "../components/waveform/WaveformVisualizer";
 import { TranscriptPanel } from "../components/transcript";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
-import { useWindowSize } from "../hooks/useWindowSize";
 import { usePlaybackPersistence } from "../hooks/usePlaybackPersistence";
 import { AppLayout } from "../components/layout/AppLayout";
 import { useLayoutSettings } from "../contexts/layoutSettings";
+import { Panel, Group, Separator } from "react-resizable-panels";
+import { cn } from "../utils/cn";
 
 export const PlayerPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const { layoutSettings, setLayoutSettings } = useLayoutSettings();
-  const { isMobile } = useWindowSize();
   const layoutInitializedForRef = useRef<string | null>(null);
-  const isOnPlayer = location.pathname === "/player";
 
-  const { currentFile, currentYouTube, showWaveform, isLoadingMedia } =
-    usePlayerStore(
-      useShallow((state) => ({
-        currentFile: state.currentFile,
-        currentYouTube: state.currentYouTube,
-        showWaveform: state.showWaveform,
-        isLoadingMedia: state.isLoadingMedia,
-      }))
-    );
+  const { currentFile, currentYouTube, isLoadingMedia } = usePlayerStore(
+    useShallow((state) => ({
+      currentFile: state.currentFile,
+      currentYouTube: state.currentYouTube,
+      isLoadingMedia: state.isLoadingMedia,
+    }))
+  );
 
-  // Initialize keyboard shortcuts
   useKeyboardShortcuts();
-
-  // Initialize playback persistence
   usePlaybackPersistence();
 
-  // Redirect to home if no media is available and not loading
+  // Redirect to home if no media
   useEffect(() => {
     if (!currentFile && !currentYouTube && !isLoadingMedia) {
       navigate("/");
     }
   }, [currentFile, currentYouTube, isLoadingMedia, navigate]);
 
-  const youtubeId = currentYouTube?.id;
-
-  // Auto-default player visibility based on media type — only when media changes, not on re-mount
+  // Auto-default player visibility based on media type
   useEffect(() => {
     if (currentFile) {
       const mediaKey = currentFile.storageId || currentFile.id || currentFile.name;
@@ -64,103 +53,166 @@ export const PlayerPage = () => {
   }, [currentFile, setLayoutSettings]);
 
   useEffect(() => {
-    if (youtubeId && !currentFile) {
+    if (currentYouTube?.id && !currentFile) {
       setLayoutSettings((prev) => ({ ...prev, showPlayer: true }));
     }
-  }, [youtubeId, currentFile, setLayoutSettings]);
+  }, [currentYouTube, currentFile, setLayoutSettings]);
+
+  // Auto-hide video panel for audio files
+  const isAudioOnly = currentFile?.type.includes("audio") && !currentFile?.type.includes("video");
+  const effectiveVideoVisible = layoutSettings.videoPanelVisible && !isAudioOnly;
+
+  const hasMedia = !!(currentFile || currentYouTube?.id);
+
+  // Panel toggle helpers
+  const togglePanel = (panel: "transcript" | "video" | "timeline") => {
+    const key = `${panel}PanelVisible` as const;
+    setLayoutSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const collapsePanel = (panel: "transcript" | "video" | "timeline", collapsed: boolean) => {
+    const key = `${panel}PanelCollapsed` as const;
+    setLayoutSettings((prev) => ({ ...prev, [key]: collapsed }));
+  };
 
   return (
-    <AppLayout
-      layoutSettings={layoutSettings}
-      setLayoutSettings={setLayoutSettings}
-      bottomPaddingClassName="pb-0"
-    >
+    <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
       <div className="flex flex-1 min-h-0 flex-col h-full overflow-hidden">
-        {/* Show loading message if media is being loaded */}
-        {
-          isLoadingMedia && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                <p className="text-lg text-gray-600 dark:text-gray-300">
-                  {t("common.loading")}
-                </p>
-              </div>
+        {/* Loading / no media states */}
+        {isLoadingMedia && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
+              <p className="text-lg text-gray-600 dark:text-gray-300">{t("common.loading")}</p>
             </div>
-          )
-        }
+          </div>
+        )}
+        {!currentFile && !currentYouTube && !isLoadingMedia && (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-lg text-gray-600 dark:text-gray-300">{t("player.noMediaLoaded")}</p>
+          </div>
+        )}
 
-        {/* Show message if no media is available and not loading */}
-        {
-          !currentFile && !youtubeId && !isLoadingMedia && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
-                  {t("player.noMediaLoaded")}
-                </p>
-              </div>
-            </div>
-          )
-        }
-
-        {/* Player Section - Always render media elements for functionality, but handle visibility appropriately */}
-        {
-          (youtubeId || currentFile) && (
-            <>
-              {/* When player is hidden, render only the functional media elements with no UI or space */}
-              {!layoutSettings.showPlayer ? (
-                youtubeId && !currentFile ? (
-                  <YouTubePlayer videoId={youtubeId} hiddenMode={true} />
-                ) : (
-                  <MediaPlayer hiddenMode={true} />
-                )
-              ) : (
-                /* When player is visible, render the full UI */
-                <div className="relative shrink-0 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-700 bg-black/5 dark:bg-white/5">
-                  {youtubeId && !currentFile && (
-                    <YouTubePlayer videoId={youtubeId} />
-                  )}
-                  {currentFile && <MediaPlayer />}
-                </div>
-              )}
-            </>
-          )
-        }
-
-        {/* Waveform Section */}
-        {
-          (currentFile || youtubeId) &&
-          (currentFile?.type.includes("audio") || currentFile?.type.includes("video") || youtubeId) &&
-          showWaveform &&
-          layoutSettings.showWaveform && (
-            <div className="shrink-0 sm:mt-4 sm:rounded-xl sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:bg-gradient-to-r sm:from-primary-50/50 sm:to-accent-50/50 sm:dark:from-primary-900/10 sm:dark:to-accent-900/10 sm:p-4">
-              <WaveformVisualizer />
-            </div>
-          )
-        }
-
-        {/* Dynamic Content Area (Transcript + Controls) */}
-        {
-          (currentFile || youtubeId) && (
-            <div
-              className={`flex flex-col min-h-0 ${layoutSettings.showTranscript ? "flex-1" : "shrink-0"
-                }`}
+        {hasMedia && (
+          <Group orientation="vertical" className="flex-1 min-h-0">
+            {/* Upper area: Transcript + Video */}
+            <Panel
+              defaultSize={65}
+              minSize={20}
+              maxSize={85}
+              collapsible
+              collapsedSize={0}
+              className={cn(!layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
             >
-              {/* Transcript panel - designed to grow */}
-              {layoutSettings.showTranscript && (
-                <div className="mt-2 sm:mt-3 flex flex-1 min-h-0 flex-col">
-                  <TranscriptPanel />
-                </div>
-              )}
-              {/* Media controls (floating) — only show on the player route */}
-              {isOnPlayer && layoutSettings.showControls && (
-                isMobile ? <MobileControls /> : <CombinedControls showSidebarOffset={isElectron()} />
-              )}
-            </div>
-          )
-        }
+              <Group orientation="horizontal" className="h-full">
+                {/* Transcript Panel */}
+                {layoutSettings.transcriptPanelVisible && (
+                  <>
+                    <Panel
+                      defaultSize={60}
+                      minSize={25}
+                      maxSize={80}
+                      collapsible
+                      collapsedSize={5}
+                      className="min-w-0"
+                    >
+                      <div className="flex flex-col h-full min-h-0 bg-white dark:bg-gray-950/40 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden mr-1">
+                        {/* Transcript header */}
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5 select-none">
+                          <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate">
+                            {t("transcript.title")}
+                          </span>
+                          <div className="flex items-center gap-0.5">
+                            {layoutSettings.transcriptPanelCollapsed ? (
+                              <button
+                                onClick={() => collapsePanel("transcript", false)}
+                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => collapsePanel("transcript", true)}
+                                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => togglePanel("transcript")}
+                              className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                          </div>
+                        </div>
+                        {!layoutSettings.transcriptPanelCollapsed && (
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            <TranscriptPanel />
+                          </div>
+                        )}
+                      </div>
+                    </Panel>
+                    <Separator className="w-1 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-col-resize flex items-center justify-center">
+                      <div className="w-0.5 h-6 bg-gray-400 dark:bg-gray-500 rounded-full" />
+                    </Separator>
+                  </>
+                )}
 
-        {/* Media History – web only; Electron uses the sidebar PlayHistory */}
+                {/* Video Panel */}
+                {effectiveVideoVisible && (
+                  <Panel
+                    defaultSize={40}
+                    minSize={20}
+                    maxSize={75}
+                    collapsible
+                    collapsedSize={5}
+                    className="min-w-0"
+                  >
+                    <MediaPreviewPanel
+                      visible={true}
+                      collapsed={layoutSettings.videoPanelCollapsed}
+                      onCollapse={() => collapsePanel("video", true)}
+                      onExpand={() => collapsePanel("video", false)}
+                      onHide={() => togglePanel("video")}
+                      className="h-full ml-1"
+                    />
+                  </Panel>
+                )}
+              </Group>
+            </Panel>
+
+            {/* Vertical resize handle */}
+            {layoutSettings.timelinePanelVisible && (layoutSettings.transcriptPanelVisible || effectiveVideoVisible) && (
+              <Separator className="h-1 bg-gray-200 dark:bg-gray-700 hover:bg-primary-400 dark:hover:bg-primary-600 transition-colors cursor-row-resize flex items-center justify-center my-0.5">
+                <div className="w-6 h-0.5 bg-gray-400 dark:bg-gray-500 rounded-full" />
+              </Separator>
+            )}
+
+            {/* Bottom: Timeline Panel */}
+            {layoutSettings.timelinePanelVisible && (
+              <Panel
+                defaultSize={35}
+                minSize={10}
+                maxSize={60}
+                collapsible
+                collapsedSize={6}
+                className="min-h-0"
+              >
+                <TimelinePanel
+                  visible={true}
+                  collapsed={layoutSettings.timelinePanelCollapsed}
+                  onCollapse={() => collapsePanel("timeline", true)}
+                  onExpand={() => collapsePanel("timeline", false)}
+                  onHide={() => togglePanel("timeline")}
+                  className="h-full"
+                />
+              </Panel>
+            )}
+          </Group>
+        )}
+
+        {/* Media History – web only */}
         {!isElectron() && <MediaHistory />}
       </div>
     </AppLayout>

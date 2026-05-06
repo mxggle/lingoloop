@@ -80,6 +80,15 @@ interface WhisperVerboseResponse {
     words?: Array<{ word: string; start: number; end: number }>;
 }
 
+function normalizeWhisperLanguageCode(language?: string): string | undefined {
+    const normalizedLanguage = language?.trim().replace("_", "-");
+    if (!normalizedLanguage) {
+        return undefined;
+    }
+
+    return normalizedLanguage.split("-")[0].toLowerCase();
+}
+
 // --- Service ---
 
 class TranscriptionService {
@@ -272,8 +281,9 @@ class TranscriptionService {
         formData.append("temperature", "0");
         formData.append("timestamp_granularities[]", "word");
         formData.append("timestamp_granularities[]", "segment");
-        if (config.language) {
-            formData.append("language", config.language);
+        const language = normalizeWhisperLanguageCode(config.language);
+        if (language) {
+            formData.append("language", language);
         }
 
         const response = await fetch(
@@ -431,8 +441,9 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
         formData.append("model", model);
         formData.append("response_format", "verbose_json");
         formData.append("temperature", "0");
-        if (config.language) {
-            formData.append("language", config.language);
+        const language = normalizeWhisperLanguageCode(config.language);
+        if (language) {
+            formData.append("language", language);
         }
 
         const response = await fetch(`${baseURL}/v1/audio/transcriptions`, {

@@ -65,10 +65,18 @@ function createWindow(): void {
     },
   })
 
-  // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000
+  // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000.
+  // Electron webRequest URL patterns do not accept explicit ports, so match the
+  // local hosts and gate on the port inside the callback.
   win.webContents.session.webRequest.onHeadersReceived(
-    { urls: ['*://localhost:8000/*', '*://127.0.0.1:8000/*'] },
+    { urls: ['http://localhost/*', 'http://127.0.0.1/*'] },
     (details, callback) => {
+      const requestUrl = new URL(details.url)
+      if (requestUrl.port !== '8000') {
+        callback({})
+        return
+      }
+
       const responseHeaders = details.responseHeaders || {}
       const hasCorsOrigin = Object.keys(responseHeaders).some(
         (k) => k.toLowerCase() === 'access-control-allow-origin'

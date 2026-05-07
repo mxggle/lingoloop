@@ -13,6 +13,7 @@ import {
 import { nativePathToUrl } from "../utils/platform";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
+import type { TranscriptWord } from "../types/transcriptWord";
 import type {
   CreateGlossaryEntryInput,
   GlossaryEntry,
@@ -68,6 +69,8 @@ export interface LoopBookmark {
   youtubeId?: string;
   playbackRate?: number;
   annotation?: string;
+  wordIds?: string[];      // Linked transcript word IDs
+  segmentIds?: string[];   // Linked transcript segment IDs
 }
 
 // New interface for media-scoped bookmarks
@@ -105,6 +108,8 @@ export interface TranscriptSegment {
   endTime: number;
   confidence: number;
   isFinal: boolean;
+  words?: TranscriptWord[];  // word-level timing data from API
+  wordIds?: string[];        // ordered word IDs for quick lookup
 }
 
 // New interface for media-scoped transcripts
@@ -1984,6 +1989,10 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           }
         }
 
+        // Collect word IDs and segment IDs for bookmark
+        const wordIds = segment.words?.map((w) => w.id) ?? undefined;
+        const segmentIds = [segment.id];
+
         // Create a bookmark from this transcript segment
         addBookmark({
           name: title,
@@ -1994,6 +2003,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           youtubeId: currentYouTube?.id,
           playbackRate,
           annotation: segment.text, // Keep the full text as annotation
+          wordIds,
+          segmentIds,
         });
       },
 

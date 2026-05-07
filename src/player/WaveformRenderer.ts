@@ -18,6 +18,9 @@ export interface BookmarkRenderData {
 }
 export interface ShadowingWaveformData {
   start: number; peaks: Float32Array; duration: number;
+  takeIndex?: number;
+  /** Original raw audio peak data for better waveform rendering (bipolar). */
+  rawPeaks?: Float32Array;
 }
 export interface RecordingOverlayData {
   startTime: number; peaks: number[]; peakTimes: number[];
@@ -49,6 +52,7 @@ export class WaveformRenderer {
   private _loopStart: number | null = null;
   private _loopEnd: number | null = null;
   private _dragSelection: { start: number; end: number } | null = null;
+  private _transcriptSelection: { start: number; end: number } | null = null;
   private _bookmarks: BookmarkRenderData[] = [];
   private _selectedId: string | null = null;
   private _shadowingExpanded = false;
@@ -93,6 +97,9 @@ export class WaveformRenderer {
   }
   setDragSelection(range: { start: number; end: number } | null): void {
     this._dragSelection = range; this.redrawOverlay();
+  }
+  setTranscriptSelection(range: { start: number; end: number } | null): void {
+    this._transcriptSelection = range; this.redrawOverlay();
   }
   setBookmarks(bookmarks: BookmarkRenderData[], selectedId: string | null): void {
     this._bookmarks = bookmarks; this._selectedId = selectedId; this.redrawOverlay();
@@ -255,19 +262,45 @@ export class WaveformRenderer {
       ctx.rect(0, sTop + sPad, cw, sDrawH);
       ctx.clip();
 
-      ctx.fillStyle = colors.success;
-      for (const seg of this._shadowingWaveforms) {
+      // Per-take color palette — derived from success green with varying hue shifts
+      const takeColors = [
+        colors.success,
+        '#34d399',
+        '#6ee7b7',
+        '#059669',
+        '#10b981',
+        '#047857',
+      ];
+
+      for (let segIdx = 0; segIdx < this._shadowingWaveforms.length; segIdx++) {
+        const seg = this._shadowingWaveforms[segIdx];
         const segEnd = seg.start + seg.duration;
         if (segEnd < startOffset || seg.start > endOffset) continue;
+
+        const takeColor = takeColors[(seg.takeIndex ?? segIdx) % takeColors.length];
         const sDur = seg.duration / seg.peaks.length;
+        const sliceW = (sDur / visibleDuration) * cw;
+        const cssBarW = Math.max(1, Math.min(sliceW / dpr, 3));
+        const barW = cssBarW * dpr;
+        const peakScale = 0.8; // scale peaks to look natural
+
         for (let i = 0; i < seg.peaks.length; i++) {
           const t = seg.start + i * sDur;
           if (t < startOffset || t > endOffset) continue;
           const x = ((t - startOffset) / visibleDuration) * cw;
-          const cssBarW = Math.max(0.5, Math.min((sDur / visibleDuration) * cw / dpr, 2));
-          const barW = cssBarW * dpr;
-          const h = Math.min(sDrawH, Math.max(2 * dpr, seg.peaks[i] * sDrawH * 1.6));
-          ctx.fillRect(x, Math.max(sTop + sPad, sCenterY - h / 2), barW, h);
+          // Symmetric bipolar waveform from single peak value
+          const val = Math.min(1, seg.peaks[i] * 2.2);
+          const barH = Math.max(1.5 * dpr, val * sDrawH * peakScale);
+          const top = sCenterY - barH / 2;
+
+          // Fill with segment color
+          ctx.fillStyle = takeColor;
+          ctx.fillRect(x, top, barW, barH);
+
+          // Inner highlight band (like RMS in main waveform)
+          const innerH = Math.max(0.5 * dpr, barH * 0.45);
+          ctx.fillStyle = `${takeColor}70`;
+          ctx.fillRect(x, sCenterY - innerH / 2, barW, innerH);
         }
       }
 
@@ -380,6 +413,50 @@ export class WaveformRenderer {
           ctx.fillRect(x1, 0, w, ch);
         }
       }
+    }
+
+    if (this._transcriptSelection) {
+      const s = Math.min(this._transcriptSelection.start, this._transcriptSelection.end);
+      const e = Math.max(this._transcriptSelection.start, this._transcriptSelection.end);
+      if (!(e < startOffset || s > endOffset)) {
+        const x1 = ((s - startOffset) / visibleDuration) * cw;
+        const x2 = ((e - startOffset) / visibleDuration) * cw;
+        const w = x2 - x1;
+        if (w > 0) {
+          ctx.fillStyle = hexToRgba('#F59E0B', 0.35);
+          ctx.fillRect(x1, 0, w, ch);
+        }
+      }
+    }
+
+    // Shadowing alignment markers (vertical dashed lines at segment boundaries)
+    if (this._shadowingExpanded && this._shadowingWaveforms.length > 0) {
+      const shadowOffsetY = ch / 2; // bottom half is the shadowing lane
+      ctx.save();
+      ctx.setLineDash([4 * dpr, 4 * dpr]);
+      ctx.lineWidth = 1 * dpr;
+      for (const seg of this._shadowingWaveforms) {
+        const segEnd = seg.start + seg.duration;
+        // Draw segment start marker
+        if (seg.start >= startOffset && seg.start <= endOffset) {
+          const x = ((seg.start - startOffset) / visibleDuration) * cw;
+          ctx.strokeStyle = hexToRgba(colors.success, 0.3);
+          ctx.beginPath();
+          ctx.moveTo(x, shadowOffsetY);
+          ctx.lineTo(x, ch);
+          ctx.stroke();
+        }
+        // Draw segment end marker
+        if (segEnd >= startOffset && segEnd <= endOffset) {
+          const x = ((segEnd - startOffset) / visibleDuration) * cw;
+          ctx.strokeStyle = hexToRgba(colors.success, 0.2);
+          ctx.beginPath();
+          ctx.moveTo(x, shadowOffsetY);
+          ctx.lineTo(x, ch);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
     }
 
     if (this._loopStart !== null && cLoopS >= 0 && cLoopS <= cw) this._drawMarker(ctx, cLoopS, ch, "A");

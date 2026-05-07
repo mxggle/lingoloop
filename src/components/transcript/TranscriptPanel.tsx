@@ -27,6 +27,7 @@ import { TranscriptUploader } from "./TranscriptUploader";
 import { TranscriptSegmentItem } from "./TranscriptSegmentItem";
 import { breakIntoSentences as utilBreakIntoSentences } from "../../utils/sentenceBreaker";
 import { getCurrentTime, subscribeCurrentTime } from "../../stores/currentTimeStore";
+import { usePlayerSelection } from "../../player/PlayerWorkspace";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
 import type {
@@ -61,6 +62,36 @@ const SEGMENT_SCROLL_OFFSET_RATIO = 0.15;
 const BOOKMARK_MATCH_TOLERANCE_SECONDS = 0.5;
 
 // WhisperSegment/WhisperResponse types moved to transcriptionService.ts
+
+/**
+ * Map word-level timing data from the API response to the segments they
+ * belong to, based on time overlap. Each word is assigned to the segment
+ * whose [start, end) range contains the word's start time.
+ */
+function assignWordsToSegments(
+  words: Array<{ word: string; start: number; end: number }> | undefined,
+  segments: Array<{ id: number; start: number; end: number }>
+): Map<number, Array<{ word: string; start: number; end: number }>> {
+  const map = new Map<number, Array<{ word: string; start: number; end: number }>>();
+  if (!words || words.length === 0) return map;
+
+  let segIdx = 0;
+  for (const word of words) {
+    // Advance to the segment that contains this word's start time
+    while (segIdx < segments.length && segments[segIdx].end <= word.start) {
+      segIdx++;
+    }
+    if (segIdx < segments.length) {
+      const seg = segments[segIdx];
+      if (word.start >= seg.start && word.end <= seg.end) {
+        if (!map.has(seg.id)) map.set(seg.id, []);
+        map.get(seg.id)!.push(word);
+      }
+    }
+  }
+
+  return map;
+}
 
 const isTimeWithinSegment = (time: number, segment: TranscriptSegmentType) =>
   time >= segment.startTime && time <= segment.endTime;
@@ -205,6 +236,8 @@ export const TranscriptPanel = () => {
     return localStorage.getItem("transcript_auto_scroll") === "true";
   });
 
+  const { selection: playerSelection, setSelection } = usePlayerSelection();
+
   const LANGUAGE_OPTIONS = [
     { value: "en-US", label: t("transcript.languages.en-US") },
     { value: "en-GB", label: t("transcript.languages.en-GB") },
@@ -343,14 +376,75 @@ export const TranscriptPanel = () => {
       setActiveSelection(null);
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveSelection(null);
+      }
+    };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  // Sync transcript word selection → PlayerWorkspace context (for waveform highlight)
+  useEffect(() => {
+    if (activeSelection?.timeRange) {
+      const { timeRange } = activeSelection;
+      // Find words in the selected segment that overlap the time range
+      const segment = transcriptSegments.find((s) => s.id === activeSelection.segmentId);
+      const wordIds = segment?.words
+        ?.filter((w) => w.start < timeRange.end && w.end > timeRange.start)
+        .map((w) => w.id);
+      setSelection({
+        type: 'time-range',
+        start: timeRange.start,
+        end: timeRange.end,
+        source: 'transcript',
+        segmentIds: [activeSelection.segmentId],
+        wordIds,
+      });
+    } else if (activeSelection === null) {
+      // User cleared the transcript selection (clicked empty space, scrolled, etc.)
+      // Also clear the shared selection
+      setSelection(null);
+    }
+  }, [activeSelection, transcriptSegments, setSelection]);
 
   // Sync active tab with selected bookmark from store (e.g. from waveform interactions)
   useEffect(() => {
     setActiveTabId(selectedBookmarkId);
   }, [selectedBookmarkId]);
+
+  // When a bookmark tab is selected and has wordIds/segmentIds, highlight those words
+  useEffect(() => {
+    if (!activeTabId) {
+      // Full transcript view — no bookmark-related highlighting
+      return;
+    }
+    const bookmark = bookmarks.find((b) => b.id === activeTabId);
+    if (bookmark) {
+      // If the bookmark references transcript words, create a selection highlight
+      if (bookmark.wordIds && bookmark.wordIds.length > 0) {
+        setSelection({
+          type: 'time-range',
+          start: bookmark.start,
+          end: bookmark.end,
+          source: 'bookmark',
+          wordIds: bookmark.wordIds,
+          segmentIds: bookmark.segmentIds,
+        });
+      } else {
+        // No word links — clear any bookmark selection highlight
+        if (playerSelection?.source === 'bookmark') {
+          setSelection(null);
+        }
+      }
+    }
+  }, [activeTabId, bookmarks]);
 
   // Filter segments based on active tab
   const activeBookmark = useMemo(
@@ -933,14 +1027,31 @@ export const TranscriptPanel = () => {
       }
 
       if (result.segments && result.segments.length > 0) {
+        // Map word-level data from API response to segments
+        const wordMap = assignWordsToSegments(result.words, result.segments);
+        let wordCounter = 0;
+
         addTranscriptSegments(
-          result.segments.map((segment) => ({
-            text: segment.text.trim(),
-            startTime: Math.max(0, segment.start + startTimeOffset),
-            endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
-            confidence: segment.confidence,
-            isFinal: true,
-          }))
+          result.segments.map((segment) => {
+            const segmentWords = wordMap.get(segment.id);
+            const words = segmentWords?.map((w) => ({
+              id: `word-${wordCounter++}`,
+              text: w.word,
+              start: Math.max(0, w.start + startTimeOffset),
+              end: Math.max(0, w.end + startTimeOffset),
+            }));
+            const wordIds = words?.map((w) => w.id);
+
+            return {
+              text: segment.text.trim(),
+              startTime: Math.max(0, segment.start + startTimeOffset),
+              endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
+              confidence: segment.confidence,
+              isFinal: true,
+              words,
+              wordIds,
+            };
+          })
         );
       } else {
         // If no segments are returned, use the full transcript with basic sentence breaking

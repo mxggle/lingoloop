@@ -38,6 +38,7 @@ import { WaveformRenderer } from "../../player/WaveformRenderer";
 import type { BookmarkRenderData } from "../../player/WaveformRenderer";
 import { playbackClock } from "../../player/PlaybackClock";
 import { waveformLoader } from "../../player/WaveformLoader";
+import { usePlayerSelection } from "../../player/PlayerWorkspace";
 
 // Stable empty arrays used in selectors to avoid creating
 // a new [] on every render (prevents infinite re-render loops)
@@ -146,6 +147,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   } | null>(null);
 
   const dragStartXRef = useRef<number | null>(null);
+  const lastSelectionUpdateRef = useRef(0);
   const [resizingBookmark, setResizingBookmark] = useState<{ id: string; edge: "start" | "end" } | null>(null);
   const resizingRef = useRef(false);
   const wasPlayingRef = useRef(false);
@@ -201,7 +203,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     currentRecordingRevision,
     isShadowingMode, setShadowingMode,
     isRecording,
+    recordingSegmentId,
     deleteAllSegments,
+    setRecordingSegmentId,
   } = useShadowingStore(
     useShallow((state) => ({
       currentRecording: state.currentRecording,
@@ -209,7 +213,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
       isShadowingMode: state.isShadowingMode,
       setShadowingMode: state.setShadowingMode,
       isRecording: state.isRecording,
+      recordingSegmentId: state.recordingSegmentId,
       deleteAllSegments: state.deleteAllSegments,
+      setRecordingSegmentId: state.setRecordingSegmentId,
     }))
   );
 
@@ -250,6 +256,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     }
     prevShouldExpandRef.current = shouldExpand;
   }, [isShadowingMode, shadowingSegments.length, currentRecording]);
+
+  // Shared selection for transcript-timeline sync
+  const { selection, setSelection } = usePlayerSelection();
 
   // Initialize Shadowing Player & Recorder
   useShadowingPlayer();
@@ -391,11 +400,14 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOverlapMenu(null);
+      if (e.key === "Escape") {
+        setOverlapMenu(null);
+        setSelection(null);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setSelection]);
 
   // Load audio/video file and analyze waveform
   useEffect(() => {
@@ -684,6 +696,20 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     r.redrawOverlay();
   }, [isDragging, dragStart, dragEnd]);
 
+  // ─── Sync: transcript/bookmark selection → waveform highlight ────────────
+
+  useEffect(() => {
+    const r = rendererRef.current;
+    if (!r) return;
+    if (selection?.source === 'transcript' || selection?.source === 'bookmark') {
+      r.setTranscriptSelection({ start: selection.start, end: selection.end });
+      r.redrawOverlay();
+    } else {
+      r.setTranscriptSelection(null);
+      r.redrawOverlay();
+    }
+  }, [selection]);
+
   // ─── Sync: shadowing expanded ────────────────────────────────────────────
 
   useEffect(() => {
@@ -699,10 +725,11 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   useEffect(() => {
     const r = rendererRef.current;
     if (!r) return;
-    const sw = shadowingWaveforms.map((w) => ({
+    const sw = shadowingWaveforms.map((w, idx) => ({
       start: w.start,
       peaks: w.data,
       duration: w.duration,
+      takeIndex: idx,
     }));
     r.setShadowingWaveforms(sw);
   }, [shadowingWaveforms]);
@@ -966,8 +993,23 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     if (rect && !isDragging) { for (const lane of laneRectsRef.current) if (yCss >= lane.y1 && yCss <= lane.y2 && (Math.abs(xCss - lane.x1) <= 8 || Math.abs(xCss - lane.x2) <= 8)) { onHandle = true; break; } }
     if (containerRef.current) containerRef.current.style.cursor = onHandle ? "ew-resize" : (isDragging ? "crosshair" : "default");
     const time = positionToTime(e.clientX);
-    if (time >= 0 && time <= duration) { setHoverTime(time); if (isDragging && dragStart !== null) setDragEnd(time); }
-    else setHoverTime(null);
+    if (time >= 0 && time <= duration) {
+      setHoverTime(time);
+      if (isDragging && dragStart !== null) {
+        setDragEnd(time);
+        // Throttle shared selection updates to ~30fps for timeline-sourced drag
+        const now = performance.now();
+        if (now - lastSelectionUpdateRef.current > 33) {
+          lastSelectionUpdateRef.current = now;
+          setSelection({
+            type: 'time-range',
+            start: Math.min(dragStart, time),
+            end: Math.max(dragStart, time),
+            source: 'timeline',
+          });
+        }
+      }
+    } else setHoverTime(null);
   };
 
   const handleMouseUp = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -978,6 +1020,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     const pixelDist = dragStartXRef.current !== null ? Math.abs(e.clientX - dragStartXRef.current) : 0;
     if (time >= 0 && time <= duration && pixelDist > 5 && Math.abs(time - dragStart) > 0.1) setLoopPoints(Math.min(dragStart, time), Math.max(dragStart, time));
     setIsDragging(false); setDragStart(null); setDragEnd(null); dragStartXRef.current = null;
+    setSelection(null);
   };
 
   const handleMouseLeave = () => {
@@ -989,6 +1032,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!staticCanvasRef.current || isDragging || resizingRef.current || isPanning || e.button !== 0 || dragStart !== null) return;
+    setSelection(null);
     const time = positionToTime(e.clientX);
     if (time >= 0 && time <= duration) {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -1151,6 +1195,29 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
                   )}
                 </button>
 
+                {/* Per-sentence recording toggle */}
+                {isShadowingExpanded && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setRecordingSegmentId(recordingSegmentId ? undefined : 'sentence-mode'); }}
+                    className={`inline-flex items-center justify-center rounded-full border transition-all duration-200 w-7 h-7 ${
+                      recordingSegmentId
+                        ? "border-blue-400/50 bg-blue-500/20 text-blue-300"
+                        : "border-white/12 bg-white/8 text-white/50 hover:bg-white/13"
+                    }`}
+                    title={recordingSegmentId ? t("shadowing.disableSentenceMode", { defaultValue: "Disable Sentence Mode" }) : t("shadowing.enableSentenceMode", { defaultValue: "Record per Sentence" })}
+                  >
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="4 7 4 4 7 4" />
+                      <polyline points="20 17 20 20 17 20" />
+                      <polyline points="7 20 4 20 4 17" />
+                      <polyline points="17 4 20 4 20 7" />
+                      <line x1="12" y1="8" x2="12" y2="16" />
+                      <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                  </button>
+                )}
+
                 {/* Delete track */}
                 {shadowingSegments.length > 0 && (
                   !isConfirmingDelete ? (
@@ -1180,6 +1247,46 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
                     </button>
                   )
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Shadowing takes list */}
+          {isShadowingExpanded && shadowingSegments.length > 0 && (
+            <div
+              className="absolute left-2 z-20 pointer-events-auto"
+              style={{ bottom: "8px" }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col gap-0.5 bg-black/50 backdrop-blur-sm border border-white/10 rounded-lg py-1 px-1.5 max-w-[240px]">
+                <div className="text-[10px] text-white/40 font-medium px-1 pb-0.5">
+                  {t("shadowing.takes", { defaultValue: "Shadow Takes" })}
+                </div>
+                {shadowingSegments.map((seg, idx) => (
+                  <div
+                    key={seg.id}
+                    className="flex items-center gap-1.5 text-[10px] text-white/70 hover:bg-white/5 rounded px-1 py-0.5 cursor-pointer transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentTime(seg.startTime);
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{
+                        backgroundColor: ['#22c55e', '#34d399', '#6ee7b7', '#059669', '#10b981', '#047857'][idx % 6]
+                      }}
+                    />
+                    <span className="truncate flex-1">
+                      {t("shadowing.take", { defaultValue: "Take" })} {idx + 1}
+                    </span>
+                    <span className="text-white/40 font-mono whitespace-nowrap">
+                      {formatTime(seg.startTime)} - {formatTime(seg.startTime + seg.duration)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           )}

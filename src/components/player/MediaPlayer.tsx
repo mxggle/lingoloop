@@ -6,6 +6,7 @@ import { playbackClock } from "../../player/PlaybackClock";
 import { toast } from "react-hot-toast";
 import { useShallow } from "zustand/react/shallow";
 import { bumpRender } from "../../utils/perfMonitor";
+import { usePlayerSelection } from "../../player/PlayerWorkspace";
 
 interface MediaPlayerProps {
   hiddenMode?: boolean;
@@ -55,6 +56,17 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       setIsTransitioning: state.setIsTransitioning,
     }))
   );
+
+  const { setSelection } = usePlayerSelection();
+
+  // Clear shared transcript↔timeline selection when playback starts
+  const prevPlayingRef = useRef(false);
+  useEffect(() => {
+    if (isPlaying && !prevPlayingRef.current) {
+      setSelection(null);
+    }
+    prevPlayingRef.current = isPlaying;
+  }, [isPlaying, setSelection]);
 
   const getMediaElement = useCallback((): HTMLMediaElement | null => {
     if (!currentFile) return null;
@@ -112,7 +124,8 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
       loopResumeTimeoutRef.current = null;
     }
     isDelayingRef.current = false;
-  }, [currentFile?.url]);
+    setSelection(null);
+  }, [currentFile?.url, setSelection]);
 
   // Clear delay state when playback stops or looping stops
   useEffect(() => {

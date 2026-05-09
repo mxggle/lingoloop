@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import { join } from 'path'
 import fs from 'fs'
 import { app } from 'electron'
+import { NoAudioStreamError, parseProbeAudioMetadata } from './waveformProbe'
 
 export interface WaveformLevelMeta {
   level: number
@@ -87,12 +88,12 @@ async function probeDuration(filePath: string): Promise<{ duration: number; samp
         return
       }
       try {
-        const info = JSON.parse(stdout)
-        const formatDur = parseFloat(info.format?.duration) || 0
-        const audioStream = (info.streams || []).find((s: any) => s.codec_type === 'audio')
-        const streamDur = parseFloat(audioStream?.duration) || formatDur
-        const sampleRate = parseInt(audioStream?.sample_rate, 10) || 44100
-        resolve({ duration: streamDur, sampleRate })
+        const metadata = parseProbeAudioMetadata(JSON.parse(stdout))
+        if (!metadata) {
+          reject(new NoAudioStreamError(filePath))
+          return
+        }
+        resolve(metadata)
       } catch (e) {
         reject(e)
       }

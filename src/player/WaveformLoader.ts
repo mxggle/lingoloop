@@ -38,7 +38,7 @@ export class WaveformLoader {
     filePath: string,
     mediaId: string,
     onProgress?: (fraction: number) => void,
-  ): Promise<WaveformMeta> {
+  ): Promise<WaveformMeta | null> {
     if (!this.isAvailable) {
       throw new Error('WaveformLoader: Electron waveform API not available');
     }
@@ -63,7 +63,7 @@ export class WaveformLoader {
 
     try {
       const meta = await window.electronAPI!.waveformAnalyze(filePath, mediaId);
-      this.metas.set(mediaId, meta);
+      if (meta) this.metas.set(mediaId, meta);
       return meta;
     } finally {
       this.pendingAnalysis.delete(mediaId);

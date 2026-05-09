@@ -84,19 +84,19 @@ export const TimelineToolbar = ({
   const toggleShadowing = () => setShadowingMode(!isShadowingMode);
 
   return (
-    <div className="timeline-toolbar @container/toolbar flex min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
+    <div className="timeline-toolbar @container/toolbar flex min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-2 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
       {/* PRIMARY — playback group, always visible */}
       <div className="flex items-center gap-0.5 shrink-0">
         <button
           onClick={seekBackward}
-          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 min-w-[28px]"
+          className="size-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 shrink-0"
           title={t("player.seekBackwardSeconds", { seconds: seekStepSeconds })}
         >
           <SkipBack size={16} />
         </button>
         <button
           onClick={togglePlayPause}
-          className="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all min-w-[36px]"
+          className="size-9 flex items-center justify-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all shrink-0"
         >
           {isPlaying ? (
             <Pause size={18} fill="currentColor" />
@@ -106,7 +106,7 @@ export const TimelineToolbar = ({
         </button>
         <button
           onClick={seekForward}
-          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 min-w-[28px]"
+          className="size-8 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 shrink-0"
           title={t("player.seekForwardSeconds", { seconds: seekStepSeconds })}
         >
           <SkipForward size={16} />
@@ -187,7 +187,7 @@ export const TimelineToolbar = ({
       <button
         onClick={() => setIsLooping(!isLooping)}
         className={cn(
-          "hidden @[480px]/toolbar:inline-flex items-center timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 min-w-[28px]",
+          "hidden @[480px]/toolbar:inline-flex items-center justify-center timeline-secondary-action size-8 rounded-full transition-colors active:scale-90 shrink-0",
           isLooping
             ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
             : "text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
@@ -199,7 +199,7 @@ export const TimelineToolbar = ({
       <div className="hidden @[480px]/toolbar:flex items-center">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]">
+            <button className="timeline-secondary-action size-8 flex items-center justify-center rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 shrink-0">
               {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
           </PopoverTrigger>
@@ -217,7 +217,7 @@ export const TimelineToolbar = ({
       {/* Settings, SentencePractice — visible @[640px]+ */}
       <button
         onClick={() => navigate("/sentence-practice")}
-        className="hidden @[640px]/toolbar:inline-flex timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]"
+        className="hidden @[640px]/toolbar:inline-flex items-center justify-center timeline-secondary-action size-8 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 shrink-0"
         title={t("sentencePractice.title")}
       >
         <ListMusic size={16} />
@@ -225,7 +225,7 @@ export const TimelineToolbar = ({
       <div className="hidden @[640px]/toolbar:flex items-center">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]">
+            <button className="timeline-secondary-action size-8 flex items-center justify-center rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 shrink-0">
               <Settings2 size={16} />
             </button>
           </PopoverTrigger>
@@ -289,15 +289,15 @@ export const TimelineToolbar = ({
       {/* Panel controls — always visible */}
       <div className="timeline-panel-controls flex shrink-0 items-center gap-0.5 ml-1 pl-2 border-l border-gray-200 dark:border-white/10">
         {collapsed ? (
-          <button onClick={onExpand} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Expand">
+          <button onClick={onExpand} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Expand">
             <Square size={12} />
           </button>
         ) : (
-          <button onClick={onCollapse} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Collapse">
+          <button onClick={onCollapse} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Collapse">
             <Minus size={12} />
           </button>
         )}
-        <button onClick={onHide} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Hide">
+        <button onClick={onHide} className="size-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors shrink-0" title="Hide">
           <X size={12} />
         </button>
       </div>

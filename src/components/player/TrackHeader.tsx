@@ -47,8 +47,8 @@ export const TrackHeader = ({ mediaId }: Props) => {
     }))
   );
 
-  const segments = useShadowingStore((s) =>
-    mediaId ? s.sessions[mediaId]?.segments ?? [] : []
+  const segments = useShadowingStore(
+    useShallow((s) => (mediaId ? s.sessions[mediaId]?.segments ?? [] : []))
   );
 
   const expanded = isShadowingMode || segments.length > 0 || isRecording;
@@ -76,9 +76,9 @@ export const TrackHeader = ({ mediaId }: Props) => {
       )}
     >
       {/* Original row */}
-      <div className="flex items-center gap-2 px-3 h-7 min-h-[28px]">
+      <div className="flex items-center gap-2 px-3 h-8 min-h-[32px]">
         <span
-          className="inline-block w-2 h-2 rounded-full bg-primary-500 ring-2 ring-primary-500/30"
+          className="inline-block w-2 h-2 rounded-full bg-primary-500 ring-2 ring-primary-500/30 shrink-0"
           aria-hidden
         />
         <span className="text-[11px] font-semibold tracking-wide text-gray-700 dark:text-gray-200">
@@ -94,33 +94,33 @@ export const TrackHeader = ({ mediaId }: Props) => {
           {!expanded && mediaId && (
             <button
               onClick={() => setShadowingMode(true)}
-              className="timeline-secondary-action px-2 py-0.5 rounded text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5"
+              className="timeline-secondary-action flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5"
               title={t("shadowing.enable")}
             >
-              <Mic size={11} className="inline mr-1" />
+              <Mic size={11} />
               {t("track.shadowing")}
             </button>
           )}
           <button
             onClick={zoomOut}
-            className="timeline-secondary-action p-1 rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+            className="timeline-secondary-action size-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
             title={t("waveform.zoomOut")}
           >
-            <ZoomOut size={12} />
+            <ZoomOut size={13} />
           </button>
           <button
             onClick={zoomIn}
-            className="timeline-secondary-action p-1 rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+            className="timeline-secondary-action size-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
             title={t("waveform.zoomIn")}
           >
-            <ZoomIn size={12} />
+            <ZoomIn size={13} />
           </button>
         </div>
       </div>
 
       {/* Shadowing row (only when expanded) */}
       {expanded && mediaId && (
-        <div className="flex items-center gap-2 px-3 h-7 min-h-[28px] border-t border-gray-200/60 dark:border-white/5">
+        <div className="flex items-center gap-2 px-3 h-8 min-h-[32px] border-t border-gray-200/60 dark:border-white/5">
           <span
             className={cn(
               "inline-block w-2 h-2 rounded-full",
@@ -181,7 +181,7 @@ export const TrackHeader = ({ mediaId }: Props) => {
               onClick={() => setShadowingMode(!isShadowingMode)}
               aria-pressed={isShadowingMode}
               className={cn(
-                "px-2 py-0.5 rounded text-[11px] font-medium transition-colors flex items-center gap-1",
+                "flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium transition-colors",
                 isRecording
                   ? "bg-error-500 text-white hover:bg-error-600"
                   : isShadowingMode
@@ -196,7 +196,7 @@ export const TrackHeader = ({ mediaId }: Props) => {
             <button
               onClick={() => setRecordingSegmentId(recordingSegmentId ? undefined : "sentence-mode")}
               className={cn(
-                "p-1 rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5",
+                "size-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5",
                 recordingSegmentId && "text-info-600 dark:text-info-400 bg-info-500/10"
               )}
               title={
@@ -205,7 +205,7 @@ export const TrackHeader = ({ mediaId }: Props) => {
                   : t("shadowing.enableSentenceMode", { defaultValue: "Record per Sentence" })
               }
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="4 7 4 4 7 4" />
                 <polyline points="20 17 20 20 17 20" />
                 <polyline points="7 20 4 20 4 17" />
@@ -218,7 +218,7 @@ export const TrackHeader = ({ mediaId }: Props) => {
               !isConfirmingDelete ? (
                 <button
                   onClick={() => setIsConfirmingDelete(true)}
-                  className="p-1 rounded text-gray-500 dark:text-gray-400 hover:text-error-500 hover:bg-black/5 dark:hover:bg-white/5"
+                  className="size-6 flex items-center justify-center rounded text-gray-500 dark:text-gray-400 hover:text-error-500 hover:bg-black/5 dark:hover:bg-white/5"
                   title={t("shadowing.deleteTrack", { defaultValue: "Delete Shadow Track" })}
                 >
                   <Trash2 size={12} />
@@ -226,7 +226,7 @@ export const TrackHeader = ({ mediaId }: Props) => {
               ) : (
                 <button
                   onClick={onClearAll}
-                  className="px-1.5 py-0.5 rounded bg-error-500 text-white text-[10px] font-bold hover:bg-error-600"
+                  className="size-6 flex items-center justify-center rounded bg-error-500 text-white text-[10px] font-bold hover:bg-error-600"
                   title={t("common.remove")}
                 >
                   ✓

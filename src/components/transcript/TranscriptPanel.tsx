@@ -444,6 +444,9 @@ export const TranscriptPanel = () => {
         }
       }
     }
+    // playerSelection.source / setSelection intentionally omitted — re-running
+    // when those change would loop the bookmark-selection sync.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTabId, bookmarks]);
 
   // Filter segments based on active tab
@@ -1433,7 +1436,7 @@ export const TranscriptPanel = () => {
   };
 
   return (
-    <div className="flex h-full w-full flex-1 min-h-0 bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
+    <div className="flex h-full w-full flex-1 min-h-0 @container/transcript bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-100 dark:border-white/5 overflow-hidden relative z-0">
       {/* Sidebar Toggle Button (Floating or inside) */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -1828,38 +1831,48 @@ export const TranscriptPanel = () => {
               ) : (
                 // Full Transcript Empty State
                 transcriptSegments.length === 0 ? (
-                  <div className="mx-auto flex min-h-[260px] max-w-lg items-center justify-center py-6">
-                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-6 py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
-                      <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
-                        <FileAudio size={18} />
+                  <div className="mx-auto flex min-h-[200px] max-w-lg items-center justify-center py-6">
+                    <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 @[260px]/transcript:px-4 @[400px]/transcript:px-6 py-5 @[400px]/transcript:py-7 text-center dark:border-gray-700 dark:bg-gray-800/50">
+                      <div className="mx-auto mb-3 flex h-8 w-8 @[260px]/transcript:h-10 @[260px]/transcript:w-10 @[400px]/transcript:h-12 @[400px]/transcript:w-12 items-center justify-center rounded-full bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                        <span className="@[260px]/transcript:hidden">
+                          <FileAudio size={14} />
+                        </span>
+                        <span className="hidden @[260px]/transcript:inline @[400px]/transcript:hidden">
+                          <FileAudio size={18} />
+                        </span>
+                        <span className="hidden @[400px]/transcript:inline">
+                          <FileAudio size={22} />
+                        </span>
                       </div>
-                      <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      <h3 className="text-xs @[260px]/transcript:text-sm font-medium text-gray-800 dark:text-gray-200">
                         {t(!currentFile && !currentYouTube ? "transcript.loadMediaFirst" : "transcript.clickToTranscribe", { provider: transcriptionService.getProviderInfo(currentProvider).name })}
                       </h3>
-                      <p className="mx-auto mt-2 max-w-md text-sm text-gray-500 dark:text-gray-400">
+                      <p className="mx-auto mt-2 max-w-md text-[11px] @[260px]/transcript:text-xs @[400px]/transcript:text-sm text-gray-500 dark:text-gray-400">
                         {currentFile || currentYouTube
                           ? t("transcript.uploadExisting")
                           : t("transcript.loadMediaFirst")}
                       </p>
                       {(currentFile || currentYouTube) && (
-                        <div className="mt-5 space-y-3">
-                          <div className="flex flex-col items-center justify-center gap-2 sm:flex-row">
+                        <div className="mt-4 @[260px]/transcript:mt-5 space-y-3">
+                          <div className="flex flex-col @[300px]/transcript:flex-row items-stretch @[300px]/transcript:items-center justify-center gap-2">
                             <button
                               onClick={handleTranscribeDefault}
-                              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-600 px-3 @[260px]/transcript:px-4 py-2 text-xs @[260px]/transcript:text-sm font-medium text-white transition-colors hover:bg-primary-700"
                             >
-                              <FileAudio size={16} />
-                              {loopStart !== null && loopEnd !== null
-                                ? t("transcript.transcribeLoopRangeButton")
-                                : t("transcript.transcribeWithWhisper")}
+                              <FileAudio size={14} />
+                              <span>
+                                {loopStart !== null && loopEnd !== null
+                                  ? t("transcript.transcribeLoopRangeButton")
+                                  : t("transcript.transcribeWithWhisper")}
+                              </span>
                             </button>
                             <TranscriptUploader variant="prominent" />
                           </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
+                          <div className="text-[10px] @[260px]/transcript:text-xs text-gray-400 dark:text-gray-500">
                             .srt / .vtt / .txt
                           </div>
                           {loopStart !== null && loopEnd !== null && (
-                            <div className="text-xs text-primary-600 dark:text-primary-400">
+                            <div className="text-[10px] @[260px]/transcript:text-xs text-primary-600 dark:text-primary-400">
                               {t("transcript.transcribeLoopRangeButton")}
                             </div>
                           )}

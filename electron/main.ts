@@ -36,6 +36,7 @@ const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
 const transientApprovedFolders = new Set<string>()
 let settingsWindow: BrowserWindow | null = null
+let glossaryWindow: BrowserWindow | null = null
 let nextMediaTreeWatchId = 1
 
 type MediaTreeWatcher = {
@@ -293,6 +294,78 @@ ipcMain.handle('window:closeSettings', () => {
   }
 
   settingsWindow.close()
+})
+
+async function openGlossaryWindow(): Promise<void> {
+  const targetUrl = buildRendererUrl('/glossary-window')
+
+  if (glossaryWindow && !glossaryWindow.isDestroyed()) {
+    if (glossaryWindow.isMinimized()) {
+      glossaryWindow.restore()
+    }
+
+    if (glossaryWindow.webContents.getURL() !== targetUrl) {
+      await glossaryWindow.loadURL(targetUrl)
+    }
+
+    glossaryWindow.focus()
+    return
+  }
+
+  const nextGlossaryWindow = new BrowserWindow({
+    width: 960,
+    height: 760,
+    minWidth: 720,
+    minHeight: 560,
+    title: 'Glossary',
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: -100, y: -100 },
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+    },
+  })
+
+  if (process.platform === 'darwin') {
+    nextGlossaryWindow.setWindowButtonVisibility(false)
+  }
+
+  nextGlossaryWindow.on('closed', () => {
+    if (glossaryWindow === nextGlossaryWindow) {
+      glossaryWindow = null
+    }
+  })
+
+  nextGlossaryWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
+  try {
+    await nextGlossaryWindow.loadURL(targetUrl)
+  } catch (error) {
+    if (!nextGlossaryWindow.isDestroyed()) {
+      nextGlossaryWindow.destroy()
+    }
+    throw error
+  }
+
+  glossaryWindow = nextGlossaryWindow
+  nextGlossaryWindow.focus()
+}
+
+ipcMain.handle('window:openGlossary', async () => {
+  await openGlossaryWindow()
+})
+
+ipcMain.handle('window:closeGlossary', () => {
+  if (!glossaryWindow || glossaryWindow.isDestroyed()) {
+    return
+  }
+
+  glossaryWindow.close()
 })
 
 /**

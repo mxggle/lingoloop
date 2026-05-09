@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openSettingsWindow: (tab?: SettingsWindowTab, section?: string) =>
     ipcRenderer.invoke('window:openSettings', tab, section),
   closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings'),
+  openGlossaryWindow: () => ipcRenderer.invoke('window:openGlossary'),
+  closeGlossaryWindow: () => ipcRenderer.invoke('window:closeGlossary'),
   showInFileManager: (targetPath: string) =>
     ipcRenderer.invoke('shell:showInFileManager', targetPath),
   listMediaFiles: (folderPath: string) =>

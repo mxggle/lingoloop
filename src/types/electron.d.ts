@@ -24,6 +24,8 @@ interface ElectronAPI {
   openFolder: () => Promise<string | null>
   openSettingsWindow: (tab?: SettingsWindowTab, section?: string) => Promise<void>
   closeSettingsWindow: () => Promise<void>
+  openGlossaryWindow: () => Promise<void>
+  closeGlossaryWindow: () => Promise<void>
   showInFileManager: (targetPath: string) => Promise<boolean>
   listMediaFiles: (folderPath: string) => Promise<ElectronMediaFile[]>
   listMediaTree: (folderPath: string) => Promise<FolderTreeNode[]>

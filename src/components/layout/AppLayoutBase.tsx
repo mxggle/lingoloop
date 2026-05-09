@@ -204,7 +204,13 @@ export const AppLayoutBase = ({
             )}
 
             <button
-              onClick={() => navigate("/glossary")}
+              onClick={() => {
+                if (window.electronAPI?.openGlossaryWindow) {
+                  window.electronAPI.openGlossaryWindow()
+                } else {
+                  navigate("/glossary")
+                }
+              }}
               className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 transition-colors"
               aria-label={t("glossary.openGlossary")}
             >

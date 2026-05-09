@@ -22,6 +22,7 @@ import { cn } from "../../utils/cn";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 import { Slider } from "../ui/slider";
 import { useNavigate } from "react-router-dom";
+import { TimelineOverflowMenu } from "./TimelineOverflowMenu";
 
 interface TimelineToolbarProps {
   collapsed: boolean;
@@ -83,49 +84,48 @@ export const TimelineToolbar = ({
   const toggleShadowing = () => setShadowingMode(!isShadowingMode);
 
   return (
-    <div className="timeline-toolbar flex min-w-0 items-center gap-1.5 sm:gap-2 overflow-hidden px-2 sm:px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
-      {/* Playback controls */}
-      <div className="flex items-center gap-0.5 sm:gap-1">
+    <div className="timeline-toolbar @container/toolbar flex min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-1.5 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
+      {/* PRIMARY — playback group, always visible */}
+      <div className="flex items-center gap-0.5 shrink-0">
         <button
           onClick={seekBackward}
-          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90"
+          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 min-w-[28px]"
           title={t("player.seekBackwardSeconds", { seconds: seekStepSeconds })}
         >
-          <SkipBack size={16} className="sm:w-[18px] sm:h-[18px]" />
+          <SkipBack size={16} />
         </button>
         <button
           onClick={togglePlayPause}
-          className="p-2 sm:p-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all"
+          className="p-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full shadow-lg hover:shadow-xl active:scale-95 transition-all min-w-[36px]"
         >
           {isPlaying ? (
-            <Pause size={18} className="sm:w-5 sm:h-5" fill="currentColor" />
+            <Pause size={18} fill="currentColor" />
           ) : (
-            <Play size={18} className="sm:w-5 sm:h-5 ml-0.5" fill="currentColor" />
+            <Play size={18} className="ml-0.5" fill="currentColor" />
           )}
         </button>
         <button
           onClick={seekForward}
-          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90"
+          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors text-gray-700 dark:text-gray-400 active:scale-90 min-w-[28px]"
           title={t("player.seekForwardSeconds", { seconds: seekStepSeconds })}
         >
-          <SkipForward size={16} className="sm:w-[18px] sm:h-[18px]" />
+          <SkipForward size={16} />
         </button>
       </div>
 
-      {/* Time display – hides on narrow panels */}
-      <div className="timeline-time hidden md:block text-xs font-mono text-gray-700 dark:text-gray-300 tabular-nums whitespace-nowrap">
+      {/* Time — hides under 180px */}
+      <div className="hidden @[180px]/toolbar:block text-xs font-mono text-gray-700 dark:text-gray-300 tabular-nums whitespace-nowrap shrink-0">
         {formatTime(currentTime)} / {formatTime(duration)}
       </div>
 
-      <div className="min-w-1 flex-1" />
+      <div className="flex-1 min-w-1" />
 
-      {/* Function buttons */}
-      <div className="timeline-actions flex min-w-0 shrink-0 items-center gap-0.5 sm:gap-1">
+      {/* PRIMARY action group — Record + A-B (always visible) */}
+      <div className="flex items-center gap-0.5 shrink-0">
         <button
           onClick={toggleShadowing}
           className={cn(
-            "timeline-secondary-action",
-            "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors",
+            "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors min-w-[28px]",
             isShadowingMode
               ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
               : "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
@@ -133,7 +133,7 @@ export const TimelineToolbar = ({
           title={t("shadowing.record")}
         >
           <Mic size={13} />
-          <span className="hidden sm:inline">{t("shadowing.record", { defaultValue: "Record" })}</span>
+          <span className="hidden @[300px]/toolbar:inline">{t("shadowing.record", { defaultValue: "Record" })}</span>
         </button>
 
         <button
@@ -147,7 +147,7 @@ export const TimelineToolbar = ({
             }
           }}
           className={cn(
-            "flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium transition-colors active:scale-90",
+            "flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium transition-colors active:scale-90 min-w-[28px]",
             loopStart !== null && loopEnd !== null
               ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
               : loopStart !== null
@@ -158,24 +158,13 @@ export const TimelineToolbar = ({
         >
           <span className="font-mono">{loopStart !== null && loopEnd !== null ? "A-B" : loopStart !== null ? "A-" : "A-B"}</span>
         </button>
+      </div>
 
-        <button
-          onClick={() => setIsLooping(!isLooping)}
-          className={cn(
-            "timeline-secondary-action",
-            "p-1.5 rounded-full transition-colors active:scale-90",
-            isLooping
-              ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
-              : "text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
-          )}
-          title={t("player.toggleLooping")}
-        >
-          <Repeat size={16} />
-        </button>
-
+      {/* Speed — visible @[360px]+ */}
+      <div className="hidden @[360px]/toolbar:flex items-center shrink-0">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="timeline-secondary-action flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+            <button className="timeline-secondary-action flex items-center gap-0.5 px-2 py-1 rounded-md text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors min-w-[40px]">
               <span>{playbackRate.toFixed(2)}x</span>
               <ChevronDown size={12} />
             </button>
@@ -192,18 +181,25 @@ export const TimelineToolbar = ({
             </div>
           </PopoverContent>
         </Popover>
+      </div>
 
-        <button
-          onClick={() => navigate("/sentence-practice")}
-          className="timeline-secondary-action hidden lg:flex p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
-          title={t("sentencePractice.title")}
-        >
-          <ListMusic size={16} />
-        </button>
-
+      {/* Loop, Volume — visible @[480px]+ */}
+      <button
+        onClick={() => setIsLooping(!isLooping)}
+        className={cn(
+          "hidden @[480px]/toolbar:inline-flex items-center timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 min-w-[28px]",
+          isLooping
+            ? "text-primary-600 bg-primary-50 dark:bg-primary-900/30"
+            : "text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
+        )}
+        title={t("player.toggleLooping")}
+      >
+        <Repeat size={16} />
+      </button>
+      <div className="hidden @[480px]/toolbar:flex items-center">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
+            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]">
               {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
           </PopoverTrigger>
@@ -216,10 +212,20 @@ export const TimelineToolbar = ({
             </div>
           </PopoverContent>
         </Popover>
+      </div>
 
+      {/* Settings, SentencePractice — visible @[640px]+ */}
+      <button
+        onClick={() => navigate("/sentence-practice")}
+        className="hidden @[640px]/toolbar:inline-flex timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]"
+        title={t("sentencePractice.title")}
+      >
+        <ListMusic size={16} />
+      </button>
+      <div className="hidden @[640px]/toolbar:flex items-center">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="timeline-secondary-action hidden sm:flex p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5">
+            <button className="timeline-secondary-action p-1.5 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[28px]">
               <Settings2 size={16} />
             </button>
           </PopoverTrigger>
@@ -243,7 +249,44 @@ export const TimelineToolbar = ({
         </Popover>
       </div>
 
-      {/* Panel controls */}
+      {/* Overflow menu — appears when any secondary control is hidden */}
+      <div className="@[640px]/toolbar:hidden flex items-center shrink-0">
+        <TimelineOverflowMenu
+          ariaLabel={t("layout.layoutSettings")}
+          items={[
+            {
+              id: "speed",
+              label: `${t("player.playbackSpeed", { defaultValue: "Speed" })}: ${playbackRate.toFixed(2)}x`,
+              icon: <ChevronDown size={12} />,
+              onSelect: () => setPlaybackRate(playbackRate >= 2 ? 0.5 : Math.min(2, playbackRate + 0.25)),
+              hideAtClass: "@[360px]/toolbar:hidden",
+            },
+            {
+              id: "loop",
+              label: t("player.toggleLooping"),
+              icon: <Repeat size={12} />,
+              onSelect: () => setIsLooping(!isLooping),
+              hideAtClass: "@[480px]/toolbar:hidden",
+            },
+            {
+              id: "volume",
+              label: muted ? t("player.unmute", { defaultValue: "Unmute" }) : t("player.mute", { defaultValue: "Mute" }),
+              icon: muted || volume === 0 ? <VolumeX size={12} /> : <Volume2 size={12} />,
+              onSelect: toggleMute,
+              hideAtClass: "@[480px]/toolbar:hidden",
+            },
+            {
+              id: "sentence",
+              label: t("sentencePractice.title"),
+              icon: <ListMusic size={12} />,
+              onSelect: () => navigate("/sentence-practice"),
+              hideAtClass: "@[640px]/toolbar:hidden",
+            },
+          ]}
+        />
+      </div>
+
+      {/* Panel controls — always visible */}
       <div className="timeline-panel-controls flex shrink-0 items-center gap-0.5 ml-1 pl-2 border-l border-gray-200 dark:border-white/10">
         {collapsed ? (
           <button onClick={onExpand} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 transition-colors" title="Expand">

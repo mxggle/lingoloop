@@ -12,6 +12,25 @@ import {
   mediaIdFromPath,
   type WaveformMeta,
 } from './waveformEngine'
+import { NoAudioStreamError } from './waveformProbe'
+import {
+  readJSON,
+  writeJSON,
+  deleteFile,
+  listDir,
+  readBinary,
+  writeBinary,
+  getDataDir,
+  setDataDir,
+  ensureDataDir,
+  sanitizePath,
+  copyDataDir,
+} from './dataStore'
+import { loadManifest, createDefaultManifest, saveManifest } from './manifestManager'
+import { replayCommitted, rollbackPending } from './journalManager'
+import { runHealthCheck, recover } from './healthCheck'
+import { createSnapshot, restoreSnapshot, cleanupOldSnapshots } from './snapshotManager'
+import { runMigration } from './migrationManager'
 
 const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
@@ -27,7 +46,7 @@ type MediaTreeWatcher = {
 
 const mediaTreeWatchers = new Map<number, MediaTreeWatcher>()
 
-type SettingsWindowTab = 'general' | 'ai'
+type SettingsWindowTab = 'general' | 'ai' | 'data'
 
 function closeMediaTreeWatch(watchId: number): void {
   const entry = mediaTreeWatchers.get(watchId)
@@ -277,10 +296,20 @@ ipcMain.handle('window:closeSettings', () => {
 })
 
 /**
- * Read source folders from the Zustand persisted state blob.
- * Falls back to the legacy top-level configStore key for older installs.
+ * Read source folders from the new file-based persistence first,
+ * falling back to electron-store for older installs.
  */
-function getSourceFolders(): string[] {
+async function getSourceFolders(): Promise<string[]> {
+  try {
+    const newData = await readJSON<{ version: number; folders: string[] }>(
+      dataDir,
+      'library/media-sources.json',
+    )
+    if (newData?.folders?.length) return newData.folders
+  } catch {
+    // new data not available, fall through
+  }
+
   const raw = configStore.get('abloop-player-storage')
   if (typeof raw === 'string') {
     try {
@@ -294,7 +323,23 @@ function getSourceFolders(): string[] {
   return configStore.get('sourceFolders')
 }
 
-function getHistoryNativePaths(): string[] {
+async function getHistoryNativePaths(): Promise<string[]> {
+  try {
+    const historyData = await readJSON<{
+      version: number
+      items: Array<{ nativePath?: string }>
+    }>(dataDir, 'library/media-history.json')
+    if (historyData?.items?.length) {
+      return historyData.items
+        .map((item) =>
+          typeof item?.nativePath === 'string' ? item.nativePath : null,
+        )
+        .filter((path): path is string => !!path)
+    }
+  } catch {
+    // new data not available, fall through
+  }
+
   const raw = configStore.get('abloop-player-storage')
   if (typeof raw !== 'string') {
     return []
@@ -418,8 +463,8 @@ function parseRangeHeader(
  * Path comparison is case-insensitive to support Windows (NTFS).
  */
 async function assertPathInSourceFolders(targetPath: string): Promise<void> {
-  const sourceFolders = getSourceFolders()
-  const historyNativePaths = getHistoryNativePaths()
+  const sourceFolders = await getSourceFolders()
+  const historyNativePaths = await getHistoryNativePaths()
   const normalizedTarget = normalize(targetPath)
   const resolvedTarget = await tryRealpath(targetPath)
   const hasConfiguredFolderAccess = (
@@ -636,17 +681,24 @@ ipcMain.handle('waveform:analyze', async (event, params: { filePath: string; med
   await assertPathInSourceFolders(params.filePath)
   const mediaId = params.mediaId || mediaIdFromPath(params.filePath)
 
-  const meta = await analyzeWaveform({
-    filePath: params.filePath,
-    mediaId,
-    onProgress: (fraction) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send('waveform:analyzeProgress', { mediaId, fraction })
-      }
-    },
-  })
+  try {
+    const meta = await analyzeWaveform({
+      filePath: params.filePath,
+      mediaId,
+      onProgress: (fraction) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('waveform:analyzeProgress', { mediaId, fraction })
+        }
+      },
+    })
 
-  return meta
+    return meta
+  } catch (error) {
+    if (error instanceof NoAudioStreamError) {
+      return null
+    }
+    throw error
+  }
 })
 
 ipcMain.handle('waveform:getMeta', async (_event, mediaId: string) => {
@@ -672,7 +724,102 @@ ipcMain.handle('waveform:delete', async (_event, mediaId: string) => {
   deleteWaveformCache(mediaId)
 })
 
-app.whenReady().then(() => {
+// ─── Data persistence IPC ────────────────────────────────────
+
+let dataDir = getDataDir()
+
+ipcMain.handle('data:get', async (_event, filePath: string) => {
+  return readJSON(dataDir, filePath)
+})
+
+ipcMain.handle('data:put', async (_event, filePath: string, data: unknown) => {
+  await writeJSON(dataDir, filePath, data)
+})
+
+ipcMain.handle('data:delete', async (_event, filePath: string) => {
+  await deleteFile(dataDir, filePath)
+})
+
+ipcMain.handle('data:list', async (_event, dirPath: string) => {
+  return listDir(dataDir, dirPath)
+})
+
+ipcMain.handle('data:getMediaFile', async (_event, filePath: string) => {
+  return readBinary(dataDir, filePath)
+})
+
+ipcMain.handle('data:putMediaFile', async (_event, filePath: string, data: number[]) => {
+  const buf = Buffer.from(data)
+  await writeBinary(
+    dataDir,
+    filePath,
+    buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer,
+  )
+})
+
+ipcMain.handle('data:getDirectory', () => {
+  return dataDir
+})
+
+ipcMain.handle('data:isMigrated', () => {
+  try {
+    const m = loadManifest(dataDir)
+    return m.migrationStatus === 'completed'
+  } catch {
+    return false
+  }
+})
+
+ipcMain.handle('data:migrate', async (_event, payload: {
+  localStorage: Record<string, string>
+  indexedDB: unknown
+}) => {
+  const result = await runMigration(dataDir, {
+    localStorage: payload.localStorage,
+    indexedDB: payload.indexedDB as any,
+  })
+  return result
+})
+
+ipcMain.handle('data:healthCheck', async () => {
+  return runHealthCheck(dataDir)
+})
+
+ipcMain.handle('data:recover', async (_event, strategy: string) => {
+  return recover(dataDir, strategy as 'journal' | 'snapshot' | 'remigrate')
+})
+
+ipcMain.handle('data:exportSnapshot', async () => {
+  const ref = await createSnapshot(dataDir)
+  return { path: ref.path }
+})
+
+ipcMain.handle('data:importSnapshot', async (_event, zipPath: string) => {
+  await restoreSnapshot(dataDir, zipPath)
+})
+
+ipcMain.handle('data:changeDirectory', async (_event, targetPath: string) => {
+  const { normalize, join } = await import('path')
+  const newDir = join(normalize(targetPath), 'LoopMateData')
+  await ensureDataDir(newDir)
+  await copyDataDir(dataDir, newDir)
+  const health = await runHealthCheck(newDir)
+  if (health.status === 'damaged') {
+    throw new Error('Health check failed on new data directory')
+  }
+  await setDataDir(newDir)
+  dataDir = newDir
+  const manifest = loadManifest(newDir)
+  manifest.activeDataDir = newDir
+  await saveManifest(newDir, manifest)
+})
+
+app.whenReady().then(async () => {
+  // Initialize data persistence directory
+  await ensureDataDir(dataDir)
+  await replayCommitted(dataDir)
+  await rollbackPending(dataDir)
+  await cleanupOldSnapshots(dataDir)
   // Serve local media files through the local-media:// protocol.
   // URL format: local-media://media/ENCODED_PATH
   protocol.handle('local-media', async (request) => {

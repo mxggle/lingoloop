@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 
-type SettingsWindowTab = 'general' | 'ai'
+type SettingsWindowTab = 'general' | 'ai' | 'data'
 type MediaTreeChangedPayload = {
   folderPath: string
   changedPath: string | null
@@ -76,4 +76,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('waveform:analyzeProgress', listener)
     return () => { ipcRenderer.removeListener('waveform:analyzeProgress', listener) }
   },
+  dataGet: (path: string) => ipcRenderer.invoke('data:get', path),
+  dataPut: (path: string, data: unknown) => ipcRenderer.invoke('data:put', path, data),
+  dataDelete: (path: string) => ipcRenderer.invoke('data:delete', path),
+  dataList: (path: string) => ipcRenderer.invoke('data:list', path),
+  dataGetMediaFile: (path: string) => ipcRenderer.invoke('data:getMediaFile', path),
+  dataPutMediaFile: (path: string, data: ArrayBuffer) =>
+    ipcRenderer.invoke('data:putMediaFile', path, Array.from(new Uint8Array(data))),
+  dataGetDirectory: () => ipcRenderer.invoke('data:getDirectory'),
+  dataIsMigrated: () => ipcRenderer.invoke('data:isMigrated'),
+  dataRunMigration: (localStorage: Record<string, string>, indexedDB: unknown) =>
+    ipcRenderer.invoke('data:migrate', { localStorage, indexedDB }),
+  dataExportSnapshot: () => ipcRenderer.invoke('data:exportSnapshot'),
+  dataImportSnapshot: (zipPath: string) => ipcRenderer.invoke('data:importSnapshot', zipPath),
+  dataChangeDirectory: (targetPath: string) =>
+    ipcRenderer.invoke('data:changeDirectory', targetPath),
+  dataHealthCheck: () => ipcRenderer.invoke('data:healthCheck'),
+  dataRecover: (strategy: string) => ipcRenderer.invoke('data:recover', strategy),
 })

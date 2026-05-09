@@ -3,7 +3,7 @@ interface ElectronMediaFile {
   path: string
 }
 
-type SettingsWindowTab = 'general' | 'ai'
+type SettingsWindowTab = 'general' | 'ai' | 'data'
 
 export interface FolderTreeNode {
   name: string
@@ -40,7 +40,7 @@ interface ElectronAPI {
     duration: number
     sampleRate: number
     levels: Array<{ level: number; samplesPerPeak: number; points: number; path: string }>
-  }>
+  } | null>
   waveformGetMeta: (mediaId: string) => Promise<{
     mediaId: string
     duration: number
@@ -58,6 +58,31 @@ interface ElectronAPI {
   } | null>
   waveformDelete: (mediaId: string) => Promise<void>
   onWaveformProgress: (callback: (payload: { mediaId: string; fraction: number }) => void) => () => void
+  dataGet: (path: string) => Promise<unknown>
+  dataPut: (path: string, data: unknown) => Promise<void>
+  dataDelete: (path: string) => Promise<void>
+  dataList: (path: string) => Promise<string[]>
+  dataExportSnapshot: () => Promise<{ path: string }>
+  dataImportSnapshot: (zipPath: string) => Promise<void>
+  dataChangeDirectory: (targetPath: string) => Promise<void>
+  dataHealthCheck: () => Promise<{
+    manifestOk: boolean
+    failedChecksums: string[]
+    orphanedReferences: string[]
+    corruptedFiles: string[]
+    status: 'healthy' | 'degraded' | 'damaged'
+  }>
+  dataRecover: (strategy: string) => Promise<{
+    success: boolean
+    recoveredFiles: string[]
+    failedFiles: string[]
+    message: string
+  }>
+  dataGetMediaFile: (filePath: string) => Promise<ArrayBuffer>
+  dataPutMediaFile: (filePath: string, data: ArrayBuffer) => Promise<void>
+  dataGetDirectory: () => Promise<string>
+  dataRunMigration: (localStorage: Record<string, string>, indexedDB: unknown) => Promise<{ success: boolean; migratedCounts: Record<string, number>; errors: string[] }>
+  dataIsMigrated: () => Promise<boolean>
 }
 
 declare global {

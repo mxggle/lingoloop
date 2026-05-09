@@ -57,7 +57,9 @@
       "trackDeleted": "Shadow track deleted"
     },
     "recordingError": "Recording error: {{message}}",
-    "failedToSave": "Failed to save recording"
+    "failedToSave": "Failed to save recording",
+    "takeOf": "Take {{n}} of {{total}}",
+    "recordFirstTake": "Press REC to record your first take"
   },
   "sentencePractice": {
     "title": "Sentence Practice",
@@ -349,6 +351,11 @@
     "abLoopPlayer": "AB Loop Player",
     "couldNotRetrieveMedia": "File not found in storage. Please re-upload the file.",
     "noMediaLoadedSimple": "No media loaded"
+  },
+  "track": {
+    "original": "Original",
+    "shadowing": "Shadowing",
+    "totalDuration": "Total {{time}}"
   },
   "upload": {
     "openFile": "Open File",

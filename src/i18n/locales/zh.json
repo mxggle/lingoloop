@@ -55,7 +55,9 @@
       "trackDeleted": "跟读音轨已删除"
     },
     "recordingError": "录音错误：{{message}}",
-    "failedToSave": "保存录音失败"
+    "failedToSave": "保存录音失败",
+    "takeOf": "Take {{n}} / {{total}}",
+    "recordFirstTake": "按 REC 录制第一段跟读"
   },
   "sentencePractice": {
     "title": "逐句练习",
@@ -327,6 +329,11 @@
     "abLoopPlayer": "A-B 循环播放器",
     "couldNotRetrieveMedia": "在存储中找不到文件，请重新上传文件。",
     "noMediaLoadedSimple": "没有加载媒体"
+  },
+  "track": {
+    "original": "原音",
+    "shadowing": "跟读",
+    "totalDuration": "总 {{time}}"
   },
   "upload": {
     "openFile": "打开文件",

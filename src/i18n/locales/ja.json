@@ -55,7 +55,9 @@
       "trackDeleted": "シャドートラックを削除しました"
     },
     "recordingError": "録音エラー：{{message}}",
-    "failedToSave": "録音の保存に失敗しました"
+    "failedToSave": "録音の保存に失敗しました",
+    "takeOf": "テイク {{n}} / {{total}}",
+    "recordFirstTake": "RECを押して最初のテイクを録音"
   },
   "sentencePractice": {
     "title": "一文ずつ練習",
@@ -327,6 +329,11 @@
     "abLoopPlayer": "A-Bループプレーヤー",
     "couldNotRetrieveMedia": "ストレージにファイルが見つかりません。ファイルを再アップロードしてください。",
     "noMediaLoadedSimple": "メディアが読み込まれていません"
+  },
+  "track": {
+    "original": "オリジナル",
+    "shadowing": "シャドーイング",
+    "totalDuration": "全 {{time}}"
   },
   "upload": {
     "openFile": "ファイルを開く",

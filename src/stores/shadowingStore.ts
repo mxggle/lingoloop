@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { deleteMediaFile } from "../utils/mediaStorage";
+import { recordingRepository } from "../repositories/recordingRepository";
 
 export interface ShadowingSegment {
     id: string;
@@ -353,3 +354,37 @@ export const useShadowingStore = create<ShadowingState & ShadowingActions>()(
         }
     )
 );
+
+// ─── Dual-write sync ───
+let _shadowingSaveTimer: ReturnType<typeof setTimeout>
+useShadowingStore.subscribe((state) => {
+  clearTimeout(_shadowingSaveTimer)
+  _shadowingSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+    const allSegments: Array<{ id: string; mediaId: string; startTime: number; duration: number; filePath: string; fileOffset: number; segmentId?: string; peaks: number[]; peakTimes: number[]; createdAt: number }> = []
+    if (state.sessions) {
+      for (const key of Object.keys(state.sessions)) {
+        const session = state.sessions[key]
+        if (Array.isArray(session.segments)) {
+          for (const seg of session.segments) {
+            allSegments.push({
+              id: seg.id,
+              mediaId: key,
+              startTime: seg.startTime,
+              duration: seg.duration,
+              filePath: `recordings/shadowing/files/${seg.storageId}`,
+              fileOffset: seg.fileOffset || 0,
+              segmentId: (seg as unknown as Record<string, unknown>).segmentId as string | undefined,
+              peaks: seg.peaks || [],
+              peakTimes: (seg as unknown as Record<string, unknown>).peakTimes as number[] || [],
+              createdAt: Date.now(),
+            })
+          }
+        }
+      }
+    }
+    if (allSegments.length > 0) {
+      recordingRepository.saveShadowingIndex(allSegments).catch(() => {})
+    }
+  }, 300)
+})

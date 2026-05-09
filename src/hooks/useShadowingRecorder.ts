@@ -6,6 +6,7 @@ import type { ShadowingSegment } from "../stores/shadowingStore";
 import { storeMediaFile } from "../utils/mediaStorage";
 import { toast } from "react-hot-toast";
 import { UniversalAudioRecorder } from "../utils/audioRecorder";
+import { recordingRepository } from "../repositories/recordingRepository";
 
 type WindowWithWebkitAudioContext = Window & typeof globalThis & {
     webkitAudioContext?: typeof AudioContext;
@@ -209,6 +210,12 @@ export const useShadowingRecorder = () => {
 
                             console.log("🎙️ [ShadowingRecorder] Storing file to IndexedDB...");
                             const storageId = await storeMediaFile(file);
+                            recordingRepository.saveRecordingData(
+                                `recordings/shadowing/files/${storageId}`,
+                                file,
+                            ).catch((error) => {
+                                console.warn("[ShadowingRecorder] Failed to mirror recording file:", error);
+                            });
                             console.log("🎙️ [ShadowingRecorder] File stored with ID:", storageId);
 
                             const { getCurrentMediaId } = usePlayerStore.getState();

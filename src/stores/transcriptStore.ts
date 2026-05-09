@@ -16,6 +16,9 @@ import {
   inferTranscriptLevelSystem,
 } from "../utils/transcriptStudy";
 import { createGlossaryEntry, isDuplicateGlossaryEntry } from "../utils/glossary";
+import { transcriptRepository } from "../repositories/transcriptRepository";
+import { transcriptStudyRepository } from "../repositories/transcriptStudyRepository";
+import type { PersistedSegmentStudy, PersistedTranscriptSegment } from "../types/persistence";
 
 export interface TranscriptState {
   mediaTranscripts: MediaTranscripts;
@@ -302,3 +305,45 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     return mediaId ? get().mediaTranscripts[mediaId] || [] : [];
   },
 }));
+
+// ─── Dual-write sync ───
+let _transcriptSaveTimer: ReturnType<typeof setTimeout>
+useTranscriptStore.subscribe((state) => {
+  clearTimeout(_transcriptSaveTimer)
+  _transcriptSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+
+    // Sync transcripts
+    const mediaIds = Object.keys(state.mediaTranscripts || {})
+    for (const mediaId of mediaIds) {
+      const segments = state.mediaTranscripts[mediaId]
+      if (Array.isArray(segments) && segments.length > 0) {
+        transcriptRepository.saveTranscript(mediaId, segments as PersistedTranscriptSegment[]).catch(() => {})
+      }
+    }
+
+    // Sync study data
+    const studyIds = Object.keys(state.mediaTranscriptStudy || {})
+    for (const mediaId of studyIds) {
+      const study = state.mediaTranscriptStudy[mediaId]
+      if (study && typeof study === 'object') {
+        const segmentStudies: PersistedSegmentStudy[] = []
+        for (const segId of Object.keys(study)) {
+          const s = study[segId]
+          if (s) {
+            segmentStudies.push({
+              segmentId: segId,
+              levelSystem: s.levelSystem || 'cefr',
+              updatedAt: s.updatedAt || Date.now(),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              items: (s.items || []) as any,
+            })
+          }
+        }
+        if (segmentStudies.length > 0) {
+          transcriptStudyRepository.saveStudy(mediaId, segmentStudies).catch(() => {})
+        }
+      }
+    }
+  }, 300)
+})

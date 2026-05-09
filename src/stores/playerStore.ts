@@ -17,6 +17,11 @@ import type { MediaFile, YouTubeMedia } from "./mediaStore";
 import type { LoopBookmark, MediaBookmarks } from "../types/bookmark";
 import type { TranscriptSegment, MediaTranscripts, MediaTranscriptStudies } from "../types/transcript";
 import type { GlossaryEntry, CreateGlossaryEntryInput } from "../types/transcriptStudy";
+import { bookmarkRepository } from "../repositories/bookmarkRepository";
+import { glossaryRepository } from "../repositories/glossaryRepository";
+import { libraryRepository } from "../repositories/libraryRepository";
+import { settingsRepository } from "../repositories/settingsRepository";
+import type { PersistedBookmark, PersistedGlossaryEntry } from "../types/persistence";
 
 // Re-export sub-stores
 export { useMediaStore } from "./mediaStore";
@@ -716,3 +721,118 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
     }
   )
 );
+
+// ─── Dual-write sync to new data directory (transitional) ───
+let _playerSaveTimer: ReturnType<typeof setTimeout>
+usePlayerStore.subscribe((state) => {
+  clearTimeout(_playerSaveTimer)
+  _playerSaveTimer = setTimeout(() => {
+    if (!window.electronAPI?.dataPut) return
+
+    // Bookmarks
+    const bookmarks: PersistedBookmark[] = []
+    if (state.mediaBookmarks) {
+      for (const key of Object.keys(state.mediaBookmarks)) {
+        const arr = state.mediaBookmarks[key]
+        if (Array.isArray(arr)) {
+          for (const b of arr) {
+            bookmarks.push({
+              id: b.id,
+              mediaId: key,
+              name: b.name,
+              start: b.start,
+              end: b.end,
+              createdAt: b.createdAt,
+              mediaName: b.mediaName,
+              mediaType: b.mediaType,
+              youtubeId: b.youtubeId,
+              playbackRate: b.playbackRate,
+              annotation: b.annotation,
+              segmentIds: b.segmentIds,
+              wordIds: b.wordIds,
+            })
+          }
+        }
+      }
+    }
+    bookmarkRepository.saveBookmarks(bookmarks).catch(() => {})
+
+    // Glossary
+    const glossary: PersistedGlossaryEntry[] = (state.glossaryEntries || []).map((e) => ({
+      id: e.id,
+      mediaId: e.mediaId,
+      mediaName: e.mediaName,
+      mediaType: e.mediaType || '',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      youtubeId: (e as any).youtubeId,
+      segmentId: e.segmentId,
+      text: e.text,
+      contextText: e.contextText,
+      selectionStart: e.selectionStart,
+      selectionEnd: e.selectionEnd,
+      startTime: e.startTime,
+      endTime: e.endTime,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
+    }))
+    glossaryRepository.saveGlossary(glossary).catch(() => {})
+
+    // Media history
+    if (Array.isArray(state.mediaHistory)) {
+      const items: Record<string, unknown>[] = state.mediaHistory.map((h) => ({
+        id: (h as unknown as Record<string, unknown>).id,
+        mediaId: (h as unknown as Record<string, unknown>).mediaId,
+        type: h.type,
+        name: h.name,
+        accessedAt: h.accessedAt,
+        playbackTime: h.playbackTime || 0,
+        folderId: h.folderId || null,
+        nativePath: h.nativePath,
+        storageId: h.storageId,
+        fileData: h.fileData,
+        youtubeData: h.youtubeData,
+      }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      libraryRepository.saveHistory(items as any).catch(() => {})
+    }
+
+    // Source folders
+    if (Array.isArray(state.sourceFolders)) {
+      libraryRepository.saveSourceFolders(state.sourceFolders).catch(() => {})
+    }
+
+    // Settings
+    settingsRepository.saveAppSettings({
+      version: 1,
+      volume: state.volume,
+      muted: state.muted,
+      playbackRate: state.playbackRate,
+      showTranscript: state.showTranscript,
+      transcriptLanguage: state.transcriptLanguage,
+      seekStepSeconds: state.seekStepSeconds,
+      seekSmallStepSeconds: state.seekSmallStepSeconds || 1,
+      seekMode: state.seekMode,
+      waveformZoom: 1,
+      showWaveform: true,
+      videoSize: 'md',
+    }).catch(() => {})
+
+    // Layout
+    settingsRepository.saveLayoutSettings({
+      version: 1,
+      showPlayer: true,
+      showWaveform: true,
+      showTranscript: true,
+      showControls: true,
+      transcriptPanelVisible: true,
+      transcriptPanelCollapsed: false,
+      videoPanelVisible: true,
+      videoPanelCollapsed: false,
+      timelinePanelVisible: true,
+      timelinePanelCollapsed: false,
+      isSidebarOpen: state.isSidebarOpen ?? true,
+      sidebarWidth: state.sidebarWidth ?? 320,
+      activeSidebarTab: state.activeSidebarTab || 'history',
+    }).catch(() => {})
+  }, 300)
+})

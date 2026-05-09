@@ -57,6 +57,7 @@ export class WaveformRenderer {
   private _selectedId: string | null = null;
   private _shadowingExpanded = false;
   private _shadowingWaveforms: ShadowingWaveformData[] = [];
+  private _currentTakeIndex: number | null = null;
   private _recordingOverlay: RecordingOverlayData | null = null;
   private _fadingRecording: { startedAt: number; data: RecordingOverlayData } | null = null;
 
@@ -109,6 +110,9 @@ export class WaveformRenderer {
   }
   setShadowingWaveforms(waveforms: ShadowingWaveformData[]): void {
     this._shadowingWaveforms = waveforms; this.redrawStatic();
+  }
+  setCurrentTakeIndex(index: number | null): void {
+    this._currentTakeIndex = index; this.redrawStatic();
   }
   setRecordingOverlay(recording: RecordingOverlayData | null): void {
     this._recordingOverlay = recording; this._fadingRecording = null; this.redrawStatic();
@@ -224,17 +228,21 @@ export class WaveformRenderer {
         ctx.fillStyle = colors.primary;
         ctx.fillRect(x, top, barW, h);
 
-        // Draw RMS as an inner highlight band
+        // Draw RMS as an inner highlight band — softer, brighter inside
         if (this._rms) {
           const rmsVal = this._rms[i] * scale * 0.6;
           const rmsTop = mainCenterY - rmsVal;
           const rmsH = Math.max(0.5 * dpr, rmsVal * 2);
-          ctx.fillStyle = `${colors.primary}80`; // slightly transparent
+          ctx.fillStyle = `${colors.primary}66`; // ~40% alpha overlay
           ctx.fillRect(x, rmsTop, barW, rmsH);
         }
       }
       ctx.restore();
     }
+
+    // Center reference line — subtle 10% primary, full width
+    ctx.fillStyle = hexToRgba(colors.primary, 0.1);
+    ctx.fillRect(0, mainCenterY - 0.5 * dpr, cw, 1 * dpr);
 
     // Shadowing area (lower half when expanded)
     if (this._shadowingExpanded) {
@@ -243,11 +251,13 @@ export class WaveformRenderer {
       const sPad = 2 * dpr;
       const sDrawH = Math.max(0, sH - sPad * 2);
 
-      ctx.beginPath();
-      ctx.strokeStyle = hexToRgba(colors.primary, 0.3);
-      ctx.lineWidth = 1 * dpr;
-      ctx.moveTo(0, sTop); ctx.lineTo(cw, sTop);
-      ctx.stroke();
+      // Soft gradient separator between Original and Shadowing regions
+      const sepGradient = ctx.createLinearGradient(0, sTop, cw, sTop);
+      sepGradient.addColorStop(0, hexToRgba(colors.primary, 0.3));
+      sepGradient.addColorStop(0.5, "rgba(0,0,0,0)");
+      sepGradient.addColorStop(1, hexToRgba(colors.primary, 0.3));
+      ctx.fillStyle = sepGradient;
+      ctx.fillRect(0, sTop, cw, 1 * dpr);
 
       if (this._shadowingWaveforms.length === 0 && !this._recordingOverlay && !this._fadingRecording) {
         ctx.beginPath();
@@ -277,6 +287,12 @@ export class WaveformRenderer {
         const segEnd = seg.start + seg.duration;
         if (segEnd < startOffset || seg.start > endOffset) continue;
 
+        // Take dimming: when a take is selected, others fade to 50%
+        const isCurrent = this._currentTakeIndex === null || this._currentTakeIndex === segIdx;
+        const takeAlpha = isCurrent ? 1.0 : 0.5;
+        const alphaHex = Math.round(takeAlpha * 255).toString(16).padStart(2, "0");
+        const innerAlphaHex = Math.round(takeAlpha * 0x70).toString(16).padStart(2, "0");
+
         const takeColor = takeColors[(seg.takeIndex ?? segIdx) % takeColors.length];
         const sDur = seg.duration / seg.peaks.length;
         const sliceW = (sDur / visibleDuration) * cw;
@@ -293,15 +309,43 @@ export class WaveformRenderer {
           const barH = Math.max(1.5 * dpr, val * sDrawH * peakScale);
           const top = sCenterY - barH / 2;
 
-          // Fill with segment color
-          ctx.fillStyle = takeColor;
+          // Fill with segment color (dimmed if non-current take)
+          ctx.fillStyle = `${takeColor}${alphaHex}`;
           ctx.fillRect(x, top, barW, barH);
 
           // Inner highlight band (like RMS in main waveform)
           const innerH = Math.max(0.5 * dpr, barH * 0.45);
-          ctx.fillStyle = `${takeColor}70`;
+          ctx.fillStyle = `${takeColor}${innerAlphaHex}`;
           ctx.fillRect(x, sCenterY - innerH / 2, barW, innerH);
         }
+
+        // Take label (T1, T2, …) above the take's start position
+        const labelX = ((seg.start - startOffset) / visibleDuration) * cw;
+        if (labelX >= 0 && labelX < cw) {
+          ctx.save();
+          ctx.globalAlpha = takeAlpha;
+          // Color bar above the take
+          ctx.fillStyle = takeColor;
+          ctx.fillRect(labelX, sTop + sPad, 2 * dpr, 6 * dpr);
+          // T# label
+          ctx.fillStyle = takeColor;
+          ctx.font = `${10 * dpr}px monospace`;
+          ctx.textBaseline = "top";
+          ctx.textAlign = "left";
+          ctx.fillText(`T${segIdx + 1}`, labelX + 4 * dpr, sTop + sPad);
+          ctx.restore();
+        }
+      }
+
+      // Empty shadowing ghost text (expanded but no takes / no recording)
+      if (this._shadowingWaveforms.length === 0 && !this._recordingOverlay && !this._fadingRecording) {
+        ctx.save();
+        ctx.fillStyle = "rgba(148,163,184,0.6)"; // soft gray
+        ctx.font = `${11 * dpr}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("Press REC to record your first take", cw / 2, sCenterY);
+        ctx.restore();
       }
 
       if (this._fadingRecording) {
@@ -397,8 +441,13 @@ export class WaveformRenderer {
     }
 
     if (this._loopStart !== null && this._loopEnd !== null && cLoopS >= 0 && cLoopE <= cw) {
-      ctx.fillStyle = hexToRgba(colors.primary, 0.2);
+      // Soft fill across the loop region
+      ctx.fillStyle = hexToRgba(colors.primary, 0.15);
       ctx.fillRect(cLoopS, 0, cLoopE - cLoopS, ch);
+      // Solid 1.5px primary edges at A and B
+      ctx.fillStyle = colors.primary;
+      ctx.fillRect(cLoopS - 0.75 * dpr, 0, 1.5 * dpr, ch);
+      ctx.fillRect(cLoopE - 0.75 * dpr, 0, 1.5 * dpr, ch);
     }
 
     if (this._dragSelection) {
@@ -409,8 +458,16 @@ export class WaveformRenderer {
         const x2 = ((e - startOffset) / visibleDuration) * cw;
         const w = x2 - x1;
         if (w > 0) {
-          ctx.fillStyle = hexToRgba(colors.primary, 0.4);
+          // Filled body (lighter than before for clarity vs Loop)
+          ctx.fillStyle = hexToRgba(colors.primary, 0.30);
           ctx.fillRect(x1, 0, w, ch);
+          // Dashed border (visually distinct from Loop's solid edges)
+          ctx.save();
+          ctx.strokeStyle = colors.primary;
+          ctx.lineWidth = 1 * dpr;
+          ctx.setLineDash([4 * dpr, 3 * dpr]);
+          ctx.strokeRect(x1, 0, w, ch);
+          ctx.restore();
         }
       }
     }
@@ -494,21 +551,19 @@ export class WaveformRenderer {
 
   // ==================== Marker drawing ====================
 
-  private _drawMarker(ctx: CanvasRenderingContext2D, x: number, height: number, label: string): void {
+  private _drawMarker(ctx: CanvasRenderingContext2D, x: number, _height: number, label: string): void {
     const p = dpr();
-    ctx.beginPath();
-    ctx.strokeStyle = label === "A" ? "#10B981" : "#3B82F6";
-    ctx.lineWidth = 2 * p;
-    ctx.moveTo(x, 0); ctx.lineTo(x, height);
-    ctx.stroke();
-
-    ctx.fillStyle = label === "A" ? "#10B981" : "#3B82F6";
-    ctx.fillRect(x - 10 * p, 0, 20 * p, 20 * p);
+    const colors = useThemeStore.getState().colors;
+    // Compact pill at the top corner — primary color (matches Loop edges in §5.3)
+    const labelW = 14 * p, labelH = 12 * p;
+    const labelX = label === "A" ? x : x - labelW;
+    ctx.fillStyle = colors.primary;
+    ctx.fillRect(labelX, 0, labelW, labelH);
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = `${12 * p}px sans-serif`;
+    ctx.font = `${9 * p}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, x, 10 * p);
+    ctx.fillText(label, labelX + labelW / 2, labelH / 2);
   }
 }

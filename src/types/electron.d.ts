@@ -26,6 +26,8 @@ interface ElectronAPI {
   closeSettingsWindow: () => Promise<void>
   openGlossaryWindow: () => Promise<void>
   closeGlossaryWindow: () => Promise<void>
+  navigateInMainWindow: (route: string, entryId?: string) => Promise<void>
+  onNavigate: (callback: (payload: { route: string; entryId?: string }) => void) => () => void
   showInFileManager: (targetPath: string) => Promise<boolean>
   listMediaFiles: (folderPath: string) => Promise<ElectronMediaFile[]>
   listMediaTree: (folderPath: string) => Promise<FolderTreeNode[]>

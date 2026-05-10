@@ -35,6 +35,7 @@ import { runMigration } from './migrationManager'
 const isDev = process.env.NODE_ENV === 'development'
 const transientApprovedFiles = new Set<string>()
 const transientApprovedFolders = new Set<string>()
+let mainWindow: BrowserWindow | null = null
 let settingsWindow: BrowserWindow | null = null
 let glossaryWindow: BrowserWindow | null = null
 let nextMediaTreeWatchId = 1
@@ -111,6 +112,13 @@ function createWindow(): void {
       nodeIntegration: false,
       webSecurity: true,
     },
+  })
+
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) {
+      mainWindow = null
+    }
   })
 
   // Bypass CORS for local-whisper servers so the renderer can fetch localhost:8000.
@@ -366,6 +374,13 @@ ipcMain.handle('window:closeGlossary', () => {
   }
 
   glossaryWindow.close()
+})
+
+ipcMain.handle('window:navigateInMain', (_event, route: string, entryId?: string) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.focus()
+  mainWindow.webContents.send('navigate', { route, entryId })
 })
 
 /**

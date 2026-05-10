@@ -201,6 +201,43 @@ export const ElectronAppLayout = ({
   }, [handleOpenSettings]);
 
   useEffect(() => {
+    if (!window.electronAPI?.onNavigate) return;
+    return window.electronAPI.onNavigate(async ({ route, entryId }) => {
+      if (!entryId) {
+        navigate(route);
+        return;
+      }
+
+      const playerStore = usePlayerStore.getState();
+      const entry = playerStore.glossaryEntries.find((e) => e.id === entryId);
+      if (!entry) return;
+
+      if (playerStore.playGlossaryEntryContext(entryId)) {
+        navigate(route);
+        return;
+      }
+
+      const historyItem = playerStore.mediaHistory.find((h) => {
+        if (h.type === "youtube" && h.youtubeData?.youtubeId) {
+          return `youtube-${h.youtubeData.youtubeId}` === entry.mediaId;
+        }
+        if (h.type === "file") {
+          return (h.storageId || `file-${h.name}-${h.fileData?.size}`) === entry.mediaId;
+        }
+        return false;
+      });
+
+      if (!historyItem) return;
+
+      await playerStore.loadFromHistory(historyItem.id);
+
+      if (playerStore.playGlossaryEntryContext(entryId)) {
+        navigate(route);
+      }
+    });
+  }, [navigate]);
+
+  useEffect(() => {
     import("../../utils/migrationBridge").then(({ runMigrationIfNeeded }) => {
       void runMigrationIfNeeded();
     });

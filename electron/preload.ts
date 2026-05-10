@@ -17,6 +17,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   closeSettingsWindow: () => ipcRenderer.invoke('window:closeSettings'),
   openGlossaryWindow: () => ipcRenderer.invoke('window:openGlossary'),
   closeGlossaryWindow: () => ipcRenderer.invoke('window:closeGlossary'),
+  navigateInMainWindow: (route: string, entryId?: string) =>
+    ipcRenderer.invoke('window:navigateInMain', route, entryId),
+  onNavigate: (callback: (payload: { route: string; entryId?: string }) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: { route: string; entryId?: string }) => {
+      callback(payload)
+    }
+    ipcRenderer.on('navigate', listener)
+    return () => { ipcRenderer.removeListener('navigate', listener) }
+  },
   showInFileManager: (targetPath: string) =>
     ipcRenderer.invoke('shell:showInFileManager', targetPath),
   listMediaFiles: (folderPath: string) =>

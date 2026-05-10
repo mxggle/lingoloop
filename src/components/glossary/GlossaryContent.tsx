@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { BookOpen, PlayCircle, Trash } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { usePlayerStore } from "../../stores/playerStore";
 import { formatTime } from "../../utils/formatTime";
@@ -9,11 +9,14 @@ import { formatTime } from "../../utils/formatTime";
 export const GlossaryContent = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const glossaryEntries = usePlayerStore((state) => state.glossaryEntries);
   const deleteGlossaryEntry = usePlayerStore((state) => state.deleteGlossaryEntry);
   const playGlossaryEntryContext = usePlayerStore(
     (state) => state.playGlossaryEntryContext
   );
+
+  const isGlossaryWindow = location.pathname === "/glossary-window";
 
   const entries = useMemo(
     () => [...glossaryEntries].sort((left, right) => right.createdAt - left.createdAt),
@@ -21,6 +24,12 @@ export const GlossaryContent = () => {
   );
 
   const handlePlayContext = (id: string) => {
+    if (isGlossaryWindow && window.electronAPI?.navigateInMainWindow) {
+      window.electronAPI.navigateInMainWindow("/player", id);
+      toast.success(t("glossary.playingContext"));
+      return;
+    }
+
     const played = playGlossaryEntryContext(id);
 
     if (played) {

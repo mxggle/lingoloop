@@ -21,7 +21,9 @@ import { bumpRender } from "../utils/perfMonitor";
 
 type PanelKey = "transcript" | "video" | "timeline" | "outer";
 const DEFAULT_SIZES: Record<PanelKey, number> = { transcript: 60, video: 40, timeline: 30, outer: 70 };
-const MIN_RESTORE_SIZE: Record<PanelKey, number> = { transcript: 25, video: 20, timeline: 15, outer: 30 };
+// Minimum size at which the panel's internal UI does not deform.
+// Used as the floor when restoring on expand; siblings shrink to honor this only if they still meet their own minSize.
+const MIN_SIZE: Record<PanelKey, number> = { transcript: 25, video: 22, timeline: 12, outer: 30 };
 
 export const PlayerPage = () => {
   bumpRender("PlayerPage");
@@ -37,7 +39,8 @@ export const PlayerPage = () => {
   const [videoPanelHandle, videoPanelCallbackRef] = usePanelCallbackRef();
   const [timelinePanelHandle, timelinePanelCallbackRef] = usePanelCallbackRef();
 
-  // Sizes saved just before each panel collapses — used to restore to pre-collapse position
+  // Sizes saved just before each panel collapses — used to restore on expand.
+  // Reads come from handle.getSize() at collapse time (no need to track during drag).
   const savedSizesRef = useRef({ ...DEFAULT_SIZES });
   const isOuterCollapsedRef = useRef(false);
 
@@ -108,99 +111,88 @@ export const PlayerPage = () => {
 
 
   const collapsePanel = (panel: "transcript" | "video" | "timeline", collapsed: boolean) => {
-    setLayoutSettings((prev) => ({ ...prev, [`${panel}PanelCollapsed`]: collapsed }));
-
-    const innerHandles: Record<typeof panel, PanelImperativeHandle | null> = {
-      transcript: transcriptPanelHandle,
-      video: videoPanelHandle,
-      timeline: timelinePanelHandle,
-    };
-
     if (collapsed) {
-      // Capture current size before collapsing for accurate restoration
-      const currentSize = innerHandles[panel]?.getSize().asPercentage;
-      if (currentSize !== undefined && currentSize > 5) {
-        savedSizesRef.current = { ...savedSizesRef.current, [panel]: currentSize };
+      // Capture current sizes BEFORE the state update so the imperative useEffects
+      // (which run after re-render) can restore them later.
+      const handles: Record<typeof panel, PanelImperativeHandle | null> = {
+        transcript: transcriptPanelHandle,
+        video: videoPanelHandle,
+        timeline: timelinePanelHandle,
+      };
+      const cur = handles[panel]?.getSize().asPercentage;
+      if (cur !== undefined && cur > MIN_SIZE[panel]) {
+        savedSizesRef.current = { ...savedSizesRef.current, [panel]: cur };
       }
-
-      const shouldCollapseOuter =
-        (panel === "transcript" && transcriptIsAlone) ||
-        (panel === "video" && videoIsAlone) ||
-        bothUpperCollapsed;
-
-      if (shouldCollapseOuter) {
-        // Alone in the upper area (or both collapsed): collapse the outer vertical panel so the timeline can grow
-        const outerSize = upperAreaHandle?.getSize().asPercentage;
-        if (outerSize !== undefined && outerSize > 5) {
-          savedSizesRef.current = { ...savedSizesRef.current, outer: outerSize };
-        }
-        upperAreaHandle?.collapse();
-      } else {
-        innerHandles[panel]?.collapse();
-      }
-    } else {
-      // Restore to pre-collapse size (not just expand(), which may restore to a too-small size)
-      const shouldExpandOuter =
-        (panel === "transcript" && transcriptIsAlone) ||
-        (panel === "video" && videoIsAlone) ||
-        bothUpperCollapsed;
-
-      if (shouldExpandOuter) {
-        upperAreaHandle?.resize(`${Math.max(savedSizesRef.current.outer, MIN_RESTORE_SIZE.outer)}%`);
-      }
-
-      // Only resize inner panel if it's actually mounted (Group may be unmounted when upper area is collapsed)
-      if (!upperAreaCollapsed && innerHandles[panel]) {
-        const target = Math.max(savedSizesRef.current[panel], MIN_RESTORE_SIZE[panel]);
-        innerHandles[panel]?.resize(`${target}%`);
+      // Always snapshot the outer size when it's expanded — covers every "alone in upper" case
+      // (collapsing transcript when video is hidden, collapsing video when transcript is hidden,
+      // or collapsing the second of two upper panels).
+      const outerCur = upperAreaHandle?.getSize().asPercentage;
+      if (outerCur !== undefined && outerCur > MIN_SIZE.outer) {
+        savedSizesRef.current = { ...savedSizesRef.current, outer: outerCur };
       }
     }
+    setLayoutSettings((prev) => ({ ...prev, [`${panel}PanelCollapsed`]: collapsed }));
   };
 
-  // Restore collapsed state when panels remount (e.g. after navigation)
+  // Outer (upper area) collapse — driven by the combined visibility/collapsed state.
+  // Fires when a transcript/video collapse leaves the upper area effectively empty,
+  // and on remount after navigation.
   useEffect(() => {
     if (!upperAreaHandle) return;
     if (upperAreaCollapsed && !isOuterCollapsedRef.current) {
       upperAreaHandle.collapse();
       isOuterCollapsedRef.current = true;
     } else if (!upperAreaCollapsed && isOuterCollapsedRef.current) {
-      const target = Math.max(savedSizesRef.current.outer, MIN_RESTORE_SIZE.outer);
+      const target = Math.max(savedSizesRef.current.outer, MIN_SIZE.outer);
       upperAreaHandle.resize(`${target}%`);
       isOuterCollapsedRef.current = false;
     }
   }, [upperAreaHandle, upperAreaCollapsed]);
 
+  // Transcript collapse — skipped when transcript is the only thing in the upper area
+  // (the outer effect handles that case by collapsing the whole upper panel).
   useEffect(() => {
-    if (upperAreaCollapsed) return;
     if (!transcriptPanelHandle) return;
-    if (layoutSettings.transcriptPanelCollapsed && !transcriptIsAlone) {
+    if (transcriptIsAlone) return;
+    if (layoutSettings.transcriptPanelCollapsed) {
       transcriptPanelHandle.collapse();
-    } else if (!layoutSettings.transcriptPanelCollapsed && !transcriptIsAlone) {
-      const target = Math.max(savedSizesRef.current.transcript, MIN_RESTORE_SIZE.transcript);
+    } else {
+      const target = Math.max(savedSizesRef.current.transcript, MIN_SIZE.transcript);
       transcriptPanelHandle.resize(`${target}%`);
     }
-  }, [transcriptPanelHandle, layoutSettings.transcriptPanelCollapsed, transcriptIsAlone, upperAreaCollapsed]);
+  }, [transcriptPanelHandle, layoutSettings.transcriptPanelCollapsed, transcriptIsAlone]);
 
+  // Video collapse — same skip rule as transcript.
   useEffect(() => {
-    if (upperAreaCollapsed) return;
     if (!videoPanelHandle) return;
-    if (layoutSettings.videoPanelCollapsed && !videoIsAlone) {
+    if (videoIsAlone) return;
+    if (layoutSettings.videoPanelCollapsed) {
       videoPanelHandle.collapse();
-    } else if (!layoutSettings.videoPanelCollapsed && !videoIsAlone) {
-      const target = Math.max(savedSizesRef.current.video, MIN_RESTORE_SIZE.video);
+    } else {
+      const target = Math.max(savedSizesRef.current.video, MIN_SIZE.video);
       videoPanelHandle.resize(`${target}%`);
     }
-  }, [videoPanelHandle, layoutSettings.videoPanelCollapsed, videoIsAlone, upperAreaCollapsed]);
+  }, [videoPanelHandle, layoutSettings.videoPanelCollapsed, videoIsAlone]);
 
+  // Timeline collapse — react-resizable-panels auto-grows the upper area when timeline collapses,
+  // so no manual resize("100%") is needed. Removing that call was the key fix for the empty-area bug.
   useEffect(() => {
     if (!timelinePanelHandle) return;
     if (layoutSettings.timelinePanelCollapsed) {
       timelinePanelHandle.collapse();
     } else {
-      const target = Math.max(savedSizesRef.current.timeline, MIN_RESTORE_SIZE.timeline);
+      const target = Math.max(savedSizesRef.current.timeline, MIN_SIZE.timeline);
       timelinePanelHandle.resize(`${target}%`);
     }
   }, [timelinePanelHandle, layoutSettings.timelinePanelCollapsed]);
+
+  // When timeline is hidden entirely (visibility off, not just collapsed),
+  // explicitly fill the upper area — the lib needs a nudge in this case because
+  // the timeline Panel is unmounted rather than at collapsedSize.
+  useEffect(() => {
+    if (!upperAreaHandle || layoutSettings.timelinePanelVisible) return;
+    upperAreaHandle.resize("100%");
+  }, [upperAreaHandle, layoutSettings.timelinePanelVisible]);
 
   return (
     <AppLayout layoutSettings={layoutSettings} setLayoutSettings={setLayoutSettings} bottomPaddingClassName="pb-0">
@@ -244,8 +236,7 @@ export const PlayerPage = () => {
                 defaultSize="70%"
                 minSize={15}
                 collapsible
-                collapsedSize={5}
-                onResize={(size) => { savedSizesRef.current = { ...savedSizesRef.current, outer: size.asPercentage }; }}
+                collapsedSize="36px"
                 className={cn("min-h-0 min-w-0", !layoutSettings.transcriptPanelVisible && !effectiveVideoVisible && "hidden")}
                 panelRef={upperAreaCallbackRef}
               >
@@ -304,8 +295,7 @@ export const PlayerPage = () => {
                         defaultSize="60%"
                         minSize={15}
                         collapsible
-                        collapsedSize={5}
-                        onResize={(size) => { savedSizesRef.current = { ...savedSizesRef.current, transcript: size.asPercentage }; }}
+                        collapsedSize="48px"
                         className="min-w-0 min-h-0"
                         panelRef={transcriptPanelCallbackRef}
                       >
@@ -322,6 +312,7 @@ export const PlayerPage = () => {
                                 title={t("transcript.title")}
                                 onCollapse={() => collapsePanel("transcript", true)}
                                 collapseIcon="left"
+                                buttonPosition="left"
                               />
                               <div className="flex-1 min-h-0 min-w-0 overflow-hidden overflow-x-hidden">
                                 <TranscriptPanel />
@@ -351,8 +342,7 @@ export const PlayerPage = () => {
                         defaultSize="40%"
                         minSize={15}
                         collapsible
-                        collapsedSize={5}
-                        onResize={(size) => { savedSizesRef.current = { ...savedSizesRef.current, video: size.asPercentage }; }}
+                        collapsedSize="48px"
                         className="min-w-0 min-h-0"
                         panelRef={videoPanelCallbackRef}
                       >
@@ -388,8 +378,7 @@ export const PlayerPage = () => {
                   defaultSize="30%"
                   minSize={10}
                   collapsible
-                  collapsedSize={5}
-                  onResize={(size) => { savedSizesRef.current = { ...savedSizesRef.current, timeline: size.asPercentage }; }}
+                  collapsedSize="48px"
                   className="min-h-0 min-w-0 overflow-hidden"
                   panelRef={timelinePanelCallbackRef}
                 >

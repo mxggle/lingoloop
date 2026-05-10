@@ -87,6 +87,7 @@ interface ElectronAPI {
   dataGetDirectory: () => Promise<string>
   dataRunMigration: (localStorage: Record<string, string>, indexedDB: unknown) => Promise<{ success: boolean; migratedCounts: Record<string, number>; errors: string[] }>
   dataIsMigrated: () => Promise<boolean>
+  approvePath: (filePath: string) => Promise<void>
 }
 
 declare global {

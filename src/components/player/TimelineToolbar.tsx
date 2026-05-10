@@ -1,6 +1,7 @@
 import { usePlayerStore } from "../../stores/playerStore";
 import { useShadowingStore } from "../../stores/shadowingStore";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { formatTime } from "../../utils/formatTime";
 import {
   Play,

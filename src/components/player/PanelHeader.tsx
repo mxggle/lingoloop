@@ -14,6 +14,8 @@ interface PanelHeaderProps {
   onCollapse?: () => void;
   className?: string;
   collapseIcon?: "left" | "right" | "bottom";
+  /** Which side of the header the collapse button sits on */
+  buttonPosition?: "left" | "right";
 }
 
 export const PanelHeader = ({
@@ -21,6 +23,7 @@ export const PanelHeader = ({
   onCollapse,
   className,
   collapseIcon = "bottom",
+  buttonPosition = "right",
 }: PanelHeaderProps) => {
   const { t } = useTranslation();
   const CollapseIcon =
@@ -30,6 +33,16 @@ export const PanelHeader = ({
         ? PanelRightClose
         : PanelBottomClose;
 
+  const collapseBtn = (
+    <button
+      onClick={onCollapse}
+      className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"
+      title={t("common.collapse")}
+    >
+      <CollapseIcon size={14} />
+    </button>
+  );
+
   return (
     <div
       className={cn(
@@ -37,18 +50,23 @@ export const PanelHeader = ({
         className
       )}
     >
-      <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 mr-2">
-        {title}
-      </span>
-      <div className="flex items-center gap-0.5 flex-shrink-0">
-        <button
-          onClick={onCollapse}
-          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-          title={t("common.collapse")}
-        >
-          <CollapseIcon size={14} />
-        </button>
-      </div>
+      {buttonPosition === "left" ? (
+        <>
+          <div className="flex items-center gap-0.5 flex-shrink-0">{collapseBtn}</div>
+          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 ml-2 flex-1">
+            {title}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider truncate min-w-0 mr-2">
+            {title}
+          </span>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            {collapseBtn}
+          </div>
+        </>
+      )}
     </div>
   );
 };
@@ -102,15 +120,18 @@ export const CollapsedVerticalStrip = ({
 }) => {
   const { t } = useTranslation();
   const ExpandIcon = expandIcon === "left" ? PanelLeft : PanelRight;
+  // Align button to the same side as the panel it belongs to
+  const alignClass = expandIcon === "left" ? "items-start" : "items-end";
   return (
     <div
       className={cn(
-        "flex flex-col items-center h-full w-12 py-2 gap-1 bg-white dark:bg-gray-950/40 select-none shrink-0",
+        "flex flex-col h-full w-12 py-2 gap-1 bg-white dark:bg-gray-950/40 select-none shrink-0",
+        alignClass,
         className
       )}
     >
-      {/* Top controls: expand + hide — fixed position, never moves */}
-      <div className="flex flex-col items-center gap-1 shrink-0">
+      {/* Expand button — fixed at top, aligned to panel edge */}
+      <div className={cn("flex flex-col gap-1 shrink-0", alignClass)}>
         <button
           onClick={onExpand}
           className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors shrink-0"

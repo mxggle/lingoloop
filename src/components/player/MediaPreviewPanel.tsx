@@ -10,7 +10,6 @@ interface MediaPreviewPanelProps {
   collapsed: boolean;
   onCollapse: () => void;
   onExpand: () => void;
-  onHide: () => void;
   className?: string;
 }
 
@@ -19,7 +18,6 @@ export const MediaPreviewPanel = ({
   collapsed,
   onCollapse,
   onExpand,
-  onHide,
   className,
 }: MediaPreviewPanelProps) => {
   const { t } = useTranslation();
@@ -36,7 +34,6 @@ export const MediaPreviewPanel = ({
         <CollapsedVerticalStrip
           title={title}
           onExpand={onExpand}
-          onHide={onHide}
           expandIcon="right"
         />
       ) : (
@@ -44,7 +41,6 @@ export const MediaPreviewPanel = ({
           <PanelHeader
             title={title}
             onCollapse={onCollapse}
-            onHide={onHide}
             collapseIcon="right"
           />
           <div className="flex-1 min-h-0 min-w-0 bg-black flex items-center justify-center overflow-hidden">

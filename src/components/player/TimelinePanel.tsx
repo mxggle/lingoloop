@@ -11,7 +11,6 @@ interface TimelinePanelProps {
   collapsed: boolean;
   onCollapse: () => void;
   onExpand: () => void;
-  onHide: () => void;
   className?: string;
 }
 
@@ -20,7 +19,6 @@ export const TimelinePanel = ({
   collapsed,
   onCollapse,
   onExpand,
-  onHide,
   className,
 }: TimelinePanelProps) => {
   const { currentTime, duration } = usePlayerStore();
@@ -43,7 +41,6 @@ export const TimelinePanel = ({
           collapsed={collapsed}
           onCollapse={onCollapse}
           onExpand={onExpand}
-          onHide={onHide}
         />
         {/* Thin progress bar */}
         <div className="h-1 bg-gray-100 dark:bg-gray-800 relative cursor-pointer group shrink-0">
@@ -67,7 +64,6 @@ export const TimelinePanel = ({
         collapsed={collapsed}
         onCollapse={onCollapse}
         onExpand={onExpand}
-        onHide={onHide}
       />
 
       <TrackHeader mediaId={mediaId} />

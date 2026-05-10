@@ -304,6 +304,12 @@ ipcMain.handle('window:closeSettings', () => {
   settingsWindow.close()
 })
 
+ipcMain.handle('fs:approvePath', async (_event, filePath: string) => {
+  const normalizedPath = normalize(filePath)
+  transientApprovedFiles.add(normalizedPath)
+  transientApprovedFolders.add(normalize(join(normalizedPath, '..')))
+})
+
 async function openGlossaryWindow(): Promise<void> {
   const targetUrl = buildRendererUrl('/glossary-window')
 
@@ -911,52 +917,57 @@ app.whenReady().then(async () => {
   // Serve local media files through the local-media:// protocol.
   // URL format: local-media://media/ENCODED_PATH
   protocol.handle('local-media', async (request) => {
-    const url = new URL(request.url)
-    const filePath = decodeRequestPath(url.pathname)
-    // Security: only serve files within approved source folders
-    await assertPathInSourceFolders(filePath)
+    try {
+      const url = new URL(request.url)
+      const filePath = decodeRequestPath(url.pathname)
+      // Security: only serve files within approved source folders
+      await assertPathInSourceFolders(filePath)
 
-    const stats = await fs.promises.stat(filePath)
-    if (!stats.isFile()) {
-      return new Response('Not found', { status: 404 })
-    }
-
-    const headers = new Headers({
-      'Accept-Ranges': 'bytes',
-      'Content-Type': getMediaMimeType(filePath),
-      'Cache-Control': 'no-store',
-    })
-
-    if (request.method === 'HEAD') {
-      headers.set('Content-Length', String(stats.size))
-      return new Response(null, { status: 200, headers })
-    }
-
-    const rangeHeader = request.headers.get('range')
-    if (rangeHeader) {
-      const range = parseRangeHeader(rangeHeader, stats.size)
-      if (!range) {
-        headers.set('Content-Range', `bytes */${stats.size}`)
-        return new Response(null, { status: 416, headers })
+      const stats = await fs.promises.stat(filePath)
+      if (!stats.isFile()) {
+        return new Response('Not found', { status: 404 })
       }
 
-      const { start, end } = range
-      headers.set('Content-Length', String(end - start + 1))
-      headers.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
+      const headers = new Headers({
+        'Accept-Ranges': 'bytes',
+        'Content-Type': getMediaMimeType(filePath),
+        'Cache-Control': 'no-store',
+      })
 
-      const stream = fs.createReadStream(filePath, { start, end })
+      if (request.method === 'HEAD') {
+        headers.set('Content-Length', String(stats.size))
+        return new Response(null, { status: 200, headers })
+      }
+
+      const rangeHeader = request.headers.get('range')
+      if (rangeHeader) {
+        const range = parseRangeHeader(rangeHeader, stats.size)
+        if (!range) {
+          headers.set('Content-Range', `bytes */${stats.size}`)
+          return new Response(null, { status: 416, headers })
+        }
+
+        const { start, end } = range
+        headers.set('Content-Length', String(end - start + 1))
+        headers.set('Content-Range', `bytes ${start}-${end}/${stats.size}`)
+
+        const stream = fs.createReadStream(filePath, { start, end })
+        return new Response(Readable.toWeb(stream) as ReadableStream, {
+          status: 206,
+          headers,
+        })
+      }
+
+      headers.set('Content-Length', String(stats.size))
+      const stream = fs.createReadStream(filePath)
       return new Response(Readable.toWeb(stream) as ReadableStream, {
-        status: 206,
+        status: 200,
         headers,
       })
+    } catch (error) {
+      console.error('Error in local-media protocol handler:', error)
+      return new Response('Internal Server Error', { status: 500 })
     }
-
-    headers.set('Content-Length', String(stats.size))
-    const stream = fs.createReadStream(filePath)
-    return new Response(Readable.toWeb(stream) as ReadableStream, {
-      status: 200,
-      headers,
-    })
   })
 
   createWindow()

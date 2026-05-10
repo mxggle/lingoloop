@@ -104,4 +104,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('data:changeDirectory', targetPath),
   dataHealthCheck: () => ipcRenderer.invoke('data:healthCheck'),
   dataRecover: (strategy: string) => ipcRenderer.invoke('data:recover', strategy),
+  approvePath: (filePath: string) => ipcRenderer.invoke('fs:approvePath', filePath),
 })

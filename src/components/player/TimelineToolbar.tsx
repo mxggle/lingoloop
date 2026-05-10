@@ -16,6 +16,7 @@ import {
   PanelTop,
   PanelBottomClose,
   ChevronDown,
+  Bookmark,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
@@ -53,6 +54,7 @@ export const TimelineToolbar = ({
     setPlaybackRate,
     setIsLooping,
     setLoopPoints,
+    addBookmark,
     seekForward: storeSeekForward,
     seekBackward: storeSeekBackward,
   } = usePlayerStore();
@@ -80,8 +82,20 @@ export const TimelineToolbar = ({
   const { isShadowingMode, setShadowingMode } = useShadowingStore();
   const toggleShadowing = () => setShadowingMode(!isShadowingMode);
 
+  const handleAddBookmark = () => {
+    const success = addBookmark({
+      name: t("bookmarks.newBookmark", { defaultValue: "New Bookmark" }),
+      start: currentTime,
+      end: currentTime + 5, // Default 5s range
+    });
+    if (success) {
+      toast.success(t("bookmarks.added", { defaultValue: "Bookmark added" }));
+    }
+  };
+
   return (
-    <div className="timeline-toolbar @container/toolbar flex h-11 shrink-0 min-w-0 items-center gap-1.5 overflow-hidden px-2 sm:px-3 py-1 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
+    <div className="@container/toolbar w-full">
+      <div className="timeline-toolbar flex h-11 shrink-0 min-w-0 items-center gap-1 sm:gap-1.5 overflow-hidden px-2 sm:px-3 py-1 bg-gray-50 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/5">
       {/* PRIMARY — playback group, always visible */}
       <div className="flex items-center gap-0.5 shrink-0">
         <button
@@ -180,6 +194,15 @@ export const TimelineToolbar = ({
         </Popover>
       </div>
 
+      {/* Bookmark — visible @[420px]+ */}
+      <button
+        onClick={handleAddBookmark}
+        className="hidden @[420px]/toolbar:inline-flex items-center justify-center timeline-secondary-action size-8 rounded-full transition-colors active:scale-90 text-gray-700 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 shrink-0"
+        title={t("bookmarks.add", { defaultValue: "Add Bookmark" })}
+      >
+        <Bookmark size={16} />
+      </button>
+
       {/* Loop, Volume — visible @[480px]+ */}
       <button
         onClick={() => setIsLooping(!isLooping)}
@@ -259,6 +282,13 @@ export const TimelineToolbar = ({
               hideAtClass: "@[360px]/toolbar:hidden",
             },
             {
+              id: "bookmark",
+              label: t("bookmarks.add", { defaultValue: "Add Bookmark" }),
+              icon: <Bookmark size={12} />,
+              onSelect: handleAddBookmark,
+              hideAtClass: "@[420px]/toolbar:hidden",
+            },
+            {
               id: "loop",
               label: t("player.toggleLooping"),
               icon: <Repeat size={12} />,
@@ -303,6 +333,7 @@ export const TimelineToolbar = ({
           </button>
         )}
       </div>
+    </div>
     </div>
   );
 };

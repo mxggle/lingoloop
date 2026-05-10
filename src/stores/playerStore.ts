@@ -269,6 +269,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
         // ── Enriched Media actions ──
         setCurrentFile: async (file) => {
+          if (file?.nativePath && window.electronAPI?.approvePath) {
+            await window.electronAPI.approvePath(file.nativePath);
+          }
           useMediaStore.getState().setCurrentFile(file);
           if (file) {
             const isNativeFile = !!file.nativePath;
@@ -470,6 +473,9 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           try {
             if (historyItem.type === "file" && historyItem.fileData) {
               if (historyItem.nativePath) {
+                if (window.electronAPI?.approvePath) {
+                  await window.electronAPI.approvePath(historyItem.nativePath);
+                }
                 const url = nativePathToUrl(historyItem.nativePath);
                 const fd: MediaFile = { ...historyItem.fileData, url, nativePath: historyItem.nativePath };
                 useMediaStore.getState().setCurrentFile(fd);

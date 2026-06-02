@@ -372,7 +372,9 @@
   "track": {
     "original": "オリジナル",
     "shadowing": "シャドーイング",
-    "totalDuration": "全 {{time}}"
+    "totalDuration": "全 {{time}}",
+    "originalVolume": "オリジナルの音量",
+    "shadowingVolume": "シャドーイングの音量"
   },
   "upload": {
     "openFile": "ファイルを開く",

@@ -9,6 +9,7 @@ import { useShadowingStore } from "../../stores/shadowingStore";
 import { usePlayerStore } from "../../stores/playerStore";
 import { formatTime } from "../../utils/formatTime";
 import { cn } from "../../utils/cn";
+import { TrackVolumeControl } from "./TrackVolumeControl";
 
 interface Props {
   /** Resolved media id used to scope shadowing segments. Null means no media. */
@@ -19,11 +20,23 @@ export const TrackHeader = ({ mediaId }: Props) => {
   const { t } = useTranslation();
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
-  const { duration, setCurrentTime, setIsPlaying } = usePlayerStore(
+  const {
+    duration,
+    setCurrentTime,
+    setIsPlaying,
+    mediaVolume,
+    setMediaVolume,
+    previousMediaVolume,
+    setPreviousMediaVolume,
+  } = usePlayerStore(
     useShallow((s) => ({
       duration: s.duration,
       setCurrentTime: s.setCurrentTime,
       setIsPlaying: s.setIsPlaying,
+      mediaVolume: s.mediaVolume,
+      setMediaVolume: s.setMediaVolume,
+      previousMediaVolume: s.previousMediaVolume,
+      setPreviousMediaVolume: s.setPreviousMediaVolume,
     }))
   );
 
@@ -36,6 +49,10 @@ export const TrackHeader = ({ mediaId }: Props) => {
     recordingSegmentId,
     setRecordingSegmentId,
     deleteAllSegments,
+    shadowVolume,
+    setShadowVolume,
+    previousShadowVolume,
+    setPreviousShadowVolume,
   } = useShadowingStore(
     useShallow((s) => ({
       isShadowingMode: s.isShadowingMode,
@@ -44,8 +61,33 @@ export const TrackHeader = ({ mediaId }: Props) => {
       recordingSegmentId: s.recordingSegmentId,
       setRecordingSegmentId: s.setRecordingSegmentId,
       deleteAllSegments: s.deleteAllSegments,
+      shadowVolume: s.volume,
+      setShadowVolume: s.setVolume,
+      previousShadowVolume: s.previousShadowVolume,
+      setPreviousShadowVolume: s.setPreviousShadowVolume,
     }))
   );
+
+  // Per-track mute toggles: store the pre-mute level and drop to 0, restoring
+  // on un-mute. Independent of the global/shadow mute flags so each track's
+  // volume stays self-contained.
+  const toggleOriginalMute = () => {
+    if (mediaVolume > 0) {
+      setPreviousMediaVolume(mediaVolume);
+      setMediaVolume(0);
+    } else {
+      setMediaVolume(previousMediaVolume && previousMediaVolume > 0 ? previousMediaVolume : 1);
+    }
+  };
+
+  const toggleShadowMute = () => {
+    if (shadowVolume > 0) {
+      setPreviousShadowVolume(shadowVolume);
+      setShadowVolume(0);
+    } else {
+      setShadowVolume(previousShadowVolume && previousShadowVolume > 0 ? previousShadowVolume : 1);
+    }
+  };
 
   const segments = useShadowingStore(
     useShallow((s) => (mediaId ? s.sessions[mediaId]?.segments ?? [] : []))
@@ -101,6 +143,12 @@ export const TrackHeader = ({ mediaId }: Props) => {
               {t("track.shadowing")}
             </button>
           )}
+          <TrackVolumeControl
+            volume={mediaVolume}
+            onVolumeChange={setMediaVolume}
+            onToggleMute={toggleOriginalMute}
+            label={t("track.originalVolume", { defaultValue: "Original volume" })}
+          />
           <button
             onClick={zoomOut}
             className="timeline-secondary-action size-6 flex items-center justify-center rounded text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5"
@@ -177,6 +225,12 @@ export const TrackHeader = ({ mediaId }: Props) => {
           )}
 
           <div className="ml-auto flex items-center gap-1">
+            <TrackVolumeControl
+              volume={shadowVolume}
+              onVolumeChange={setShadowVolume}
+              onToggleMute={toggleShadowMute}
+              label={t("track.shadowingVolume", { defaultValue: "Shadowing volume" })}
+            />
             <button
               onClick={() => setShadowingMode(!isShadowingMode)}
               aria-pressed={isShadowingMode}

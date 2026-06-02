@@ -718,6 +718,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       },
       partialize: (state) => ({
         volume: state.volume,
+        mediaVolume: state.mediaVolume,
         muted: state.muted,
         playbackRate: state.playbackRate,
         mediaBookmarks: state.mediaBookmarks,

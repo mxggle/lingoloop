@@ -393,7 +393,9 @@
   "track": {
     "original": "Original",
     "shadowing": "Shadowing",
-    "totalDuration": "Total {{time}}"
+    "totalDuration": "Total {{time}}",
+    "originalVolume": "Original volume",
+    "shadowingVolume": "Shadowing volume"
   },
   "upload": {
     "openFile": "Open File",

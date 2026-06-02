@@ -242,8 +242,12 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
     const handleUserSeeking = () => {
       if (!document.body.classList.contains("user-seeking")) return;
       isDelayingRef.current = false;
-      const storeTime = currentTime;
-      if (Math.abs(mediaElement.currentTime - storeTime) > 0.5) {
+      // Read the live store value (not the captured closure) so a deliberate
+      // seek lands on the just-clicked time, not the previously-rendered one.
+      const storeTime = usePlayerStore.getState().currentTime;
+      // Apply precisely: this only runs for user-initiated seeks, so even a
+      // short (<0.5s) seek must take effect rather than being swallowed.
+      if (Math.abs(mediaElement.currentTime - storeTime) > 0.02) {
         mediaElement.currentTime = storeTime;
       }
       syncCurrentTime(storeTime);
@@ -372,7 +376,13 @@ export const MediaPlayer = ({ hiddenMode = false }: MediaPlayerProps) => {
   useEffect(() => {
     const mediaElement = getMediaElement();
     if (!mediaElement) return;
-    if (!mediaElement.seeking && Math.abs(mediaElement.currentTime - currentTime) > 0.5) {
+    if (mediaElement.seeking) return;
+    // During a deliberate seek (body has "user-seeking") apply precisely so
+    // short clicks land; otherwise keep a wide dead-zone to avoid fighting the
+    // ~4Hz throttled currentTime drift during normal playback.
+    const userSeeking = document.body.classList.contains("user-seeking");
+    const threshold = userSeeking ? 0.02 : 0.5;
+    if (Math.abs(mediaElement.currentTime - currentTime) > threshold) {
       mediaElement.currentTime = currentTime;
     }
   }, [currentFile, currentTime, getMediaElement]);

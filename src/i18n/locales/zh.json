@@ -372,7 +372,9 @@
   "track": {
     "original": "原音",
     "shadowing": "跟读",
-    "totalDuration": "总 {{time}}"
+    "totalDuration": "总 {{time}}",
+    "originalVolume": "原音音量",
+    "shadowingVolume": "跟读音量"
   },
   "upload": {
     "openFile": "打开文件",

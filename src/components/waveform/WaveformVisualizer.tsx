@@ -810,6 +810,13 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     return unsub;
   }, [isPlaying]);
 
+  // While paused the clock doesn't tick, so the red line must be repainted
+  // directly when the store time changes (e.g. a click/seek to a new spot).
+  useEffect(() => {
+    if (isPlaying) return;
+    rendererRef.current?.setPlayhead(currentTime);
+  }, [currentTime, isPlaying]);
+
   // ─── Auto-scroll (desktop) ────────────────────────────────────────────────
 
   useEffect(() => {

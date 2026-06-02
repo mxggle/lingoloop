@@ -207,7 +207,7 @@ export const PlayerPage = () => {
           />
         )}
 
-        {isLoadingMedia && (
+        {!hasMedia && isLoadingMedia && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
@@ -223,6 +223,14 @@ export const PlayerPage = () => {
 
         {hasMedia && (
           <PlayerWorkspace>
+            {isLoadingMedia && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 dark:bg-gray-900/60">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4" />
+                  <p className="text-lg text-gray-600 dark:text-gray-300">{t("common.loading")}</p>
+                </div>
+              </div>
+            )}
             {isAudioOnly && (
               <div className="sr-only" aria-hidden="true">
                 <MediaPlayer hiddenMode={true} />

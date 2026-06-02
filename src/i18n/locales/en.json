@@ -483,7 +483,15 @@
       "japanese": "Japanese",
       "korean": "Korean"
     },
-    "mockExplanation": "This is a generated explanation for: \"{{snippet}}\""
+    "mockExplanation": "This is a generated explanation for: \"{{snippet}}\"",
+    "overview": "Overview",
+    "translation": "Translation",
+    "breakdown": "Deep-Dive Breakdown",
+    "grammarSpotlight": "Grammar Spotlight",
+    "form": "Form:",
+    "meaning": "Meaning:",
+    "examples": "Examples:",
+    "logicSummary": "Sentence Logic Summary"
   },
   "transcript": {
     "title": "Transcript",
@@ -797,6 +805,8 @@
     "recent": "RECENT",
     "addFolder": "Add folder",
     "clearHistory": "Clear history",
+    "clearHistoryConfirmTitle": "Clear history",
+    "clearHistoryConfirmMessage": "This will remove all recent files from the history. This action cannot be undone.",
     "searchPlaceholder": "Search files",
     "clearSearch": "Clear search",
     "scopeLabel": "Library scope",

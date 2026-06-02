@@ -21,6 +21,14 @@ import {
   Settings,
 } from "lucide-react";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../ui/dialog";
 import { FolderBrowser } from "./FolderBrowser";
 import type {
   LibraryScope,
@@ -107,6 +115,7 @@ export const ElectronAppLayout = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isResizing, setIsResizing] = useState(false);
+  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [libraryScope, setLibraryScope] = useState<LibraryScope>("all");
   const [librarySortBy, setLibrarySortBy] = useState<LibrarySortBy>("recent");
@@ -181,6 +190,7 @@ export const ElectronAppLayout = ({
 
   const handleClearHistory = useCallback(async () => {
     await clearMediaHistory();
+    setClearHistoryDialogOpen(false);
   }, [clearMediaHistory]);
 
   const toggleSortOrder = useCallback(() => {
@@ -273,7 +283,7 @@ export const ElectronAppLayout = ({
                   <FolderPlus className="w-3.5 h-3.5" />
                 </HeaderAction>
                 <HeaderAction
-                  onClick={handleClearHistory}
+                  onClick={() => setClearHistoryDialogOpen(true)}
                   title={t("sidebar.clearHistory", "Clear history")}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -482,6 +492,30 @@ export const ElectronAppLayout = ({
       onOpenSettings={() => void handleOpenSettings()}
     >
       {children}
+      <Dialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("sidebar.clearHistoryConfirmTitle")}</DialogTitle>
+            <DialogDescription>{t("sidebar.clearHistoryConfirmMessage")}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setClearHistoryDialogOpen(false)}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleClearHistory()}
+              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            >
+              {t("sidebar.clearHistory")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayoutBase>
   );
 };

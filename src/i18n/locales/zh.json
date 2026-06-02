@@ -462,7 +462,15 @@
       "japanese": "日语",
       "korean": "韩语"
     },
-    "mockExplanation": "这是针对“{{snippet}}”生成的说明"
+    "mockExplanation": "这是针对“{{snippet}}”生成的说明",
+    "overview": "概览",
+    "translation": "翻译",
+    "breakdown": "深入解析",
+    "grammarSpotlight": "语法重点",
+    "form": "形式：",
+    "meaning": "含义：",
+    "examples": "例句：",
+    "logicSummary": "句子逻辑总结"
   },
   "transcript": {
     "title": "转录文本",
@@ -770,6 +778,8 @@
     "recent": "最近",
     "addFolder": "添加文件夹",
     "clearHistory": "清除历史",
+    "clearHistoryConfirmTitle": "清除历史",
+    "clearHistoryConfirmMessage": "这将从历史记录中移除所有最近文件，此操作无法撤销。",
     "searchPlaceholder": "搜索文件",
     "clearSearch": "清除搜索",
     "scopeLabel": "媒体库范围",

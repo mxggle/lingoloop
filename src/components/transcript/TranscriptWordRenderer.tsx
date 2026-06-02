@@ -308,11 +308,7 @@ export const TranscriptWordRenderer = memo(
         );
       }
       return spans;
-      // timelineHighlightedWordIds intentionally not in deps — highlight is
-      // applied via separate className path (data-timeline-highlight) without
-      // re-creating spans.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [words, wordStudyMap, activeWordId, handleWordClick]);
+    }, [words, wordStudyMap, activeWordId, handleWordClick, timelineHighlightedWordIds]);
 
     return (
       <p

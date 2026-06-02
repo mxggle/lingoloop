@@ -462,7 +462,15 @@
       "japanese": "日本語",
       "korean": "韓国語"
     },
-    "mockExplanation": "生成された説明: \"{{snippet}}\""
+    "mockExplanation": "生成された説明: \"{{snippet}}\"",
+    "overview": "概要",
+    "translation": "翻訳",
+    "breakdown": "詳細解説",
+    "grammarSpotlight": "文法ポイント",
+    "form": "形：",
+    "meaning": "意味：",
+    "examples": "例文：",
+    "logicSummary": "文の論理まとめ"
   },
   "transcript": {
     "title": "トランスクリプト",
@@ -771,6 +779,8 @@
     "recent": "最近",
     "addFolder": "フォルダーを追加",
     "clearHistory": "履歴をクリア",
+    "clearHistoryConfirmTitle": "履歴をクリア",
+    "clearHistoryConfirmMessage": "最近使用したファイルの履歴がすべて削除されます。この操作は元に戻せません。",
     "searchPlaceholder": "ファイルを検索",
     "clearSearch": "検索をクリア",
     "scopeLabel": "ライブラリ範囲",

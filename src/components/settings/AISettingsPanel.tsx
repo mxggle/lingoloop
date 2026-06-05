@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  CheckCircle,
+  Check,
+  ChevronDown,
   ChevronRight,
   Eye,
   EyeOff,
@@ -23,6 +24,7 @@ import { Card, CardContent } from "../ui/card";
 import { Input } from "../ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { SettingsSection } from "./SettingsSection";
+import { SettingsIconChip } from "./SettingsIconChip";
 
 
 const LANGUAGE_OPTIONS = [
@@ -157,9 +159,10 @@ const AISettingsPanelComponent = ({
             title={t("aiSettingsPage.preferredProvider")}
             icon={<Shield className="h-4 w-4 text-primary-500" />}
           >
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid gap-2.5 sm:grid-cols-3">
               {providerConfigs.map(({ provider, setupStatus }) => {
                 const isActive = preferredProvider === provider;
+                const isReady = setupStatus.tone === "success";
 
                 return (
                   <button
@@ -167,23 +170,44 @@ const AISettingsPanelComponent = ({
                     type="button"
                     onClick={() => setPreferredProvider(provider)}
                     className={cn(
-                      "relative rounded-lg border p-4 text-left transition-colors duration-200",
+                      "relative flex min-h-[76px] flex-col gap-1.5 rounded-xl border-[1.5px] p-4 text-left transition-colors duration-200",
                       isActive
-                        ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20"
-                        : "border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700"
+                        ? "border-primary-500 bg-primary-500/10"
+                        : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900/40 dark:hover:border-gray-700"
                     )}
                   >
                     <span
                       className={cn(
-                        "block text-sm font-medium",
+                        "absolute right-3 top-3 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary-500 text-white transition-all duration-200",
+                        isActive ? "scale-100 opacity-100" : "scale-50 opacity-0"
+                      )}
+                    >
+                      <Check className="h-2.5 w-2.5" strokeWidth={3.2} />
+                    </span>
+                    <span
+                      className={cn(
+                        "block pr-5 text-sm font-bold tracking-tight",
                         isActive
-                          ? "text-primary-700 dark:text-primary-300"
+                          ? "text-primary-600 dark:text-primary-300"
                           : "text-gray-900 dark:text-white"
                       )}
                     >
                       {providerDisplayName(provider)}
                     </span>
-                    <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                    <span
+                      className={cn(
+                        "flex items-center gap-1.5 text-[11.5px] font-semibold",
+                        isReady
+                          ? "text-gray-500 dark:text-gray-400"
+                          : "text-gray-400 dark:text-gray-500"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-1.5 w-1.5 shrink-0 rounded-full",
+                          isReady ? "bg-success-500" : "bg-gray-300 dark:bg-gray-600"
+                        )}
+                      />
                       {setupStatus.label}
                     </span>
                   </button>
@@ -195,25 +219,28 @@ const AISettingsPanelComponent = ({
           <SettingsSection title={t("aiSettingsPage.generationBehavior")}>
             <Card>
               <CardContent className="space-y-6 p-6">
-                <div className="grid gap-6 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="block text-xs font-bold tracking-wide text-gray-500 dark:text-gray-400">
                       {t("aiSettingsPage.targetLanguage")}
                     </label>
-                    <select
-                      value={targetLanguage}
-                      onChange={(event) => setTargetLanguage(event.target.value)}
-                      className="h-10 w-full rounded-md border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-gray-700 dark:bg-gray-950"
-                    >
-                      {LANGUAGE_OPTIONS.map((key) => (
-                        <option key={key} value={LANGUAGE_VALUES[key]}>
-                          {t(`aiSettingsPage.languages.${key}`)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative flex h-11 items-center rounded-xl border-[1.5px] border-gray-200 bg-white px-3.5 transition-colors focus-within:border-primary-500 focus-within:ring-[3px] focus-within:ring-primary-500/10 dark:border-gray-700 dark:bg-gray-950">
+                      <select
+                        value={targetLanguage}
+                        onChange={(event) => setTargetLanguage(event.target.value)}
+                        className="w-full appearance-none bg-transparent pr-6 text-sm font-semibold text-gray-900 focus:outline-none dark:text-white"
+                      >
+                        {LANGUAGE_OPTIONS.map((key) => (
+                          <option key={key} value={LANGUAGE_VALUES[key]}>
+                            {t(`aiSettingsPage.languages.${key}`)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4 text-gray-400" />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="block text-xs font-bold tracking-wide text-gray-500 dark:text-gray-400">
                       {t("aiSettingsPage.maxTokens")}
                     </label>
                     <Input
@@ -225,31 +252,39 @@ const AISettingsPanelComponent = ({
                         const nextValue = parseInt(event.target.value, 10);
                         setMaxTokens(Number.isFinite(nextValue) ? nextValue : 1000);
                       }}
+                      className="h-11 rounded-xl border-[1.5px] font-mono text-sm font-semibold"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3 border-t border-gray-100 pt-6 dark:border-gray-800">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-bold text-gray-700 dark:text-gray-300">
                       {t("aiSettingsPage.generationBehavior")}
                     </label>
-                    <span className="rounded-full bg-primary-500 px-2.5 py-0.5 font-mono text-xs font-semibold text-white">
+                    <span className="min-w-[44px] rounded-full bg-primary-500 px-2.5 py-0.5 text-center font-mono text-xs font-bold text-white">
                       {temperature.toFixed(1)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="2"
-                    step="0.1"
-                    value={temperature}
-                    onChange={(event) =>
-                      setTemperature(parseFloat(event.target.value))
-                    }
-                    className="h-1.5 w-full appearance-none rounded-full bg-gray-200 accent-primary-500 dark:bg-gray-700"
-                  />
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="relative flex h-6 items-center">
+                    <span className="absolute left-0 right-0 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700" />
+                    <span
+                      className="absolute left-0 h-1.5 rounded-full bg-primary-500"
+                      style={{ width: `${(temperature / 2) * 100}%` }}
+                    />
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      value={temperature}
+                      onChange={(event) =>
+                        setTemperature(parseFloat(event.target.value))
+                      }
+                      className="aurora-range relative z-10 h-5 w-full cursor-pointer appearance-none bg-transparent focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs font-medium text-gray-400">
                     <span>{t("aiSettingsPage.temperatureFocused")}</span>
                     <span>{t("aiSettingsPage.temperatureBalanced")}</span>
                     <span>{t("aiSettingsPage.temperatureCreative")}</span>
@@ -301,32 +336,30 @@ const AISettingsPanelComponent = ({
                     type="button"
                     onClick={() => setPreferredTranscriptionProvider(provider)}
                     className={cn(
-                      "relative rounded-lg border p-4 text-left transition-colors duration-200",
+                      "relative rounded-xl border-[1.5px] p-4 text-left transition-colors duration-200",
                       isSelected
-                        ? "border-primary-500 bg-primary-50 dark:bg-primary-950/20"
-                        : "border-gray-200 hover:border-gray-300 dark:border-gray-800 dark:hover:border-gray-700"
+                        ? "border-primary-500 bg-primary-500/10"
+                        : "border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900/40 dark:hover:border-gray-700"
                     )}
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <div
+                      <SettingsIconChip active={isSelected}>
+                        <FileAudio className="h-[18px] w-[18px]" />
+                      </SettingsIconChip>
+                      <span
                         className={cn(
-                          "rounded-md p-1.5",
-                          isSelected
-                            ? "bg-primary-500 text-white"
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800"
+                          "flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary-500 text-white transition-all duration-200",
+                          isSelected ? "scale-100 opacity-100" : "scale-50 opacity-0"
                         )}
                       >
-                        <FileAudio size={16} />
-                      </div>
-                      {isSelected ? (
-                        <CheckCircle className="h-4 w-4 text-primary-500" />
-                      ) : null}
+                        <Check className="h-2.5 w-2.5" strokeWidth={3.2} />
+                      </span>
                     </div>
                     <span
                       className={cn(
-                        "block text-sm font-medium",
+                        "block text-sm font-bold tracking-tight",
                         isSelected
-                          ? "text-primary-700 dark:text-primary-300"
+                          ? "text-primary-600 dark:text-primary-300"
                           : "text-gray-900 dark:text-white"
                       )}
                     >

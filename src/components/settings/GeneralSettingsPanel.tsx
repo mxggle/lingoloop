@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import {
+  Check,
   Globe,
   Layout,
   Palette,
@@ -19,12 +21,7 @@ import { Switch } from "../ui/switch";
 import { LanguageSelector } from "../ui/LanguageSelector";
 import { SettingsSection } from "./SettingsSection";
 import { SettingsRow } from "./SettingsRow";
-
-const layoutIconClassNames = {
-  showWaveform: "text-teal-500",
-  showTranscript: "text-orange-500",
-  showControls: "text-error-500",
-};
+import { SettingsIconChip } from "./SettingsIconChip";
 
 export function GeneralSettingsPanel() {
   const { t } = useTranslation();
@@ -44,19 +41,19 @@ export function GeneralSettingsPanel() {
       key: "showWaveform" as const,
       label: t("settings.waveformDisplay"),
       description: "Display audio waveform visualization",
-      icon: <Waves className={cn("h-4 w-4", layoutIconClassNames.showWaveform)} />,
+      icon: <Waves className="h-[18px] w-[18px]" />,
     },
     {
       key: "showTranscript" as const,
       label: t("settings.transcriptPanel"),
       description: "Show AI-generated transcript panel",
-      icon: <FileText className={cn("h-4 w-4", layoutIconClassNames.showTranscript)} />,
+      icon: <FileText className="h-[18px] w-[18px]" />,
     },
     {
       key: "showControls" as const,
       label: t("settings.playbackControls"),
       description: "Display playback control buttons",
-      icon: <SlidersHorizontal className={cn("h-4 w-4", layoutIconClassNames.showControls)} />,
+      icon: <SlidersHorizontal className="h-[18px] w-[18px]" />,
     },
   ];
 
@@ -87,9 +84,9 @@ export function GeneralSettingsPanel() {
                 key={option.key}
                 label={
                   <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-gray-100 p-2 text-gray-500 dark:bg-gray-800">
+                    <SettingsIconChip active={layoutSettings[option.key]}>
                       {option.icon}
-                    </div>
+                    </SettingsIconChip>
                     <span>{option.label}</span>
                   </div>
                 }
@@ -131,34 +128,47 @@ export function GeneralSettingsPanel() {
         <Card>
           <CardContent className="space-y-8 p-6">
             <div className="grid grid-cols-4 gap-4 sm:grid-cols-6">
-              {Object.entries(THEME_PRESETS).map(([name, themeColors]) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setColors(themeColors)}
-                  className="group flex flex-col items-center gap-2"
-                >
-                  <div
-                    className={cn(
-                      "h-10 w-10 rounded-xl border-2 transition-all duration-200",
-                      colors.primary === themeColors.primary
-                        ? "border-primary-500 scale-110"
-                        : "border-transparent group-hover:scale-105"
-                    )}
-                    style={{ backgroundColor: themeColors.primary }}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      colors.primary === themeColors.primary
-                        ? "text-primary-600 dark:text-primary-400"
-                        : "text-gray-400"
-                    )}
+              {Object.entries(THEME_PRESETS).map(([name, themeColors]) => {
+                const isActive = colors.primary === themeColors.primary;
+
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => setColors(themeColors)}
+                    className="group flex flex-col items-center gap-2"
                   >
-                    {name}
-                  </span>
-                </button>
-              ))}
+                    <span
+                      className={cn(
+                        "relative flex h-10 w-10 items-center justify-center rounded-xl border-2 border-white shadow-sm ring-1 transition-transform duration-200 dark:border-gray-950",
+                        isActive
+                          ? "scale-105 ring-2"
+                          : "ring-gray-200 group-hover:-translate-y-0.5 dark:ring-gray-700"
+                      )}
+                      style={{
+                        backgroundColor: themeColors.primary,
+                        ...(isActive
+                          ? ({ "--tw-ring-color": themeColors.primary } as CSSProperties)
+                          : {}),
+                      }}
+                    >
+                      {isActive ? (
+                        <Check className="h-4 w-4 text-white" strokeWidth={3.4} />
+                      ) : null}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-xs font-medium capitalize",
+                        isActive
+                          ? "text-primary-600 dark:text-primary-400"
+                          : "text-gray-400"
+                      )}
+                    >
+                      {name}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="border-t border-gray-100 pt-6 dark:border-gray-800">

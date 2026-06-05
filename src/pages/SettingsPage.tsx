@@ -43,6 +43,8 @@ export function SettingsPage() {
   return (
     <AppLayout bottomPaddingClassName="pb-0">
       <div className="flex h-full flex-col overflow-hidden">
+        {/* Aurora accent hairline */}
+        <div className="h-[3px] shrink-0 bg-gradient-to-r from-primary-500 to-orange-400 opacity-90" />
         {/* Header */}
         <div className="shrink-0 border-b border-gray-200 dark:border-gray-800 px-6 py-5 sm:px-8 sm:py-6">
           <div className="flex items-start justify-between">

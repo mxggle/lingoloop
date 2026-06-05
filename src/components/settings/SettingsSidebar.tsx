@@ -43,10 +43,10 @@ export function SettingsSidebar({
             onClick={() => onTabChange(id)}
             aria-pressed={isActive}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors duration-200",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors duration-200",
               isActive
-                ? "bg-primary-500 text-white"
-                : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                ? "bg-primary-500/10 text-primary-600 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />

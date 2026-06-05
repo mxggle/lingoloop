@@ -7,6 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2026-06-05
+
+### Added
+
+- **Player revamp — 3-layer waveform renderer**:
+  - Extracted player core abstractions (`MediaController`, `PlaybackClock`, `WaveformRenderer`, `WaveformLoader`)
+  - 3-layer canvas-based waveform rendering for smooth 60fps performance
+  - `TrackHeader` component in the waveform area with per-track metadata and controls
+  - `TrackVolumeControl` for independent per-track volume adjustment
+  - `TimelineOverflowMenu` dropdown for overflow actions on narrow widths
+  - Smart-fold timeline toolbar that collapses into an overflow menu
+  - NotebookLM-style panel collapse/expand with accurate size restoration
+  - Reliable canvas-based seek implementation
+  - Container queries for responsive layout in `MediaPreviewPanel` and transcript panel
+
+- **File-based data persistence infrastructure**:
+  - `DataStore` with journaled writes and manifest tracking (`electron/dataStore.ts`)
+  - `MigrationManager` for data format versioning (`electron/migrationManager.ts`)
+  - `JournalManager` for write-ahead logging (`electron/journalManager.ts`)
+  - `SnapshotManager` for periodic data snapshots (`electron/snapshotManager.ts`)
+  - `HealthCheck` system for data integrity verification (`electron/healthCheck.ts`)
+  - Repository layer (`repositories/*`) with typed data access patterns
+  - Dual-write store sync between Zustand stores and the persistence layer
+  - Data management settings UI with health status display and i18n
+
+- **FFmpeg waveform analysis engine**:
+  - `WaveformEngine` for native audio analysis in Electron main process (`electron/waveformEngine.ts`)
+  - `WaveformProbe` for efficient stream inspection (`electron/waveformProbe.ts`)
+  - Cached waveform generation with progressive loading states
+
+- **Glossary as standalone Electron popup window**:
+  - Dedicated `GlossaryWindowShell` component with custom window chrome
+  - Cross-window IPC communication for "Play contents" navigation to main window
+  - Shared `GlossaryContent` component reused across in-app and popup window pages
+
+- **Word-level transcript system**:
+  - `TranscriptWordRenderer` for word-level highlighting synchronized with playback
+  - `useWordState` hook for per-word active/inactive tracking
+  - `findActiveWord` algorithm for bidirectional transcript-audio sync
+  - Shadowing timeline track for visual recording alignment
+
+- **Transcript management system**:
+  - Automated study analysis with persistent storage and export support
+  - Motion-animated transcript selection with cross-segment range capture
+  - Container-query-based transcript panel for responsive layout
+
+- **Bookmark system**:
+  - Dedicated `bookmarkStore` with repository-backed persistence
+  - Timeline toolbar bookmarking with visual indicators
+
+- **Settings infrastructure**:
+  - Extracted `settingsStore` with persistence layer backing
+  - Configuration for Electron-only features and data directory
+  - Settings window IPC channel pattern
+
+- **Testing**:
+  - `findActiveWord.test.ts` — word-level sync algorithm tests
+  - `mediaController.test.ts` — playback controller tests
+  - `playbackClock.test.ts` — rAF clock implementation tests
+  - `waveformEngine.test.ts` and `waveformRenderer.test.ts` — waveform unit tests
+
+### Changed
+
+- **Player architecture**:
+  - Removed floating canvas controls — `TrackHeader` takes over all waveform-area controls
+  - Refactored `MediaPlayer` to use extracted player abstractions
+  - Overhauled `WaveformVisualizer` to use the new renderer
+  - Overhauled panel layout controls with updated icons and flexible alignment
+
+- **State management**:
+  - Major `playerStore` refactoring — extracted dedicated stores (media, transcript, bookmark, settings)
+  - Created `mediaStore` for media file lifecycle management
+  - Created `transcriptStore` for transcript state and persistence
+  - Restored transcripts and last session on page refresh
+
+- **Electron security**:
+  - Added file path approval IPC (`approvePath` API) for explicit user consent
+  - Restricted file system access in preload to approved paths
+
+### Fixed
+
+- Fixed canvas seek reliability issues
+- Fixed waveform height stretching on panel resize
+- Fixed no-audio-stream handling in ffprobe parsing
+- Fixed timeline button sizing and alignment consistency
+- Fixed transcript session state loss on page refresh
+- Fixed P0 UI/UX issues (prose typo, i18n key, timeline highlight dependencies, loading state, clear-history confirmation)
+
+### Removed
+
+- Removed web-only components: `FileUploader`, `MediaHistory`, `StorageUsageInfo`, `WebAppLayout`, `WebHomePage`
+  (Web support moved to dedicated platform architecture)
+
+### Dependencies
+
+- Added `@tailwindcss/container-queries` plugin for responsive container-based layouts
+
 ## [1.0.0-beta.1] - 2026-03-15
 
 ### Added
@@ -330,17 +427,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Layout optimizations for desktop view
   - TypeScript and React component structure
 
-[Unreleased]: https://github.com/USERNAME/loopmate/compare/v1.0.0-beta.1...HEAD
-[1.0.0-beta.1]: https://github.com/USERNAME/loopmate/compare/v0.9.1...v1.0.0-beta.1
-[0.9.1]: https://github.com/USERNAME/loopmate/compare/v0.9.0...v0.9.1
-[0.9.0]: https://github.com/USERNAME/loopmate/compare/v0.8.1...v0.9.0
-[0.8.1]: https://github.com/USERNAME/loopmate/compare/v0.8.0...v0.8.1
-[0.8.0]: https://github.com/USERNAME/loopmate/compare/v0.7.0...v0.8.0
-[0.7.0]: https://github.com/USERNAME/loopmate/compare/v0.6.1...v0.7.0
-[0.6.1]: https://github.com/USERNAME/loopmate/compare/v0.6.0...v0.6.1
-[0.6.0]: https://github.com/USERNAME/loopmate/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/USERNAME/loopmate/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/USERNAME/loopmate/compare/v0.3.0...v0.4.0
-[0.3.0]: https://github.com/USERNAME/loopmate/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/USERNAME/loopmate/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/USERNAME/loopmate/releases/tag/v0.1.0
+[Unreleased]: https://github.com/mxggle/lingoloop/compare/v1.0.0-beta.2...HEAD
+[1.0.0-beta.2]: https://github.com/mxggle/lingoloop/compare/v1.0.0-beta.1...v1.0.0-beta.2
+[1.0.0-beta.1]: https://github.com/mxggle/lingoloop/compare/v0.9.1...v1.0.0-beta.1
+[0.9.1]: https://github.com/mxggle/lingoloop/compare/v0.9.0...v0.9.1
+[0.9.0]: https://github.com/mxggle/lingoloop/compare/v0.8.1...v0.9.0
+[0.8.1]: https://github.com/mxggle/lingoloop/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/mxggle/lingoloop/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/mxggle/lingoloop/compare/v0.6.1...v0.7.0
+[0.6.1]: https://github.com/mxggle/lingoloop/compare/v0.6.0...v0.6.1
+[0.6.0]: https://github.com/mxggle/lingoloop/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/mxggle/lingoloop/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/mxggle/lingoloop/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/mxggle/lingoloop/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/mxggle/lingoloop/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/mxggle/lingoloop/releases/tag/v0.1.0

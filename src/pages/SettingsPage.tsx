@@ -10,7 +10,8 @@ import { useAiSettingsState } from "../hooks/useAiSettingsState";
 
 const getTabFromSearch = (search: string): SettingsTab => {
   const params = new URLSearchParams(search);
-  return params.get("tab") === "ai" ? "ai" : "general";
+  const tab = params.get("tab");
+  return tab === "ai" || tab === "data" ? tab : "general";
 };
 
 export function SettingsPage() {

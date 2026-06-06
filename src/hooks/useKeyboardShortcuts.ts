@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '@/stores/playerStore'
 import { toast } from 'react-hot-toast'
+import { requestOpenSettings } from '@/utils/settingsIntents'
 
 const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) {
@@ -49,6 +50,13 @@ export const useKeyboardShortcuts = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ⌘, (Cmd+Comma) — open Settings (standard macOS shortcut)
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault()
+        requestOpenSettings()
+        return
+      }
+
       // Preserve native browser and OS shortcuts like copy/paste/select-all.
       if (e.metaKey || e.ctrlKey || e.altKey) {
         return

@@ -332,6 +332,7 @@
     "mediaLibrary": "メディアライブラリ",
     "localFile": "ローカルファイル",
     "cloudStream": "クラウドストリーム",
+    "addFolderDesc": "フォルダ内のメディアを一括登録",
     "startPracticing": "練習を開始",
     "studioDesc": "ローカルメディアファイルを開くか、YouTubeからストリーミングして、言語習得セッションを開始してください。",
     "proTip": "プロのヒント：バッチ練習",

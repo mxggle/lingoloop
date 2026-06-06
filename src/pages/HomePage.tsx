@@ -21,7 +21,7 @@ export const HomePage = () => {
   };
 
   return (
-    <AppLayout>
+    <AppLayout bottomPaddingClassName="pb-0">
       <ElectronHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
     </AppLayout>
   );

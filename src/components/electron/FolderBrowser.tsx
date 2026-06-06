@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { usePlayerStore, type MediaHistoryItem } from "../../stores/playerStore";
+import { usePlayerStore } from "../../stores/playerStore";
 import { nativePathToUrl } from "../../utils/platform";
+import { formatRelativeTime } from "../../utils/relativeTime";
+import { cn } from "../../utils/cn";
 import type { FolderTreeNode } from "../../types/electron";
 import {
   getShowInFileManagerLabel,
@@ -16,6 +18,7 @@ import {
   sortLibraryItems,
   sortFolderTree,
   type LibraryItem,
+  type LibraryMediaKind,
   type LibraryScope,
   type LibrarySortBy,
   type LibrarySortOrder,
@@ -25,6 +28,7 @@ import {
   ChevronRight,
   Folder,
   FolderOpen,
+  FolderPlus,
   Music,
   FileVideo,
   X,
@@ -48,15 +52,53 @@ interface SourceTreeState {
   loading: boolean;
 }
 
-const getHistorySubtext = (item: MediaHistoryItem): string => {
-  if (item.type === "youtube") {
-    return item.youtubeData?.youtubeId
-      ? `youtube.com/watch?v=${item.youtubeData.youtubeId}`
-      : "YouTube";
-  }
+/** Left accent bar applied to the active row (calm, pill-shaped indicator). */
+const ACTIVE_ROW =
+  "relative before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary-500 before:content-['']";
 
-  return item.nativePath ?? item.fileData?.nativePath ?? item.name;
+/** Calm two-line secondary styling: sans, muted, full opacity. */
+const SUBTITLE_CLASS =
+  "font-sans not-italic text-[11px] leading-tight opacity-100 text-gray-400 dark:text-gray-500";
+
+/** Soft, type-tinted media icon tile used in the curated (All/Recent) list. */
+const MediaTile = ({ kind }: { kind: LibraryMediaKind }) => {
+  const styles: Record<LibraryMediaKind, string> = {
+    audio: "bg-primary-500/10 text-primary-600 dark:text-primary-400",
+    video: "bg-accent-500/10 text-accent-600 dark:text-accent-400",
+    youtube: "bg-error-500/10 text-error-600 dark:text-error-500",
+  };
+  const Icon = kind === "youtube" ? Youtube : kind === "video" ? FileVideo : Music;
+  return (
+    <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", styles[kind])}>
+      <Icon className="h-3.5 w-3.5" />
+    </span>
+  );
 };
+
+/** Placeholder row shown while a source folder loads for the first time. */
+const SkeletonRow = () => (
+  <div className="flex items-center gap-2.5 px-3 py-2">
+    <span className="h-7 w-7 shrink-0 rounded-lg bg-black/5 dark:bg-white/5 animate-pulse" />
+    <div className="flex-1 space-y-1.5">
+      <span className="block h-2.5 w-3/4 rounded bg-black/5 dark:bg-white/5 animate-pulse" />
+      <span className="block h-2 w-2/5 rounded bg-black/5 dark:bg-white/5 animate-pulse" />
+    </div>
+  </div>
+);
+
+/** Calm, uppercase section label with an optional count badge. */
+const SectionLabel = ({ label, count }: { label: string; count?: number }) => (
+  <div className="flex items-center gap-1.5 px-3 pb-1 pt-2">
+    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+      {label}
+    </span>
+    {typeof count === "number" && count > 0 && (
+      <span className="text-[10px] font-medium tabular-nums text-gray-300 dark:text-gray-600">
+        {count}
+      </span>
+    )}
+  </div>
+);
 
 /* ── Exported component ─────────────────────────────────────────── */
 interface FolderBrowserProps {
@@ -75,7 +117,7 @@ export const FolderBrowser = ({
   sortBy = "recent",
   sortOrder = "desc",
 }: FolderBrowserProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     setCurrentFile,
     sourceFolders,
@@ -90,6 +132,15 @@ export const FolderBrowser = ({
   const [sourceTrees, setSourceTrees] = useState<Record<string, SourceTreeState>>({});
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const showInFileManagerLabel = getShowInFileManagerLabel(t);
+
+  const buildSubtitle = useCallback(
+    (folderLabel: string, accessedAt: number): string => {
+      const time = accessedAt > 0 ? formatRelativeTime(accessedAt, i18n.language) : "";
+      if (folderLabel && time) return `${folderLabel} · ${time}`;
+      return folderLabel || time;
+    },
+    [i18n.language]
+  );
 
   const handleAddFolder = useCallback(async () => {
     const selected = await window.electronAPI!.openFolder();
@@ -239,15 +290,18 @@ export const FolderBrowser = ({
 
   if (!hasFolders && mediaHistory.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-6 px-4 text-center">
-        <Folder className="w-8 h-8 text-gray-300 dark:text-gray-600 mb-2" />
-        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+      <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-500/10 text-accent-500 dark:text-accent-400">
+          <FolderOpen className="h-6 w-6" />
+        </span>
+        <p className="mb-4 text-xs leading-relaxed text-gray-400 dark:text-gray-500">
           {t("sidebar.noFolders", "No folders added yet.")}
         </p>
         <button
           onClick={addFolder}
-          className="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 rounded px-1"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/10 px-3 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-500/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-400"
         >
+          <FolderPlus className="h-3.5 w-3.5" />
           {t("sidebar.addFolder", "Add folder")}
         </button>
       </div>
@@ -260,9 +314,10 @@ export const FolderBrowser = ({
       item.kind === "recent" && item.historyItem?.type === "youtube"
         ? item.historyItem.youtubeData?.youtubeId === activeYouTubeId
         : !!nativePath && nativePath === activeFilePath;
+    const subtitle = buildSubtitle(item.sourceLabel, item.accessedAt);
 
     return (
-      <li key={item.id} className="mb-0.5 last:mb-0">
+      <li key={item.id} className="px-1.5">
         <SidebarRow
           onClick={() => {
             if (item.kind === "recent" && item.historyItem) {
@@ -273,27 +328,15 @@ export const FolderBrowser = ({
           }}
           isActive={isActive}
           title={nativePath ?? item.name}
-          icon={
-            item.mediaKind === "youtube" ? (
-              <Youtube className="w-3.5 h-3.5 text-error-400 dark:text-error-500" />
-            ) : item.mediaKind === "video" ? (
-              <FileVideo className="w-3.5 h-3.5 text-accent-400 dark:text-accent-500" />
-            ) : (
-              <Music className="w-3.5 h-3.5 text-primary-400 dark:text-primary-500" />
-            )
-          }
+          icon={<MediaTile kind={item.mediaKind} />}
+          iconClassName="w-7 h-7"
           primaryText={item.name}
-          secondaryText={
-            item.historyItem ? getHistorySubtext(item.historyItem) : item.path ?? item.sourceLabel
-          }
-          className="h-auto py-1.5"
+          secondaryText={subtitle || undefined}
+          className={cn("h-auto rounded-xl py-2", isActive && ACTIVE_ROW)}
+          primaryTextClassName={cn("text-[13px]", isActive ? "font-semibold" : "font-medium")}
+          secondaryTextClassName={SUBTITLE_CLASS}
           actions={
             <>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums group-hover:hidden group-focus-within:hidden mr-1">
-                {item.kind === "recent"
-                  ? t("sidebar.sourceRecent", "Recent")
-                  : item.sourceLabel}
-              </span>
               {nativePath && (
                 <SidebarRowAction
                   icon={<SquareArrowOutUpRight />}
@@ -326,7 +369,7 @@ export const FolderBrowser = ({
     const mediaKind = getMediaKindFromName(node.name);
 
     return (
-      <li key={node.path} className="mb-0.5 last:mb-0">
+      <li key={node.path} className="px-1.5">
         <SidebarRow
           onClick={() => {
             if (isDirectory) {
@@ -364,8 +407,7 @@ export const FolderBrowser = ({
             )
           }
           primaryText={node.name}
-          secondaryText={isDirectory ? node.path : undefined}
-          className={isDirectory ? "h-auto py-1.5" : undefined}
+          className={cn("rounded-lg", isActive && ACTIVE_ROW)}
           actions={
             <SidebarRowAction
               icon={<SquareArrowOutUpRight />}
@@ -387,7 +429,7 @@ export const FolderBrowser = ({
     const isExpanded = forceExpandedBySearch || expandedPaths.has(sourcePath);
 
     return (
-      <li key={sourcePath} className="mb-1 last:mb-0">
+      <li key={sourcePath} className="px-1.5">
         <SidebarRow
           onClick={() => toggleExpanded(sourcePath)}
           title={sourcePath}
@@ -407,9 +449,10 @@ export const FolderBrowser = ({
           }
           primaryText={getPathBaseName(sourcePath)}
           secondaryText={sourcePath}
-          className="h-auto py-1.5"
+          className="h-auto rounded-lg py-1.5"
           contentClassName="text-gray-800 dark:text-gray-100"
           primaryTextClassName="font-semibold"
+          secondaryTextClassName={SUBTITLE_CLASS}
           actions={
             <>
               {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}
@@ -440,85 +483,110 @@ export const FolderBrowser = ({
     );
   };
 
+  const initialLoading =
+    isLoading && (isFolderTreeVisible ? !hasFolderTreeItems : libraryItems.length === 0);
+
+  const emptyMessage = (
+    <p className="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">
+      {query.trim()
+        ? t("sidebar.noSearchResults", "No matching files.")
+        : t("folderBrowser.noFiles", "No media files found.")}
+    </p>
+  );
+
   return (
     <div className="py-1" aria-label={t("folderBrowser.title", "Source Folders")}>
       {sourceFoldersVisible && hasFolders && (
-        <div className="mb-2">
-          <div className="px-3 py-1 text-[10px] font-semibold uppercase text-gray-400 dark:text-gray-500">
-            {t("sidebar.sources", "Sources")}
-          </div>
-          {sourceFolders.map((folderPath) => {
-            const loading = sourceTrees[folderPath]?.loading ?? true;
-            return (
-              <SidebarRow
-                key={folderPath}
-                onClick={() => void revealInFileManager(folderPath)}
-                title={folderPath}
-                icon={<Folder className="w-4 h-4 text-accent-500 dark:text-accent-400" />}
-                primaryText={getPathBaseName(folderPath)}
-                secondaryText={folderPath}
-                className="h-auto py-1.5"
-                contentClassName="text-gray-800 dark:text-gray-100"
-                primaryTextClassName="font-semibold"
-                actions={
-                  <>
-                    {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}
-                    <SidebarRowAction
-                      icon={<RefreshCw />}
-                      onClick={() => void loadTree(folderPath)}
-                      title={t("folderBrowser.refreshFolder", "Refresh folder")}
-                      disabled={loading}
-                    />
-                    <SidebarRowAction
-                      icon={<SquareArrowOutUpRight />}
-                      onClick={() => void revealInFileManager(folderPath)}
-                      title={showInFileManagerLabel}
-                    />
-                    <SidebarRowAction
-                      variant="error"
-                      icon={<X />}
-                      onClick={() => removeSourceFolder(folderPath)}
-                      title={t("folderBrowser.removeFolder", "Remove folder")}
-                    />
-                  </>
-                }
-              />
-            );
-          })}
+        <div className="mb-1.5">
+          <SectionLabel label={t("sidebar.sources", "Sources")} count={sourceFolders.length} />
+          <ul>
+            {sourceFolders.map((folderPath) => {
+              const loading = sourceTrees[folderPath]?.loading ?? true;
+              return (
+                <li key={folderPath} className="px-1.5">
+                  <SidebarRow
+                    onClick={() => void revealInFileManager(folderPath)}
+                    title={folderPath}
+                    icon={
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-500/10 text-accent-600 dark:text-accent-400">
+                        <Folder className="h-3.5 w-3.5" />
+                      </span>
+                    }
+                    iconClassName="w-7 h-7"
+                    primaryText={getPathBaseName(folderPath)}
+                    secondaryText={folderPath}
+                    className="h-auto rounded-xl py-2"
+                    contentClassName="text-gray-800 dark:text-gray-100"
+                    primaryTextClassName="text-[13px] font-medium"
+                    secondaryTextClassName={SUBTITLE_CLASS}
+                    actions={
+                      <>
+                        {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin mr-1" />}
+                        <SidebarRowAction
+                          icon={<RefreshCw />}
+                          onClick={() => void loadTree(folderPath)}
+                          title={t("folderBrowser.refreshFolder", "Refresh folder")}
+                          disabled={loading}
+                        />
+                        <SidebarRowAction
+                          icon={<SquareArrowOutUpRight />}
+                          onClick={() => void revealInFileManager(folderPath)}
+                          title={showInFileManagerLabel}
+                        />
+                        <SidebarRowAction
+                          variant="error"
+                          icon={<X />}
+                          onClick={() => removeSourceFolder(folderPath)}
+                          title={t("folderBrowser.removeFolder", "Remove folder")}
+                        />
+                      </>
+                    }
+                  />
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
-      {isLoading && (
-        <div className="flex items-center gap-2 px-3 h-[28px]">
-          <Loader2 className="w-3 h-3 text-gray-400 animate-spin" />
-          <span className="text-xs text-gray-400">{t("folderBrowser.loading", "Loading...")}</span>
+      <SectionLabel
+        label={
+          scope === "folders"
+            ? t("sidebar.scopeFolders", "Folders")
+            : scope === "recent"
+              ? t("sidebar.recent", "Recent")
+              : t("sidebar.libraryItems", "Files")
+        }
+        count={isFolderTreeVisible ? undefined : libraryItems.length}
+      />
+
+      {isFolderTreeVisible && (
+        <div className="px-1.5 pb-1.5">
+          <button
+            type="button"
+            onClick={addFolder}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-black/15 px-3 py-2.5 text-xs font-medium text-gray-500 transition-colors hover:border-primary-400/60 hover:bg-primary-500/[0.06] hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:border-white/15 dark:text-gray-400 dark:hover:border-primary-400/50 dark:hover:text-primary-400"
+          >
+            <FolderPlus className="h-4 w-4" />
+            {t("sidebar.addFolder", "Add folder")}
+          </button>
         </div>
       )}
 
-      <div className="px-3 py-1 text-[10px] font-semibold uppercase text-gray-400 dark:text-gray-500">
-        {scope === "folders"
-          ? t("sidebar.scopeFolders", "Folders")
-          : scope === "recent"
-          ? t("sidebar.recent", "Recent")
-          : t("sidebar.libraryItems", "Files")}
-      </div>
-
-      {isFolderTreeVisible ? (
+      {initialLoading ? (
+        <div aria-label={t("folderBrowser.loading", "Loading...")}>
+          {Array.from({ length: 5 }).map((_, index) => (
+            <SkeletonRow key={index} />
+          ))}
+        </div>
+      ) : isFolderTreeVisible ? (
         hasFolderTreeItems ? (
           <ul>{folderTrees.map(({ sourcePath, tree }) => renderSourceTree(sourcePath, tree))}</ul>
         ) : (
-          <p className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500">
-            {query.trim()
-              ? t("sidebar.noSearchResults", "No matching files.")
-              : t("folderBrowser.noFiles", "No media files found.")}
-          </p>
+          emptyMessage
         )
       ) : libraryItems.length === 0 ? (
-        <p className="px-3 py-3 text-xs text-gray-400 dark:text-gray-500">
-          {query.trim()
-            ? t("sidebar.noSearchResults", "No matching files.")
-            : t("folderBrowser.noFiles", "No media files found.")}
-        </p>
+        emptyMessage
       ) : (
         <ul>{libraryItems.map(renderLibraryItem)}</ul>
       )}

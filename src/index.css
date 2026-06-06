@@ -48,7 +48,10 @@ body {
 }
 
 
-/* Custom scrollbar */
+/* Floating / auto-hide scrollbar.
+   Track is always transparent; the thumb stays invisible until the element is
+   actively scrolling (`.is-scrolling`, toggled in utils/scrollbarAutoHide.ts)
+   or the pointer hovers it. This applies to every scroll container app-wide. */
 
 ::-webkit-scrollbar {
     width: 8px;
@@ -56,51 +59,44 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgb(var(--theme-primary-rgb) / 0.5);
-    border-radius: 4px;
+    background: transparent;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.is-scrolling::-webkit-scrollbar-thumb,
+:hover::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--theme-primary-rgb) / 0.7);
-}
-
-.dark ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-    background: rgb(var(--theme-primary-rgb) / 0.5);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--theme-primary-rgb) / 0.7);
+    background: rgba(156, 163, 175, 0.7);
 }
 
 
-/* Thin scrollbar utility */
+/* Thin scrollbar utility — same auto-hide behavior, narrower thumb. */
 .thin-scrollbar::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+    height: 6px;
 }
 .thin-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 .thin-scrollbar::-webkit-scrollbar-thumb {
-    background: rgb(var(--theme-primary-rgb) / 0.35);
+    background: transparent;
     border-radius: 10px;
+    transition: background 0.3s ease;
+}
+.thin-scrollbar.is-scrolling::-webkit-scrollbar-thumb,
+.thin-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
 }
 .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--theme-primary-rgb) / 0.55);
-}
-.dark .thin-scrollbar::-webkit-scrollbar-thumb {
-    background: rgb(var(--theme-primary-rgb) / 0.35);
-}
-.dark .thin-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgb(var(--theme-primary-rgb) / 0.55);
+    background: rgba(156, 163, 175, 0.7);
 }
 
 /* Resizable media workspace: hide secondary controls before text or frames crush. */
@@ -206,27 +202,30 @@ body {
 }
 
 
-/* Custom scrollbar for code blocks */
+/* Custom scrollbar for code blocks — auto-hide, consistent with the rest. */
 
 .markdown-content pre::-webkit-scrollbar {
     height: 8px;
+    width: 8px;
 }
 
 .markdown-content pre::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.dark .markdown-content pre::-webkit-scrollbar-track {
-    background: #334155;
+    background: transparent;
 }
 
 .markdown-content pre::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: transparent;
     border-radius: 4px;
+    transition: background 0.3s ease;
 }
 
-.dark .markdown-content pre::-webkit-scrollbar-thumb {
+.markdown-content pre.is-scrolling::-webkit-scrollbar-thumb,
+.markdown-content pre:hover::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+}
+
+.dark .markdown-content pre.is-scrolling::-webkit-scrollbar-thumb,
+.dark .markdown-content pre:hover::-webkit-scrollbar-thumb {
     background: #64748b;
 }
 

@@ -91,7 +91,7 @@ export const AppLayoutBase = ({
         ? "bg-gray-50 dark:bg-[#0a0a12]" 
         : "bg-white dark:bg-gray-900",
       containerClassName,
-      "px-2 sm:px-4"
+      "pl-2 sm:pl-4"
     )}>
       {sidebar}
 

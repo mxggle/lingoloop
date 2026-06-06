@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { Search, Youtube } from "lucide-react";
-import { motion } from "framer-motion";
+import { Youtube } from "lucide-react";
 
 interface YouTubeInputProps {
   onVideoIdSubmit: (videoId: string) => void;
@@ -55,36 +54,23 @@ export const YouTubeInput = ({ onVideoIdSubmit }: YouTubeInputProps) => {
   };
 
   return (
-    <motion.form
-      onSubmit={handleSubmit}
-      className="w-full"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="relative w-full mb-3">
-        <motion.input
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="flex h-12 w-full items-center gap-2 rounded-xl border border-gray-200 bg-white pl-3 pr-1.5 transition-colors focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-400/40 dark:border-white/10 dark:bg-white/[0.03]">
+        <Youtube className="h-5 w-5 shrink-0 text-error-500" />
+        <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={t("youtube.enterUrl")}
-          className="w-full h-12 px-12 rounded-xl border border-primary-200 dark:border-primary-800/30 bg-transparent text-gray-800 dark:text-gray-100 focus:ring-1 focus:ring-primary-500/50 focus:border-primary-500/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-200 outline-none text-sm"
-          whileFocus={{ scale: 1.01 }}
+          className="min-w-0 flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400 dark:text-gray-100 dark:placeholder:text-gray-500"
         />
-        <Youtube
-          className="absolute left-4 top-1/2 transform -translate-y-1/2 text-primary-500 dark:text-primary-400"
-          size={20}
-        />
+        <button
+          type="submit"
+          className="h-9 shrink-0 rounded-lg bg-primary-500 px-4 text-sm font-medium text-white transition-colors hover:bg-primary-600 active:bg-primary-700"
+        >
+          {t("youtube.loadVideo")}
+        </button>
       </div>
-      <motion.button
-        type="submit"
-        className="w-full h-12 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-md flex items-center justify-center gap-2 transition-all duration-200"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-      >
-        <Search size={18} />
-        {t("youtube.loadVideo")}
-      </motion.button>
-    </motion.form>
+    </form>
   );
 };

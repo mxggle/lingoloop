@@ -332,6 +332,7 @@
     "mediaLibrary": "媒体库",
     "localFile": "本地文件",
     "cloudStream": "云端流媒体",
+    "addFolderDesc": "批量映射文件夹中的媒体",
     "startPracticing": "开始练习",
     "studioDesc": "打开本地媒体文件或从YouTube流媒体，开始您的语言学习会话。",
     "proTip": "专业提示：批量练习",

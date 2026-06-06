@@ -5,10 +5,6 @@ import { usePlayerStore } from "../../stores/playerStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
 import {
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  Trash2,
   Search,
   X,
   ArrowDownAZ,
@@ -21,14 +17,6 @@ import {
   Settings,
 } from "lucide-react";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "../ui/dialog";
 import { FolderBrowser } from "./FolderBrowser";
 import type {
   LibraryScope,
@@ -40,59 +28,13 @@ import {
   type SettingsOpenIntentDetail,
 } from "../../utils/settingsIntents";
 
-/* ── Section header (VS Code style) ─────────────────────────────── */
-interface SectionHeaderProps {
-  title: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  actions?: React.ReactNode;
-}
-
-const SectionHeader = ({ title, isOpen, onToggle, actions }: SectionHeaderProps) => (
-  <div className="flex items-center h-8 select-none group mt-2 px-2">
-    <button
-      onClick={onToggle}
-      aria-expanded={isOpen}
-      className="flex-1 flex items-center min-w-0 h-7 px-2 gap-1.5 text-left focus:outline-none hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
-    >
-      {isOpen ? (
-        <ChevronDown className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
-      ) : (
-        <ChevronRight className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
-      )}
-      <span className="text-[10px] font-bold tracking-[0.1em] text-gray-500/70 dark:text-gray-300/60 truncate uppercase">
-        {title}
-      </span>
-    </button>
-    {actions && (
-      <div className="flex items-center mr-1 gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-        {actions}
-      </div>
-    )}
+/* ── Static library section label ───────────────────────────────── */
+const LibrarySectionLabel = ({ title }: { title: string }) => (
+  <div className="flex items-center h-8 select-none mt-2 px-4">
+    <span className="text-[10px] font-bold tracking-[0.1em] text-gray-500/70 dark:text-gray-300/60 truncate uppercase">
+      {title}
+    </span>
   </div>
-);
-
-/* ── Tiny icon button for section header actions ────────────────── */
-const HeaderAction = ({
-  onClick,
-  title,
-  children,
-}: {
-  onClick: () => void;
-  title: string;
-  children: React.ReactNode;
-}) => (
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      onClick();
-    }}
-    title={title}
-    aria-label={title}
-    className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
-  >
-    {children}
-  </button>
 );
 
 /* ── Layout settings ────────────────────────────────────────────── */
@@ -115,9 +57,8 @@ export const ElectronAppLayout = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isResizing, setIsResizing] = useState(false);
-  const [clearHistoryDialogOpen, setClearHistoryDialogOpen] = useState(false);
   const [libraryQuery, setLibraryQuery] = useState("");
-  const [libraryScope, setLibraryScope] = useState<LibraryScope>("all");
+  const [libraryScope, setLibraryScope] = useState<LibraryScope>("recent");
   const [librarySortBy, setLibrarySortBy] = useState<LibrarySortBy>("recent");
   const [librarySortOrder, setLibrarySortOrder] = useState<LibrarySortOrder>("desc");
   const sidebarRef = useRef<HTMLDivElement>(null);
@@ -128,20 +69,14 @@ export const ElectronAppLayout = ({
     sidebarWidth,
     setIsSidebarOpen,
     setSidebarWidth,
-    sidebarSections,
-    toggleSidebarSection,
     addSourceFolder,
-    clearMediaHistory,
   } = usePlayerStore(
     useShallow((state) => ({
       isSidebarOpen: state.isSidebarOpen,
       sidebarWidth: state.sidebarWidth,
       setIsSidebarOpen: state.setIsSidebarOpen,
       setSidebarWidth: state.setSidebarWidth,
-      sidebarSections: state.sidebarSections,
-      toggleSidebarSection: state.toggleSidebarSection,
       addSourceFolder: state.addSourceFolder,
-      clearMediaHistory: state.clearMediaHistory,
     }))
   );
 
@@ -187,11 +122,6 @@ export const ElectronAppLayout = ({
     if (!selected) return;
     addSourceFolder(selected);
   }, [addSourceFolder]);
-
-  const handleClearHistory = useCallback(async () => {
-    await clearMediaHistory();
-    setClearHistoryDialogOpen(false);
-  }, [clearMediaHistory]);
 
   const toggleSortOrder = useCallback(() => {
     setLibrarySortOrder((order) => (order === "asc" ? "desc" : "asc"));
@@ -273,35 +203,17 @@ export const ElectronAppLayout = ({
           />
 
           {/* ─── Library section ─────────────────────────────────── */}
-          <SectionHeader
-            title={t("sidebar.library", "LIBRARY")}
-            isOpen={sidebarSections.explorer}
-            onToggle={() => toggleSidebarSection("explorer")}
-            actions={
-              <>
-                <HeaderAction onClick={handleAddFolder} title={t("sidebar.addFolder", "Add folder")}>
-                  <FolderPlus className="w-3.5 h-3.5" />
-                </HeaderAction>
-                <HeaderAction
-                  onClick={() => setClearHistoryDialogOpen(true)}
-                  title={t("sidebar.clearHistory", "Clear history")}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </HeaderAction>
-              </>
-            }
-          />
-          {sidebarSections.explorer && (
-            <div className="flex-1 min-h-0 flex flex-col">
+          <LibrarySectionLabel title={t("sidebar.library", "LIBRARY")} />
+          <div className="flex-1 min-h-0 flex flex-col">
               <div className="px-2 pb-2 space-y-2 shrink-0">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
                   <input
                     value={libraryQuery}
                     onChange={(event) => setLibraryQuery(event.target.value)}
                     placeholder={t("sidebar.searchPlaceholder", "Search files")}
                     aria-label={t("sidebar.searchPlaceholder", "Search files")}
-                    className="h-8 w-full rounded-lg border border-black/10 bg-white/70 pl-8 pr-8 text-xs text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-primary-400 focus:ring-1 focus:ring-primary-400 dark:border-white/10 dark:bg-gray-900/70 dark:text-gray-100"
+                    className="h-9 w-full rounded-xl border border-transparent bg-black/[0.04] pl-9 pr-8 text-xs text-gray-800 outline-none transition-colors placeholder:text-gray-400 focus:border-primary-400/50 focus:bg-white focus:ring-2 focus:ring-primary-500/15 dark:bg-white/[0.05] dark:text-gray-100 dark:focus:border-primary-400/40 dark:focus:bg-gray-900"
                   />
                   {libraryQuery && (
                     <button
@@ -317,27 +229,25 @@ export const ElectronAppLayout = ({
                 </div>
 
                 <div
-                  className="grid grid-cols-3 rounded-lg bg-black/5 p-0.5 dark:bg-white/5"
+                  className="grid grid-cols-2 rounded-xl bg-black/[0.04] p-1 dark:bg-white/[0.05]"
                   role="tablist"
                   aria-label={t("sidebar.scopeLabel", "Library scope")}
                 >
-                  {(["all", "folders", "recent"] as const).map((scope) => (
+                  {(["recent", "folders"] as const).map((scope) => (
                     <button
                       key={scope}
                       type="button"
                       onClick={() => setLibraryScope(scope)}
                       aria-selected={libraryScope === scope}
-                      className={`h-7 rounded-md text-[11px] font-medium transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 ${
+                      className={`h-7 rounded-lg text-[11px] font-medium transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 ${
                         libraryScope === scope
                           ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-gray-100"
                           : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100"
                       }`}
                     >
-                      {scope === "all"
-                        ? t("sidebar.scopeAll", "All")
-                        : scope === "folders"
-                          ? t("sidebar.scopeFolders", "Folders")
-                          : t("sidebar.scopeRecent", "Recent")}
+                      {scope === "recent"
+                        ? t("sidebar.scopeRecent", "Recent")
+                        : t("sidebar.scopeFolders", "Folders")}
                     </button>
                   ))}
                 </div>
@@ -347,7 +257,7 @@ export const ElectronAppLayout = ({
                     value={librarySortBy}
                     onChange={(event) => setLibrarySortBy(event.target.value as LibrarySortBy)}
                     aria-label={t("sidebar.sortLabel", "Sort files")}
-                    className="h-8 min-w-0 flex-1 rounded-lg border border-black/10 bg-white/70 px-2 text-xs text-gray-700 outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 dark:border-white/10 dark:bg-gray-900/70 dark:text-gray-100"
+                    className="h-8 min-w-0 flex-1 rounded-lg border border-transparent bg-black/[0.04] px-2.5 text-xs text-gray-600 outline-none transition-colors hover:bg-black/[0.06] focus:border-primary-400/50 focus:ring-2 focus:ring-primary-500/15 dark:bg-white/[0.05] dark:text-gray-300 dark:hover:bg-white/[0.08]"
                   >
                     <option value="recent">{t("sidebar.sortRecent", "Last played")}</option>
                     <option value="name">{t("sidebar.sortName", "Name")}</option>
@@ -367,7 +277,7 @@ export const ElectronAppLayout = ({
                         ? t("sidebar.sortDescending", "Sort descending")
                         : t("sidebar.sortAscending", "Sort ascending")
                     }
-                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 bg-white/70 text-gray-500 transition-colors hover:bg-black/5 hover:text-gray-800 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500 dark:border-white/10 dark:bg-gray-900/70 dark:hover:bg-white/5 dark:hover:text-gray-100"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-black/[0.04] text-gray-500 transition-colors hover:bg-black/[0.06] hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/15 dark:bg-white/[0.05] dark:hover:bg-white/[0.08] dark:hover:text-gray-100"
                   >
                     {librarySortOrder === "asc" ? (
                       <ArrowDownAZ className="h-4 w-4" />
@@ -388,10 +298,9 @@ export const ElectronAppLayout = ({
                 />
               </div>
             </div>
-          )}
 
           {/* ─── Bottom bar (Integrated) ─────────────────────────── */}
-          <div className="mx-2 mb-2 p-1.5 flex items-center justify-around shrink-0 border-t border-black/5 dark:border-white/5">
+          <div className="mx-2 mb-2 mt-auto p-1.5 flex items-center justify-around shrink-0 border-t border-black/5 dark:border-white/5">
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
@@ -429,14 +338,19 @@ export const ElectronAppLayout = ({
       )}
 
       <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(156,163,175,0.2);
+          background: transparent;
           border-radius: 10px;
+          transition: background 0.3s ease;
+        }
+        .custom-scrollbar.is-scrolling::-webkit-scrollbar-thumb,
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(156,163,175,0.5);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(156,163,175,0.4);
+          background: rgba(156,163,175,0.7);
         }
       `}</style>
     </aside>
@@ -492,30 +406,6 @@ export const ElectronAppLayout = ({
       onOpenSettings={() => void handleOpenSettings()}
     >
       {children}
-      <Dialog open={clearHistoryDialogOpen} onOpenChange={setClearHistoryDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("sidebar.clearHistoryConfirmTitle")}</DialogTitle>
-            <DialogDescription>{t("sidebar.clearHistoryConfirmMessage")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setClearHistoryDialogOpen(false)}
-              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleClearHistory()}
-              className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-            >
-              {t("sidebar.clearHistory")}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayoutBase>
   );
 };

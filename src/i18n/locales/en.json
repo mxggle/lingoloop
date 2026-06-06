@@ -332,6 +332,7 @@
     "mediaLibrary": "Media Library",
     "localFile": "Local File",
     "cloudStream": "Cloud Stream",
+    "addFolderDesc": "Batch-map a folder of media",
     "startPracticing": "Start Practicing",
     "studioDesc": "Open a local media file or stream from YouTube to begin your language mastery session.",
     "proTip": "Pro Tip: Batch Practice",

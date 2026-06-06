@@ -56,14 +56,14 @@ export function TriplePaneLayout({
         {/* Pane 2: Middle List (Optional) */}
         {list && showList && (
           <aside className="w-72 shrink-0 border-r border-black/5 bg-black/[0.01] p-4 dark:border-white/5 dark:bg-white/[0.01]">
-            <div className="h-full overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-black/10 dark:scrollbar-thumb-white/10">
+            <div className="h-full overflow-y-auto pr-1">
               {list}
             </div>
           </aside>
         )}
 
         {/* Pane 3: Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-8 scrollbar-thin scrollbar-thumb-black/10 dark:scrollbar-thumb-white/10">
+        <main className="flex-1 overflow-y-auto p-8">
           <div className="mx-auto max-w-4xl">{content}</div>
         </main>
       </div>

@@ -13,6 +13,8 @@ interface SidebarRowProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
   primaryTextClassName?: string;
   secondaryTextClassName?: string;
   actionAreaClassName?: string;
+  /** Sizing for the icon wrapper. Defaults to "w-4 h-4" to preserve existing rows. */
+  iconClassName?: string;
 }
 
 export const SidebarRow = React.forwardRef<HTMLButtonElement, SidebarRowProps>(
@@ -30,6 +32,7 @@ export const SidebarRow = React.forwardRef<HTMLButtonElement, SidebarRowProps>(
       contentClassName,
       primaryTextClassName,
       secondaryTextClassName,
+      iconClassName,
       children,
       style,
       ...props
@@ -58,7 +61,16 @@ export const SidebarRow = React.forwardRef<HTMLButtonElement, SidebarRowProps>(
           }}
           {...props}
         >
-          {icon && <div className="shrink-0 mr-2 flex items-center justify-center w-4 h-4">{icon}</div>}
+          {icon && (
+            <div
+              className={cn(
+                "shrink-0 mr-2 flex items-center justify-center",
+                iconClassName ?? "w-4 h-4"
+              )}
+            >
+              {icon}
+            </div>
+          )}
           
           <div className={cn("flex-1 min-w-0 flex flex-col justify-center", contentClassName)}>
             <span className={cn("text-xs truncate leading-tight", primaryTextClassName)}>

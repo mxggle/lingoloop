@@ -66,8 +66,6 @@ interface ElectronAPI {
   dataPut: (path: string, data: unknown) => Promise<void>
   dataDelete: (path: string) => Promise<void>
   dataList: (path: string) => Promise<string[]>
-  dataExportSnapshot: () => Promise<{ path: string }>
-  dataImportSnapshot: (zipPath: string) => Promise<void>
   dataChangeDirectory: (targetPath: string) => Promise<void>
   dataHealthCheck: () => Promise<{
     manifestOk: boolean

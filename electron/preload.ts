@@ -98,8 +98,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   dataIsMigrated: () => ipcRenderer.invoke('data:isMigrated'),
   dataRunMigration: (localStorage: Record<string, string>, indexedDB: unknown) =>
     ipcRenderer.invoke('data:migrate', { localStorage, indexedDB }),
-  dataExportSnapshot: () => ipcRenderer.invoke('data:exportSnapshot'),
-  dataImportSnapshot: (zipPath: string) => ipcRenderer.invoke('data:importSnapshot', zipPath),
   dataChangeDirectory: (targetPath: string) =>
     ipcRenderer.invoke('data:changeDirectory', targetPath),
   dataHealthCheck: () => ipcRenderer.invoke('data:healthCheck'),

@@ -29,7 +29,6 @@ import {
 import { loadManifest, createDefaultManifest, saveManifest } from './manifestManager'
 import { replayCommitted, rollbackPending } from './journalManager'
 import { runHealthCheck, recover } from './healthCheck'
-import { createSnapshot, restoreSnapshot, cleanupOldSnapshots } from './snapshotManager'
 import { runMigration } from './migrationManager'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -880,20 +879,11 @@ ipcMain.handle('data:healthCheck', async () => {
 })
 
 ipcMain.handle('data:recover', async (_event, strategy: string) => {
-  return recover(dataDir, strategy as 'journal' | 'snapshot' | 'remigrate')
+  return recover(dataDir, strategy as 'journal' | 'remigrate')
 })
 
-ipcMain.handle('data:exportSnapshot', async () => {
-  const ref = await createSnapshot(dataDir)
-  return { path: ref.path }
-})
-
-ipcMain.handle('data:importSnapshot', async (_event, zipPath: string) => {
-  await restoreSnapshot(dataDir, zipPath)
-})
 
 ipcMain.handle('data:changeDirectory', async (_event, targetPath: string) => {
-  const { normalize, join } = await import('path')
   const newDir = join(normalize(targetPath), 'LoopMateData')
   await ensureDataDir(newDir)
   await copyDataDir(dataDir, newDir)
@@ -913,7 +903,6 @@ app.whenReady().then(async () => {
   await ensureDataDir(dataDir)
   await replayCommitted(dataDir)
   await rollbackPending(dataDir)
-  await cleanupOldSnapshots(dataDir)
   // Serve local media files through the local-media:// protocol.
   // URL format: local-media://media/ENCODED_PATH
   protocol.handle('local-media', async (request) => {

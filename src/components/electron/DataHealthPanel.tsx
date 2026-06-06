@@ -113,7 +113,7 @@ export function DataHealthPanel() {
     void runCheck();
   }, [runCheck]);
 
-  const handleRecover = useCallback(async (strategy: 'journal' | 'snapshot' | 'remigrate') => {
+  const handleRecover = useCallback(async (strategy: 'journal' | 'remigrate') => {
     if (!window.electronAPI?.dataRecover) return;
     setRecovering(true);
     setRecoveryMsg(null);
@@ -249,14 +249,6 @@ export function DataHealthPanel() {
                     className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
                     {t("settingsPage.data.replayJournal")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={recovering}
-                    onClick={() => handleRecover("snapshot")}
-                    className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-                  >
-                    {t("settingsPage.data.restoreSnapshot")}
                   </button>
                   <button
                     type="button"

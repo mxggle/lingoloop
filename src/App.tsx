@@ -1,12 +1,11 @@
 import { useEffect } from "react";
-import { Theme } from "@radix-ui/themes";
 import { Toaster } from "react-hot-toast";
 import { useSettingsStore } from "./stores/settingsStore";
 import { usePlayerStore } from "./stores/playerStore";
 import { useThemeStore } from "./stores/themeStore";
+import { startPersistedStoreSync } from "./stores/persistedStoreSync";
 import { applyTheme } from "./utils/theme";
 import { AppRouter } from "./router/AppRouter";
-import "@radix-ui/themes/styles.css";
 import "./index.css";
 
 function App() {
@@ -20,6 +19,10 @@ function App() {
   useEffect(() => {
     applyTheme(colors);
   }, [colors]);
+
+  useEffect(() => {
+    return startPersistedStoreSync();
+  }, []);
 
   // Parse URL parameters for shared loop settings
   useEffect(() => {
@@ -37,7 +40,7 @@ function App() {
   }, []);
 
   return (
-    <Theme appearance={theme} accentColor="purple">
+    <>
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
         <AppRouter />
       </div>
@@ -52,7 +55,7 @@ function App() {
           },
         }}
       />
-    </Theme>
+    </>
   );
 }
 

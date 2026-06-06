@@ -113,7 +113,7 @@ async function checkImportedMediaOrphans(
 
 export async function recover(
   dataDir: string,
-  strategy: 'journal' | 'snapshot' | 'remigrate',
+  strategy: 'journal' | 'remigrate',
 ): Promise<RecoveryResult> {
   const recoveredFiles: string[] = []
   const failedFiles: string[] = []
@@ -142,6 +142,6 @@ export async function recover(
     success: false,
     recoveredFiles,
     failedFiles,
-    message: `Recovery strategy "${strategy}" not yet implemented`,
+    message: `Recovery strategy "${strategy}" not supported`,
   }
 }

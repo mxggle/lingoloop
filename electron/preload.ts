@@ -71,6 +71,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   configSet: (key: string, value: unknown) =>
     ipcRenderer.invoke('config:set', key, value),
   configGetAll: () => ipcRenderer.invoke('config:getAll'),
+  onConfigChanged: (callback: (payload: { key: string }) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: { key: string }) => {
+      callback(payload)
+    }
+    ipcRenderer.on('config:changed', listener)
+    return () => { ipcRenderer.removeListener('config:changed', listener) }
+  },
   fetch: (url: string, options?: RequestInit) => ipcRenderer.invoke('net:fetch', url, options),
   waveformAnalyze: (filePath: string, mediaId: string) =>
     ipcRenderer.invoke('waveform:analyze', { filePath, mediaId }),
@@ -98,8 +105,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   dataIsMigrated: () => ipcRenderer.invoke('data:isMigrated'),
   dataRunMigration: (localStorage: Record<string, string>, indexedDB: unknown) =>
     ipcRenderer.invoke('data:migrate', { localStorage, indexedDB }),
-  dataExportSnapshot: () => ipcRenderer.invoke('data:exportSnapshot'),
-  dataImportSnapshot: (zipPath: string) => ipcRenderer.invoke('data:importSnapshot', zipPath),
   dataChangeDirectory: (targetPath: string) =>
     ipcRenderer.invoke('data:changeDirectory', targetPath),
   dataHealthCheck: () => ipcRenderer.invoke('data:healthCheck'),

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Folder, FolderOpen, Download, Upload, AlertTriangle } from "lucide-react";
+import { Folder, FolderOpen, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { SettingsSection } from "../settings/SettingsSection";
 import { SettingsRow } from "../settings/SettingsRow";
@@ -9,8 +9,8 @@ export function DataDirectorySettings() {
   const { t } = useTranslation();
   const [directory, setDirectory] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [dirMessage, setDirMessage] = useState<string | null>(null);
+  const [dirError, setDirError] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingDir, setPendingDir] = useState<string | null>(null);
 
@@ -30,7 +30,7 @@ export function DataDirectorySettings() {
 
   const handleChangeDirectory = useCallback(async () => {
     if (!window.electronAPI?.openFolder) return;
-    setError(null);
+    setDirError(null);
     try {
       const folder = await window.electronAPI.openFolder();
       if (!folder) return;
@@ -45,53 +45,21 @@ export function DataDirectorySettings() {
     if (!pendingDir || !window.electronAPI?.dataChangeDirectory) return;
     setLoading(true);
     setShowConfirm(false);
-    setError(null);
-    setMessage(null);
+    setDirError(null);
+    setDirMessage(null);
     try {
       await window.electronAPI.dataChangeDirectory(pendingDir);
       setDirectory(pendingDir);
-      setMessage(t("settingsPage.data.importSuccess"));
+      setDirMessage(t("settingsPage.data.changeDirectorySuccess"));
     } catch (err) {
-      setError(String(err));
+      setDirError(String(err));
     } finally {
       setLoading(false);
       setPendingDir(null);
     }
   }, [pendingDir, t]);
 
-  const handleExportSnapshot = useCallback(async () => {
-    if (!window.electronAPI?.dataExportSnapshot) return;
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const result = await window.electronAPI.dataExportSnapshot();
-      setMessage(t("settingsPage.data.exportSuccess"));
-      console.log("Snapshot exported to:", result.path);
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
 
-  const handleImportSnapshot = useCallback(async () => {
-    if (!window.electronAPI?.openFile) return;
-    setError(null);
-    setMessage(null);
-    try {
-      const file = await window.electronAPI.openFile();
-      if (!file) return;
-      setLoading(true);
-      await window.electronAPI.dataImportSnapshot(file);
-      setMessage(t("settingsPage.data.importSuccess"));
-      await loadDirectory();
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [t, loadDirectory]);
 
   if (!window.electronAPI?.dataGetDirectory) {
     return (
@@ -142,46 +110,16 @@ export function DataDirectorySettings() {
               </button>
             </div>
 
-            {message && (
+            {dirMessage && (
               <div className="border-t border-gray-100 px-6 py-3 dark:border-gray-800">
-                <p className="text-xs text-green-600 dark:text-green-400">{message}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">{dirMessage}</p>
               </div>
             )}
-            {error && (
+            {dirError && (
               <div className="border-t border-gray-100 px-6 py-3 dark:border-gray-800">
-                <p className="text-xs text-red-500">{error}</p>
+                <p className="text-xs text-red-500">{dirError}</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-      </SettingsSection>
-
-      <SettingsSection
-        title={t("settingsPage.data.snapshots")}
-        icon={<Download className="h-4 w-4 text-primary-500" />}
-      >
-        <Card>
-          <CardContent className="p-0">
-            <div className="flex flex-wrap gap-2 px-6 py-4">
-              <button
-                type="button"
-                onClick={handleExportSnapshot}
-                disabled={loading}
-                className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {t("settingsPage.data.exportSnapshot")}
-              </button>
-              <button
-                type="button"
-                onClick={handleImportSnapshot}
-                disabled={loading}
-                className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                {t("settingsPage.data.importSnapshot")}
-              </button>
-            </div>
           </CardContent>
         </Card>
       </SettingsSection>

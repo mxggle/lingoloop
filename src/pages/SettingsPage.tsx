@@ -10,7 +10,8 @@ import { useAiSettingsState } from "../hooks/useAiSettingsState";
 
 const getTabFromSearch = (search: string): SettingsTab => {
   const params = new URLSearchParams(search);
-  return params.get("tab") === "ai" ? "ai" : "general";
+  const tab = params.get("tab");
+  return tab === "ai" || tab === "data" ? tab : "general";
 };
 
 export function SettingsPage() {
@@ -40,6 +41,13 @@ export function SettingsPage() {
 
   const navItems = SettingsWorkspace.getNavItems(t);
 
+  const subtitle =
+    activeTab === "data"
+      ? t("settingsPage.data.description")
+      : activeTab === "general"
+        ? t("settingsPage.generalDescription")
+        : t("settingsPage.aiDescription");
+
   return (
     <AppLayout bottomPaddingClassName="pb-0">
       <div className="flex h-full flex-col overflow-hidden">
@@ -51,7 +59,7 @@ export function SettingsPage() {
                 {t("settingsPage.title")}
               </h1>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {t("aiSettingsPage.providerSetupDescription")}
+                {subtitle}
               </p>
             </div>
             <button

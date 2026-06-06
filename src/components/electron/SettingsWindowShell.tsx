@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
@@ -16,9 +17,10 @@ export function SettingsWindowShell({
   footer,
   children,
 }: SettingsWindowShellProps) {
+  const { t } = useTranslation();
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#020617] dark:text-white">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col overflow-hidden border-x border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
+    <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-white">
+      <div className="flex min-h-screen flex-col overflow-hidden">
         <header className="[-webkit-app-region:drag] flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <div className="space-y-1">
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -31,7 +33,7 @@ export function SettingsWindowShell({
           <button
             onClick={() => window.electronAPI?.closeSettingsWindow()}
             className="[-webkit-app-region:no-drag] rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-            aria-label="Close"
+            aria-label={t("common.close")}
           >
             <X className="h-5 w-5" />
           </button>

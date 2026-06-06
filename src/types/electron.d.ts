@@ -38,6 +38,7 @@ interface ElectronAPI {
   configGet: (key: string) => Promise<unknown>
   configSet: (key: string, value: unknown) => Promise<void>
   configGetAll: () => Promise<unknown>
+  onConfigChanged: (callback: (payload: { key: string }) => void) => () => void
   fetch: (url: string, options?: RequestInit) => Promise<{ ok: boolean, status: number, statusText: string, data: string, headers: Record<string, string> }>
   waveformAnalyze: (filePath: string, mediaId: string) => Promise<{
     mediaId: string
@@ -66,8 +67,6 @@ interface ElectronAPI {
   dataPut: (path: string, data: unknown) => Promise<void>
   dataDelete: (path: string) => Promise<void>
   dataList: (path: string) => Promise<string[]>
-  dataExportSnapshot: () => Promise<{ path: string }>
-  dataImportSnapshot: (zipPath: string) => Promise<void>
   dataChangeDirectory: (targetPath: string) => Promise<void>
   dataHealthCheck: () => Promise<{
     manifestOk: boolean

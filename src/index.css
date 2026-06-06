@@ -311,6 +311,33 @@ body {
     border-color: #64748b;
 }
 
+/* Aurora settings range slider — white thumb ringed with the accent color */
+.aurora-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 0 1.5px var(--theme-primary);
+}
+
+.aurora-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    border: 0;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 0 0 1.5px var(--theme-primary);
+}
+
+.aurora-range::-moz-range-track {
+    background: transparent;
+}
+
 /* Custom text selection */
 ::selection {
     background-color: rgb(var(--theme-primary-rgb) / 0.2);

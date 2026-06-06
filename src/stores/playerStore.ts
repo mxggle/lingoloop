@@ -21,6 +21,7 @@ import { bookmarkRepository } from "../repositories/bookmarkRepository";
 import { glossaryRepository } from "../repositories/glossaryRepository";
 import { libraryRepository } from "../repositories/libraryRepository";
 import { settingsRepository } from "../repositories/settingsRepository";
+import { dataClient } from "../repositories/dataClient";
 import type { PersistedBookmark, PersistedGlossaryEntry } from "../types/persistence";
 
 // Re-export sub-stores
@@ -227,6 +228,18 @@ const initialState: PlayerState = {
   sidebarSections: { explorer: true, recent: true },
 };
 
+const syncPersistedMediaSettings = (state: PlayerState & PlayerActions) => {
+  useMediaStore.setState({
+    volume: state.volume,
+    mediaVolume: state.mediaVolume,
+    muted: state.muted,
+    playbackRate: state.playbackRate,
+    seekStepSeconds: state.seekStepSeconds,
+    seekSmallStepSeconds: state.seekSmallStepSeconds,
+    seekMode: state.seekMode,
+  });
+};
+
 export const usePlayerStore = create<PlayerState & PlayerActions>()(
   persist(
     (set, get) => {
@@ -269,8 +282,8 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
 
         // ── Enriched Media actions ──
         setCurrentFile: async (file) => {
-          if (file?.nativePath && window.electronAPI?.approvePath) {
-            await window.electronAPI.approvePath(file.nativePath);
+          if (file?.nativePath) {
+            await dataClient.approvePath(file.nativePath);
           }
           useMediaStore.getState().setCurrentFile(file);
           if (file) {
@@ -473,9 +486,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
           try {
             if (historyItem.type === "file" && historyItem.fileData) {
               if (historyItem.nativePath) {
-                if (window.electronAPI?.approvePath) {
-                  await window.electronAPI.approvePath(historyItem.nativePath);
-                }
+                await dataClient.approvePath(historyItem.nativePath);
                 const url = nativePathToUrl(historyItem.nativePath);
                 const fd: MediaFile = { ...historyItem.fileData, url, nativePath: historyItem.nativePath };
                 useMediaStore.getState().setCurrentFile(fd);
@@ -692,6 +703,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
       },
       onRehydrateStorage: () => (state, error) => {
         if (error || !state) return;
+        syncPersistedMediaSettings(state);
         // Sync persisted data into sub-stores on app start
         if (state.mediaBookmarks && Object.keys(state.mediaBookmarks).length > 0) {
           useBookmarkStore.setState({ mediaBookmarks: state.mediaBookmarks });
@@ -750,8 +762,6 @@ let _playerSaveTimer: ReturnType<typeof setTimeout>
 usePlayerStore.subscribe((state) => {
   clearTimeout(_playerSaveTimer)
   _playerSaveTimer = setTimeout(() => {
-    if (!window.electronAPI?.dataPut) return
-
     // Bookmarks
     const bookmarks: PersistedBookmark[] = []
     if (state.mediaBookmarks) {

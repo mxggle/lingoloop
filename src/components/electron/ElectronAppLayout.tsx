@@ -15,8 +15,10 @@ import {
   Moon,
   Sun,
   Settings,
+  BookOpen,
 } from "lucide-react";
 import { AppLayoutBase } from "../layout/AppLayoutBase";
+import { KeyboardShortcutsDialog } from "../layout/KeyboardShortcutsDialog";
 import { FolderBrowser } from "./FolderBrowser";
 import type {
   LibraryScope,
@@ -27,6 +29,11 @@ import {
   onSettingsOpenIntent,
   type SettingsOpenIntentDetail,
 } from "../../utils/settingsIntents";
+
+/* ── Icon rail (VS Code style activity bar) ─────────────────────── */
+const RAIL_WIDTH = 56;
+const railButtonClass =
+  "flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-black/5 hover:text-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-100 [-webkit-app-region:no-drag]";
 
 /* ── Static library section label ───────────────────────────────── */
 const LibrarySectionLabel = ({ title }: { title: string }) => (
@@ -93,7 +100,7 @@ export const ElectronAppLayout = ({
   const resize = useCallback(
     (e: MouseEvent) => {
       if (isResizing) {
-        const newWidth = e.clientX;
+        const newWidth = e.clientX - RAIL_WIDTH;
         if (newWidth >= 200 && newWidth <= 450) setSidebarWidth(newWidth);
       }
     },
@@ -132,6 +139,19 @@ export const ElectronAppLayout = ({
       await window.electronAPI?.openSettingsWindow(detail.tab, detail.section);
     },
     []
+  );
+
+  const handleOpenGlossary = useCallback(() => {
+    if (window.electronAPI?.openGlossaryWindow) {
+      void window.electronAPI.openGlossaryWindow();
+    } else {
+      navigate("/glossary");
+    }
+  }, [navigate]);
+
+  const toggleTheme = useCallback(
+    () => setTheme(theme === "dark" ? "light" : "dark"),
+    [theme, setTheme]
   );
 
   useEffect(() => {
@@ -183,13 +203,97 @@ export const ElectronAppLayout = ({
     });
   }, []);
 
+  /* ── Icon rail (always visible activity bar) ───────────────────── */
+  const iconRail = (
+    <nav
+      aria-label={t("sidebar.navigation", "Navigation")}
+      style={{ width: RAIL_WIDTH }}
+      className="fixed left-0 top-0 bottom-0 z-[61] flex flex-col items-center border-r border-black/5 dark:border-white/5 bg-white/70 dark:bg-gray-950/70 backdrop-blur-3xl shrink-0 [-webkit-app-region:drag]"
+    >
+      {/* Draggable top region (window move + macOS traffic-light clearance) */}
+      <div className="h-[52px] w-full shrink-0 sm:h-[56px]" />
+
+      {/* Primary navigation */}
+      <div className="flex flex-col items-center gap-1 pt-1">
+        <button
+          onClick={navigateToHome}
+          className={`${railButtonClass} text-primary-600 hover:text-primary-700 dark:text-primary-400`}
+          title={t("common.home", "Home")}
+          aria-label={t("common.home", "Home")}
+        >
+          <Home className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={railButtonClass}
+          aria-expanded={isSidebarOpen}
+          title={
+            isSidebarOpen
+              ? t("layout.hideSidebar", "Hide Sidebar")
+              : t("layout.showSidebar", "Show Sidebar")
+          }
+          aria-label={
+            isSidebarOpen
+              ? t("layout.hideSidebar", "Hide Sidebar")
+              : t("layout.showSidebar", "Show Sidebar")
+          }
+        >
+          {isSidebarOpen ? (
+            <PanelLeftClose className="h-5 w-5" />
+          ) : (
+            <PanelLeftOpen className="h-5 w-5" />
+          )}
+        </button>
+        <button
+          onClick={handleOpenGlossary}
+          className={railButtonClass}
+          title={t("glossary.openGlossary", "Glossary")}
+          aria-label={t("glossary.openGlossary", "Glossary")}
+        >
+          <BookOpen className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Secondary actions pinned to the bottom */}
+      <div className="mt-auto flex flex-col items-center gap-1 pb-3">
+        <KeyboardShortcutsDialog triggerClassName={railButtonClass} />
+        <button
+          onClick={() => void handleOpenSettings()}
+          className={railButtonClass}
+          title={t("layout.openSettings", "Open Settings")}
+          aria-label={t("layout.openSettings", "Open Settings")}
+        >
+          <Settings className="h-5 w-5" />
+        </button>
+        <button
+          onClick={toggleTheme}
+          className={railButtonClass}
+          title={
+            theme === "dark"
+              ? t("layout.switchToLightTheme", "Light Theme")
+              : t("layout.switchToDarkTheme", "Dark Theme")
+          }
+          aria-label={
+            theme === "dark"
+              ? t("layout.switchToLightTheme", "Light Theme")
+              : t("layout.switchToDarkTheme", "Dark Theme")
+          }
+        >
+          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+      </div>
+    </nav>
+  );
+
   /* ── Sidebar ───────────────────────────────────────────────────── */
   const sidebar = (
-    <aside
-      ref={sidebarRef}
-      style={{ width: isSidebarOpen ? sidebarWidth : 0 }}
-      aria-label={t("sidebar.explorer", "Explorer")}
-      className={`fixed left-0 top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
+    <>
+      {iconRail}
+      <aside
+        ref={sidebarRef}
+        style={{ left: RAIL_WIDTH, width: isSidebarOpen ? sidebarWidth : 0 }}
+        aria-label={t("sidebar.explorer", "Explorer")}
+      className={`fixed top-0 bottom-0 border-r border-black/5 dark:border-white/5 bg-white/60 dark:bg-gray-950/60 backdrop-blur-3xl flex flex-col z-[60] shrink-0 ${
         !isSidebarOpen ? "border-none overflow-hidden" : "shadow-2xl dark:shadow-black/40"
       } transition-[width] duration-300 ease-in-out`}
     >
@@ -299,34 +403,6 @@ export const ElectronAppLayout = ({
               </div>
             </div>
 
-          {/* ─── Bottom bar (Integrated) ─────────────────────────── */}
-          <div className="mx-2 mb-2 mt-auto p-1.5 flex items-center justify-around shrink-0 border-t border-black/5 dark:border-white/5">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
-              aria-label={
-                theme === "dark"
-                  ? t("layout.switchToLightTheme", "Light Theme")
-                  : t("layout.switchToDarkTheme", "Dark Theme")
-              }
-              title={
-                theme === "dark"
-                  ? t("layout.switchToLightTheme", "Light Theme")
-                  : t("layout.switchToDarkTheme", "Dark Theme")
-              }
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <button
-              onClick={() => void handleOpenSettings()}
-              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 transition-colors"
-              title={t("layout.openSettings", "Open Settings")}
-              aria-label={t("layout.openSettings", "Open Settings")}
-            >
-              <Settings className="w-4 h-4" />
-            </button>
-          </div>
-
           {/* ─── Resize handle ───────────────────────────────────── */}
           <div
             onMouseDown={startResizing}
@@ -353,56 +429,25 @@ export const ElectronAppLayout = ({
           background: rgba(156,163,175,0.7);
         }
       `}</style>
-    </aside>
+      </aside>
+    </>
   );
 
-  /* ── Header leading slot (Home + toggle) ───────────────────────── */
-  const headerLeadingSlot = (
-    <div className="flex items-center gap-0.5 mr-2 shrink-0">
-      <button
-        onClick={navigateToHome}
-        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-600 transition-colors"
-        title={t("common.home", "Home")}
-        aria-label={t("common.home", "Home")}
-      >
-        <Home className="w-4 h-4" />
-      </button>
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
-        aria-expanded={isSidebarOpen}
-        aria-label={
-          isSidebarOpen
-            ? t("layout.hideSidebar", "Hide Sidebar")
-            : t("layout.showSidebar", "Show Sidebar")
-        }
-        title={
-          isSidebarOpen
-            ? t("layout.hideSidebar", "Hide Sidebar")
-            : t("layout.showSidebar", "Show Sidebar")
-        }
-      >
-        {isSidebarOpen ? (
-          <PanelLeftClose className="w-5 h-5" />
-        ) : (
-          <PanelLeftOpen className="w-5 h-5" />
-        )}
-      </button>
-    </div>
-  );
+  const contentLeft = RAIL_WIDTH + (isSidebarOpen ? sidebarWidth : 0);
 
   return (
     <AppLayoutBase
       layoutSettings={layoutSettings}
       setLayoutSettings={setLayoutSettings}
       bottomPaddingClassName={bottomPaddingClassName}
-      headerLeadingSlot={headerLeadingSlot}
       sidebar={sidebar}
-      contentPaddingLeft={isSidebarOpen ? sidebarWidth : 0}
-      headerOffsetLeft={isSidebarOpen ? sidebarWidth : 0}
+      contentPaddingLeft={contentLeft}
+      headerOffsetLeft={contentLeft}
       desktopMode={true}
       hideThemeToggle={true}
       hideSettings={true}
+      hideGlossary={true}
+      hideHelp={true}
       onOpenSettings={() => void handleOpenSettings()}
     >
       {children}

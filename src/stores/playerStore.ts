@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
-import { electronStorage } from "./electronStorage";
+import { desktopStorage } from "./desktopStorage";
 import {
   retrieveMediaFile,
   deleteMediaFile,
@@ -675,7 +675,7 @@ export const usePlayerStore = create<PlayerState & PlayerActions>()(
     },
     {
       name: "abloop-player-storage",
-      storage: createJSONStorage(() => electronStorage),
+      storage: createJSONStorage(() => desktopStorage),
       version: 3,
       migrate: (persistedState: unknown, version) => {
         const state = persistedState as PersistedPlayerStoreState | undefined;

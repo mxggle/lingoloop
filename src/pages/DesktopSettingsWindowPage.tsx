@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { SettingsWindowShell } from "../components/electron/SettingsWindowShell";
+import { SettingsWindowShell } from "../components/desktop/SettingsWindowShell";
 import { SettingsWorkspace } from "../components/settings/SettingsWorkspace";
 import { SettingsSidebar } from "../components/settings/SettingsSidebar";
-import { ElectronDataPanel } from "../components/electron/ElectronDataPanel";
+import { DesktopDataPanel } from "../components/desktop/DesktopDataPanel";
 import { useAiSettingsState } from "../hooks/useAiSettingsState";
 
-export function ElectronSettingsWindowPage() {
+export function DesktopSettingsWindowPage() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ export function ElectronSettingsWindowPage() {
       }
     >
       {activeTab === "data" ? (
-        <ElectronDataPanel />
+        <DesktopDataPanel />
       ) : (
         <SettingsWorkspace
           activeTab={activeTab}

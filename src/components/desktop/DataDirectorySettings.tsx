@@ -4,6 +4,7 @@ import { Folder, FolderOpen, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { SettingsSection } from "../settings/SettingsSection";
 import { SettingsRow } from "../settings/SettingsRow";
+import { desktopApi } from "../../platform/runtime";
 
 export function DataDirectorySettings() {
   const { t } = useTranslation();
@@ -15,9 +16,9 @@ export function DataDirectorySettings() {
   const [pendingDir, setPendingDir] = useState<string | null>(null);
 
   const loadDirectory = useCallback(async () => {
-    if (!window.electronAPI?.dataGetDirectory) return;
+    if (!desktopApi?.dataGetDirectory) return;
     try {
-      const dir = await window.electronAPI.dataGetDirectory();
+      const dir = await desktopApi.dataGetDirectory();
       setDirectory(dir);
     } catch {
       setDirectory(null);
@@ -29,10 +30,10 @@ export function DataDirectorySettings() {
   }, [loadDirectory]);
 
   const handleChangeDirectory = useCallback(async () => {
-    if (!window.electronAPI?.openFolder) return;
+    if (!desktopApi?.openFolder) return;
     setDirError(null);
     try {
-      const folder = await window.electronAPI.openFolder();
+      const folder = await desktopApi.openFolder();
       if (!folder) return;
       setPendingDir(folder);
       setShowConfirm(true);
@@ -42,13 +43,13 @@ export function DataDirectorySettings() {
   }, []);
 
   const confirmChange = useCallback(async () => {
-    if (!pendingDir || !window.electronAPI?.dataChangeDirectory) return;
+    if (!pendingDir || !desktopApi?.dataChangeDirectory) return;
     setLoading(true);
     setShowConfirm(false);
     setDirError(null);
     setDirMessage(null);
     try {
-      await window.electronAPI.dataChangeDirectory(pendingDir);
+      await desktopApi.dataChangeDirectory(pendingDir);
       setDirectory(pendingDir);
       setDirMessage(t("settingsPage.data.changeDirectorySuccess"));
     } catch (err) {
@@ -61,7 +62,7 @@ export function DataDirectorySettings() {
 
 
 
-  if (!window.electronAPI?.dataGetDirectory) {
+  if (!desktopApi?.dataGetDirectory) {
     return (
       <SettingsSection
         title={t("settingsPage.data.directory")}
@@ -69,7 +70,7 @@ export function DataDirectorySettings() {
       >
         <Card>
           <CardContent className="flex items-center justify-center p-8">
-            <p className="text-sm text-gray-400">{t("settingsPage.data.electronOnly")}</p>
+            <p className="text-sm text-gray-400">{t("settingsPage.data.desktopOnly")}</p>
           </CardContent>
         </Card>
       </SettingsSection>

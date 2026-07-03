@@ -2,21 +2,22 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Youtube, FolderOpen, Film, Music, ChevronRight } from "lucide-react";
 import { YouTubeInput } from "../components/player/YouTubeInput";
-import { ElectronFileOpener } from "../components/electron/ElectronFileOpener";
+import { DesktopFileOpener } from "../components/desktop/DesktopFileOpener";
 import { usePlayerStore } from "../stores/playerStore";
 import { formatTime } from "../utils/formatTime";
 import { formatRelativeTime } from "../utils/relativeTime";
+import { desktopApi } from "../platform/runtime";
 
-interface ElectronHomePageProps {
+interface DesktopHomePageProps {
   handleVideoIdSubmit: (videoId: string) => void;
 }
 
-export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps) => {
+export const DesktopHomePage = ({ handleVideoIdSubmit }: DesktopHomePageProps) => {
   const { t, i18n } = useTranslation();
   const { mediaHistory, loadFromHistory, addSourceFolder } = usePlayerStore();
 
   const handleOpenFolder = async () => {
-    const selected = await window.electronAPI!.openFolder();
+    const selected = await desktopApi?.openFolder();
     if (selected) {
       addSourceFolder(selected);
     }
@@ -58,13 +59,13 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
           className="mt-8 space-y-3"
         >
           {/* Primary: open or drop a local file */}
-          <ElectronFileOpener />
+          <DesktopFileOpener />
 
           {/* Secondary: paste a YouTube link */}
           <YouTubeInput onVideoIdSubmit={handleVideoIdSubmit} />
 
           {/* Secondary: add a folder for batch practice */}
-          <button
+          {desktopApi && <button
             onClick={handleOpenFolder}
             className="group flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-white/60 px-4 py-3 text-left transition-colors hover:border-gray-300 hover:bg-white dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.05]"
           >
@@ -80,7 +81,7 @@ export const ElectronHomePage = ({ handleVideoIdSubmit }: ElectronHomePageProps)
               </span>
             </span>
             <ChevronRight className="h-4 w-4 text-gray-300 transition-colors group-hover:text-gray-400 dark:text-gray-600" />
-          </button>
+          </button>}
         </motion.div>
 
         {/* Recent */}

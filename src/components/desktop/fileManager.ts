@@ -2,9 +2,10 @@ import type { TFunction } from "i18next";
 import { toast } from "react-hot-toast";
 import i18n from "../../i18n";
 import { getPlatform } from "../../utils/platform";
+import { desktopApi } from "../../platform/runtime";
 
 export const revealInFileManager = async (targetPath: string): Promise<boolean> => {
-  const success = await window.electronAPI?.showInFileManager(targetPath);
+  const success = await desktopApi?.showInFileManager(targetPath);
 
   if (!success) {
     toast.error(i18n.t("common.failedToOpenLocation"));

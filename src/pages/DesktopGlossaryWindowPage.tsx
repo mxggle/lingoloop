@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { GlossaryWindowShell } from "../components/electron/GlossaryWindowShell";
+import { GlossaryWindowShell } from "../components/desktop/GlossaryWindowShell";
 import { GlossaryContent } from "../components/glossary/GlossaryContent";
 
-export function ElectronGlossaryWindowPage() {
+export function DesktopGlossaryWindowPage() {
   const { t } = useTranslation();
 
   return (

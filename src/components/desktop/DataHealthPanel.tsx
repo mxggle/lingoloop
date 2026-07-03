@@ -7,6 +7,7 @@ import { SettingsSection } from "../settings/SettingsSection";
 import { SettingsRow } from "../settings/SettingsRow";
 import { cn } from "../../utils/cn";
 import { collectIndexedDBData, collectLocalStorageData } from "../../utils/migrationBridge";
+import { desktopApi } from "../../platform/runtime";
 
 function StatusBadge({ status }: { status: HealthCheckResult['status'] }) {
   const { t } = useTranslation();
@@ -95,12 +96,12 @@ export function DataHealthPanel() {
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
 
   const runCheck = useCallback(async () => {
-    if (!window.electronAPI?.dataHealthCheck) return;
+    if (!desktopApi?.dataHealthCheck) return;
     setLoading(true);
     setRecoveryMsg(null);
     setRecoveryError(null);
     try {
-      const result = await window.electronAPI.dataHealthCheck();
+      const result = await desktopApi.dataHealthCheck();
       setHealth(result);
     } catch {
       setHealth(null);
@@ -114,23 +115,23 @@ export function DataHealthPanel() {
   }, [runCheck]);
 
   const handleRecover = useCallback(async (strategy: 'journal' | 'remigrate') => {
-    if (!window.electronAPI?.dataRecover) return;
+    if (!desktopApi?.dataRecover) return;
     setRecovering(true);
     setRecoveryMsg(null);
     setRecoveryError(null);
     try {
       if (strategy === "remigrate") {
-        if (!window.electronAPI.dataRunMigration) return;
+        if (!desktopApi.dataRunMigration) return;
         const localStorageData = await collectLocalStorageData();
         const indexedDBData = await collectIndexedDBData();
-        const result = await window.electronAPI.dataRunMigration(localStorageData, indexedDBData);
+        const result = await desktopApi.dataRunMigration(localStorageData, indexedDBData);
         if (result.success) {
           setRecoveryMsg(t("settingsPage.data.recoverySuccess"));
         } else {
           setRecoveryError(t("settingsPage.data.recoveryFailed", { message: result.errors.join("; ") }));
         }
       } else {
-        const result: RecoveryResult = await window.electronAPI.dataRecover(strategy);
+        const result: RecoveryResult = await desktopApi.dataRecover(strategy);
         if (result.success) {
           setRecoveryMsg(result.message || t("settingsPage.data.recoverySuccess"));
         } else {
@@ -145,7 +146,7 @@ export function DataHealthPanel() {
     }
   }, [runCheck, t]);
 
-  if (!window.electronAPI?.dataHealthCheck) {
+  if (!desktopApi?.dataHealthCheck) {
     return (
       <SettingsSection
         title={t("settingsPage.data.healthCheck")}
@@ -153,7 +154,7 @@ export function DataHealthPanel() {
       >
         <Card>
           <CardContent className="flex items-center justify-center p-8">
-            <p className="text-sm text-gray-400">{t("settingsPage.data.electronOnly")}</p>
+            <p className="text-sm text-gray-400">{t("settingsPage.data.desktopOnly")}</p>
           </CardContent>
         </Card>
       </SettingsSection>

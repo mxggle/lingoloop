@@ -186,7 +186,7 @@
       "remigrate": "Re-migrate",
       "recoverySuccess": "Recovery completed successfully",
       "recoveryFailed": "Recovery failed: {{message}}",
-      "electronOnly": "Data management is available in the desktop app",
+      "desktopOnly": "Data management is available in the desktop app",
       "storage": "Storage",
       "usedOf": "used of {{total}}",
       "audioCache": "Audio cache",
@@ -336,7 +336,7 @@
     "startPracticing": "Start Practicing",
     "studioDesc": "Open a local media file or stream from YouTube to begin your language mastery session.",
     "proTip": "Pro Tip: Batch Practice",
-    "electronHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
+    "desktopHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
     "podcasts": "Podcasts & RSS"
   },
   "player": {

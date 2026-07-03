@@ -19,9 +19,9 @@ export interface AppLayoutBaseProps {
   children: React.ReactNode;
   layoutSettings?: LayoutSettings;
   setLayoutSettings?: Dispatch<SetStateAction<LayoutSettings>>;
-  /** Left slot in the header: logo button (web) or sidebar toggle (Electron) */
+  /** Left slot in the header: logo button (web) or sidebar toggle (desktop app) */
   headerLeadingSlot?: React.ReactNode;
-  /** Sidebar element rendered as a fixed aside (Electron only) */
+  /** Sidebar element rendered as a fixed aside (desktop only) */
   sidebar?: React.ReactNode;
   /** Dynamic left padding for main content when sidebar is open */
   contentPaddingLeft?: number;

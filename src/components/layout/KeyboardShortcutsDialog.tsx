@@ -13,7 +13,7 @@ interface KeyboardShortcutsDialogProps {
 
 /**
  * Keyboard shortcuts / help dialog with a self-contained Info trigger.
- * Shared by the header (web) and the Electron icon rail.
+ * Shared by the header (web) and the desktop icon rail.
  */
 export const KeyboardShortcutsDialog = ({
   triggerClassName,

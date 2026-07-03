@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayerStore } from "../stores/playerStore";
 import { AppLayout } from "../components/layout/AppLayout";
-import { ElectronHomePage } from "./ElectronHomePage";
+import { DesktopHomePage } from "./DesktopHomePage";
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export const HomePage = () => {
 
   return (
     <AppLayout bottomPaddingClassName="pb-0">
-      <ElectronHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
+      <DesktopHomePage handleVideoIdSubmit={handleVideoIdSubmit} />
     </AppLayout>
   );
 };

@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import { TranscriptionProvider, TRANSCRIPTION_PROVIDERS } from "../types/aiService";
 import { encodeWAV } from "../utils/wavEncoder";
 import { buildChunkRanges, dedupeOverlappingSegments } from "../utils/transcriptionChunks";
+import { platformFetch } from "../platform/runtime";
 
 // --- Types ---
 
@@ -234,6 +235,7 @@ class TranscriptionService {
         const openai = new OpenAI({
             apiKey: config.apiKey,
             dangerouslyAllowBrowser: true,
+            fetch: platformFetch,
         });
 
         const audioFile = new File([audioBlob], "audio.wav", { type: "audio/wav" });
@@ -287,7 +289,7 @@ class TranscriptionService {
             formData.append("language", language);
         }
 
-        const response = await fetch(
+        const response = await platformFetch(
             "https://api.groq.com/openai/v1/audio/transcriptions",
             {
                 method: "POST",
@@ -406,7 +408,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
         const apiKey = config.apiKey;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        const response = await fetch(url, {
+        const response = await platformFetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
@@ -447,7 +449,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
             formData.append("language", language);
         }
 
-        const response = await fetch(`${baseURL}/v1/audio/transcriptions`, {
+        const response = await platformFetch(`${baseURL}/v1/audio/transcriptions`, {
             method: "POST",
             body: formData,
             signal: options.signal,

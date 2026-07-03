@@ -3,7 +3,7 @@ import { Database } from "lucide-react";
 import { DataHealthPanel } from "./DataHealthPanel";
 import { DataDirectorySettings } from "./DataDirectorySettings";
 
-export function ElectronDataPanel() {
+export function DesktopDataPanel() {
   const { t } = useTranslation();
 
   return (

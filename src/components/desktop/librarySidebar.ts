@@ -1,5 +1,5 @@
 import type { MediaHistoryItem } from "../../stores/playerStore";
-import type { FolderTreeNode } from "../../types/electron";
+import type { FolderTreeNode } from "../../types/desktop";
 
 export type LibraryScope = "all" | "folders" | "recent";
 export type LibrarySortBy = "recent" | "name" | "type" | "source";

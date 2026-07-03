@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { usePlayerStore } from "../../stores/playerStore";
 import { formatTime } from "../../utils/formatTime";
+import { desktopApi } from "../../platform/runtime";
 
 export const GlossaryContent = () => {
   const { t } = useTranslation();
@@ -24,8 +25,8 @@ export const GlossaryContent = () => {
   );
 
   const handlePlayContext = (id: string) => {
-    if (isGlossaryWindow && window.electronAPI?.navigateInMainWindow) {
-      window.electronAPI.navigateInMainWindow("/player", id);
+    if (isGlossaryWindow && desktopApi?.navigateInMainWindow) {
+      desktopApi.navigateInMainWindow("/player", id);
       toast.success(t("glossary.playingContext"));
       return;
     }

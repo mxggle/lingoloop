@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { electronStorage } from "./electronStorage";
+import { desktopStorage } from "./desktopStorage";
 import { settingsRepository } from "../repositories/settingsRepository";
 
 export interface LayoutSettings {
@@ -76,7 +76,7 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: "layout-storage",
-      storage: createJSONStorage(() => electronStorage),
+      storage: createJSONStorage(() => desktopStorage),
       merge: mergePersistedLayoutState,
     }
   )

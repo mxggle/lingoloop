@@ -113,7 +113,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   // WaveformRenderer instance
   const rendererRef = useRef<WaveformRenderer | null>(null);
-  // FFmpeg waveform state (Electron-only)
+  // FFmpeg waveform state (Desktop-only)
   const ffmpegMediaIdRef = useRef<string | null>(null);
   const ffmpegReadyRef = useRef(false);
 
@@ -421,7 +421,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     };
 
     const loadAudio = async () => {
-      // FFmpeg path (Electron only) — fall through to AudioContext on failure
+      // FFmpeg path (desktop only) — fall through to AudioContext on failure
       if (waveformLoader.isAvailable && currentFile?.nativePath) {
         const filePath = currentFile.nativePath;
         ffmpegMediaIdRef.current = filePath;
@@ -746,7 +746,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   // sync for mouse/touch hit testing in the React handlers.
   useEffect(() => {
     laneRectsRef.current = [];
-    // Note: must NOT depend on `waveformData` — on the Electron/FFmpeg path the
+    // Note: must NOT depend on `waveformData` — on the desktop/FFmpeg path the
     // renderer is fed level data directly and that React state stays null, so a
     // guard on it would leave bookmarks visible but unclickable.
     if (!duration || !staticCanvasRef.current) return;

@@ -1,4 +1,4 @@
-import { electronStorage, subscribeElectronStorageChanges } from "./electronStorage";
+import { desktopStorage, subscribeDesktopStorageChanges } from "./desktopStorage";
 import i18n from "../i18n";
 import { useLayoutStore } from "./layoutStore";
 import { useMediaStore } from "./mediaStore";
@@ -51,7 +51,7 @@ const syncMediaSettingsFromPlayerStore = () => {
 };
 
 const syncPlayerSettingsFromStorage = async () => {
-  const persistedValue = await electronStorage.getItem("abloop-player-storage");
+  const persistedValue = await desktopStorage.getItem("abloop-player-storage");
   if (!persistedValue) return;
 
   let persisted: {
@@ -111,7 +111,7 @@ const syncPlayerSettingsFromStorage = async () => {
 };
 
 const syncLanguageFromStorage = async () => {
-  const language = await electronStorage.getItem("i18nextLng");
+  const language = await desktopStorage.getItem("i18nextLng");
   if (!language || i18n.language === language) return;
 
   localStorage.setItem("i18nextLng", language);
@@ -150,7 +150,7 @@ let stopPersistedStoreSync: (() => void) | null = null;
 export const startPersistedStoreSync = () => {
   if (stopPersistedStoreSync) return stopPersistedStoreSync;
 
-  const unsubscribe = subscribeElectronStorageChanges(({ key }) => {
+  const unsubscribe = subscribeDesktopStorageChanges(({ key }) => {
     void syncPersistedStoreForConfigKey(key);
   });
 

@@ -1,10 +1,11 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { UploadCloud } from "lucide-react";
 import { nativePathToUrl } from "../../utils/platform";
 import { cn } from "../../utils/cn";
+import { desktopApi } from "../../platform/runtime";
 
 const VIDEO_EXTS = new Set(["mp4", "mkv", "avi", "mov", "webm", "m4v"]);
 
@@ -14,18 +15,15 @@ const getMimeType = (fileName: string): string => {
 };
 
 /**
- * Electron-only file opener. A single unified surface: click opens the native
- * file dialog (window.electronAPI.openFile), drag-and-drop accepts files from
+ * Desktop-only file opener. A single unified surface: click opens the native
+ * file dialog (desktopApi.openFile), drag-and-drop accepts files from
  * Finder / Explorer. One affordance, no nested boxes.
  */
-export const ElectronFileOpener = () => {
+export const DesktopFileOpener = () => {
   const { t } = useTranslation();
   const { setCurrentFile } = usePlayerStore();
 
-  const handleOpenFile = useCallback(async () => {
-    const filePath = await window.electronAPI!.openFile();
-    if (!filePath) return;
-
+  const openNativePath = useCallback((filePath: string) => {
     const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
     setCurrentFile({
       name: fileName,
@@ -35,6 +33,18 @@ export const ElectronFileOpener = () => {
       nativePath: filePath,
     });
   }, [setCurrentFile]);
+
+  const handleOpenFile = useCallback(async () => {
+    const filePath = await desktopApi?.openFile();
+    if (filePath) openNativePath(filePath);
+  }, [openNativePath]);
+
+  useEffect(() => {
+    return desktopApi?.onFileDrop((paths) => {
+      const firstPath = paths[0];
+      if (firstPath) openNativePath(firstPath);
+    });
+  }, [openNativePath]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -51,7 +61,7 @@ export const ElectronFileOpener = () => {
   );
 
   // noClick: we trigger the native dialog ourselves on click instead of the
-  // browser file picker, so paths resolve correctly inside Electron.
+  // browser file picker, so paths resolve correctly inside desktop app.
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
@@ -59,20 +69,25 @@ export const ElectronFileOpener = () => {
       "video/*": [".mp4", ".webm", ".ogv", ".mkv", ".avi", ".mov", ".m4v"],
     },
     maxFiles: 1,
-    noClick: true,
-    noKeyboard: true,
+    noClick: desktopApi !== null,
+    noKeyboard: desktopApi !== null,
+  });
+
+  const rootProps = getRootProps({
+    onClick: () => {
+      if (desktopApi) void handleOpenFile();
+    },
+    onKeyDown: (event) => {
+      if (desktopApi && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        void handleOpenFile();
+      }
+    },
   });
 
   return (
     <div
-      {...getRootProps()}
-      onClick={handleOpenFile}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          handleOpenFile();
-        }
-      }}
+      {...rootProps}
       role="button"
       tabIndex={0}
       className={cn(

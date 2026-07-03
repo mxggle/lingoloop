@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
+import { desktopApi } from "../../platform/runtime";
 
 interface SettingsWindowShellProps {
   title: string;
@@ -31,7 +32,7 @@ export function SettingsWindowShell({
             </p>
           </div>
           <button
-            onClick={() => window.electronAPI?.closeSettingsWindow()}
+            onClick={() => desktopApi?.closeSettingsWindow()}
             className="[-webkit-app-region:no-drag] rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             aria-label={t("common.close")}
           >

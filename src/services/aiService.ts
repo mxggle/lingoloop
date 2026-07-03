@@ -14,6 +14,7 @@ import {
   DEFAULT_MODELS,
   normalizeModelId,
 } from "../types/aiService";
+import { desktopApi } from "../platform/runtime";
 
 const LEGACY_DEFAULT_OPENCODE_BASE_URL = "https://opencode.ai/zen/v1";
 const LEGACY_DEFAULT_OPENCODE_CHAT_COMPLETIONS_URL = `${LEGACY_DEFAULT_OPENCODE_BASE_URL}/chat/completions`;
@@ -53,9 +54,9 @@ async function safeFetch(url: string, options?: RequestInit): Promise<Response> 
   };
 
   try {
-    // Use IPC fetch in Electron to bypass CORS issues
-    if (window.electronAPI?.fetch) {
-      const res = await window.electronAPI.fetch(url, options);
+    // Use IPC fetch in desktop app to bypass CORS issues
+    if (desktopApi?.fetch) {
+      const res = await desktopApi.fetch(url, options);
       finishLog({ ok: res.ok, status: res.status });
       return {
         ok: res.ok,

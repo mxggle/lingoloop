@@ -1,4 +1,5 @@
 import type { WaveformLevelData, WaveformLevelMeta } from './types';
+import { desktopApi } from '../platform/runtime';
 
 // Matches the structure returned by IPC
 interface WaveformMeta {
@@ -16,7 +17,7 @@ interface CachedLevel {
 /**
  * Service that loads and caches FFmpeg-generated waveform data.
  *
- * On Electron: uses IPC to request analysis from main process.
+ * On desktop: uses the native waveform service.
  * On web: falls back to AudioContext-based analysis (Float32Array peaks).
  */
 export class WaveformLoader {
@@ -24,10 +25,9 @@ export class WaveformLoader {
   private levels = new Map<string, Map<number, CachedLevel>>();
   private pendingAnalysis = new Set<string>();
 
-  /** True if we're running in Electron with the waveform IPC available. */
+  /** True when the native desktop waveform capability is available. */
   get isAvailable(): boolean {
-    return typeof window !== 'undefined'
-      && !!window.electronAPI?.waveformAnalyze;
+    return desktopApi !== null;
   }
 
   /**
@@ -40,7 +40,7 @@ export class WaveformLoader {
     onProgress?: (fraction: number) => void,
   ): Promise<WaveformMeta | null> {
     if (!this.isAvailable) {
-      throw new Error('WaveformLoader: Electron waveform API not available');
+      throw new Error('WaveformLoader: desktop waveform API not available');
     }
 
     if (this.pendingAnalysis.has(mediaId)) {
@@ -52,9 +52,12 @@ export class WaveformLoader {
 
     this.pendingAnalysis.add(mediaId);
 
+    const api = desktopApi;
+    if (!api) return null;
+
     let unsub: (() => void) | undefined;
     if (onProgress) {
-      unsub = window.electronAPI!.onWaveformProgress((payload) => {
+      unsub = api.onWaveformProgress((payload) => {
         if (payload.mediaId === mediaId) {
           onProgress(payload.fraction);
         }
@@ -62,7 +65,7 @@ export class WaveformLoader {
     }
 
     try {
-      const meta = await window.electronAPI!.waveformAnalyze(filePath, mediaId);
+      const meta = await api.waveformAnalyze(filePath, mediaId);
       if (meta) this.metas.set(mediaId, meta);
       return meta;
     } finally {
@@ -78,7 +81,7 @@ export class WaveformLoader {
 
     if (!this.isAvailable) return null;
 
-    const meta = await window.electronAPI!.waveformGetMeta(mediaId);
+    const meta = await desktopApi?.waveformGetMeta(mediaId) ?? null;
     if (meta) this.metas.set(mediaId, meta);
     return meta;
   }
@@ -98,7 +101,7 @@ export class WaveformLoader {
 
     if (!this.isAvailable) return null;
 
-    const raw = await window.electronAPI!.waveformGetLevel(mediaId, level);
+    const raw = await desktopApi?.waveformGetLevel(mediaId, level) ?? null;
     if (!raw) return null;
 
     const data: WaveformLevelData = {

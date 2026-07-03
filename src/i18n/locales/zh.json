@@ -186,7 +186,7 @@
       "remigrate": "重新迁移",
       "recoverySuccess": "恢复成功完成",
       "recoveryFailed": "恢复失败: {{message}}",
-      "electronOnly": "数据管理仅在桌面应用中可用",
+      "desktopOnly": "数据管理仅在桌面应用中可用",
       "storage": "存储用量",
       "usedOf": "已使用，共 {{total}}",
       "audioCache": "音频缓存",
@@ -336,7 +336,7 @@
     "startPracticing": "开始练习",
     "studioDesc": "打开本地媒体文件或从YouTube流媒体，开始您的语言学习会话。",
     "proTip": "专业提示：批量练习",
-    "electronHint": "将文件夹拖到侧边栏，即可立即映射所有媒体，进行结构化的跟读练习。",
+    "desktopHint": "将文件夹拖到侧边栏，即可立即映射所有媒体，进行结构化的跟读练习。",
     "podcasts": "播客与RSS"
   },
   "player": {

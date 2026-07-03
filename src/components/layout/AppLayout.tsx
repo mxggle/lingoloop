@@ -1,10 +1,12 @@
 /**
  * AppLayout – public facade used by all pages.
  *
- * Electron-only app — always renders ElectronAppLayout.
+ * Selects the platform layout while keeping pages platform-neutral.
  */
 import { Dispatch, SetStateAction } from "react";
-import { ElectronAppLayout } from "../electron/ElectronAppLayout";
+import { DesktopAppLayout } from "../desktop/DesktopAppLayout";
+import { WebAppLayout } from "../web/WebAppLayout";
+import { isDesktop } from "../../platform/runtime";
 
 import { LayoutSettings } from "../../stores/layoutStore";
 
@@ -16,5 +18,5 @@ interface AppLayoutProps {
 }
 
 export const AppLayout = (props: AppLayoutProps) => {
-  return <ElectronAppLayout {...props} />;
+  return isDesktop() ? <DesktopAppLayout {...props} /> : <WebAppLayout {...props} />;
 };

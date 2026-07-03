@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useShallow } from "zustand/react/shallow";
+import { desktopApi } from "../../platform/runtime";
 import {
   Search,
   X,
@@ -126,7 +127,7 @@ const LibrarySortMenu = ({
 /* ── Layout settings ────────────────────────────────────────────── */
 import { LayoutSettings } from "../../stores/layoutStore";
 
-interface ElectronAppLayoutProps {
+interface DesktopAppLayoutProps {
   children: React.ReactNode;
   layoutSettings?: LayoutSettings;
   setLayoutSettings?: Dispatch<SetStateAction<LayoutSettings>>;
@@ -134,12 +135,12 @@ interface ElectronAppLayoutProps {
 }
 
 /* ── Main component ─────────────────────────────────────────────── */
-export const ElectronAppLayout = ({
+export const DesktopAppLayout = ({
   children,
   layoutSettings,
   setLayoutSettings,
   bottomPaddingClassName,
-}: ElectronAppLayoutProps) => {
+}: DesktopAppLayoutProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isResizing, setIsResizing] = useState(false);
@@ -204,21 +205,21 @@ export const ElectronAppLayout = ({
   };
 
   const handleAddFolder = useCallback(async () => {
-    const selected = await window.electronAPI!.openFolder();
+    const selected = await desktopApi?.openFolder();
     if (!selected) return;
     addSourceFolder(selected);
   }, [addSourceFolder]);
 
   const handleOpenSettings = useCallback(
     async (detail: SettingsOpenIntentDetail = {}) => {
-      await window.electronAPI?.openSettingsWindow(detail.tab, detail.section);
+      await desktopApi?.openSettingsWindow(detail.tab, detail.section);
     },
     []
   );
 
   const handleOpenGlossary = useCallback(() => {
-    if (window.electronAPI?.openGlossaryWindow) {
-      void window.electronAPI.openGlossaryWindow();
+    if (desktopApi?.openGlossaryWindow) {
+      void desktopApi.openGlossaryWindow();
     } else {
       navigate("/glossary");
     }
@@ -236,8 +237,8 @@ export const ElectronAppLayout = ({
   }, [handleOpenSettings]);
 
   useEffect(() => {
-    if (!window.electronAPI?.onNavigate) return;
-    return window.electronAPI.onNavigate(async ({ route, entryId }) => {
+    if (!desktopApi?.onNavigate) return;
+    return desktopApi.onNavigate(async ({ route, entryId }) => {
       if (!entryId) {
         navigate(route);
         return;

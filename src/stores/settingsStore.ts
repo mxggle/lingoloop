@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { electronStorage } from "./electronStorage";
+import { desktopStorage } from "./desktopStorage";
 import { settingsRepository } from "../repositories/settingsRepository";
 
 export interface SettingsState {
@@ -32,7 +32,7 @@ export const useSettingsStore = create<SettingsState & SettingsActions>()(
     }),
     {
       name: "abloop-settings-storage",
-      storage: createJSONStorage(() => electronStorage),
+      storage: createJSONStorage(() => desktopStorage),
       partialize: (state) => ({
         theme: state.theme,
         waveformZoom: state.waveformZoom,

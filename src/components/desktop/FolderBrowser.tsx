@@ -4,7 +4,8 @@ import { usePlayerStore } from "../../stores/playerStore";
 import { nativePathToUrl } from "../../utils/platform";
 import { formatRelativeTime } from "../../utils/relativeTime";
 import { cn } from "../../utils/cn";
-import type { FolderTreeNode } from "../../types/electron";
+import type { FolderTreeNode } from "../../types/desktop";
+import { desktopApi } from "../../platform/runtime";
 import {
   getShowInFileManagerLabel,
   revealInFileManager,
@@ -143,7 +144,7 @@ export const FolderBrowser = ({
   );
 
   const handleAddFolder = useCallback(async () => {
-    const selected = await window.electronAPI!.openFolder();
+    const selected = await desktopApi?.openFolder();
     if (!selected) return;
     addSourceFolder(selected);
   }, [addSourceFolder]);
@@ -161,7 +162,7 @@ export const FolderBrowser = ({
     }));
 
     try {
-      const tree = await window.electronAPI!.listMediaTree(folderPath);
+      const tree = await desktopApi?.listMediaTree(folderPath) ?? [];
       setSourceTrees((state) => ({
         ...state,
         [folderPath]: { tree, loading: false },
@@ -206,13 +207,13 @@ export const FolderBrowser = ({
   }, [scope, sourceFolders]);
 
   useEffect(() => {
-    const disposers = sourceFolders
-      .map((folderPath) =>
-        window.electronAPI?.watchMediaTree(folderPath, () => {
-          void loadTree(folderPath);
-        })
-      )
-      .filter((dispose): dispose is () => void => Boolean(dispose));
+    const api = desktopApi;
+    if (!api) return;
+    const disposers = sourceFolders.map((folderPath) =>
+      api.watchMediaTree(folderPath, () => {
+        void loadTree(folderPath);
+      })
+    );
 
     return () => {
       disposers.forEach((dispose) => dispose());

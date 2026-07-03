@@ -17,7 +17,7 @@ The desktop boundary lives under `src/platform/desktop/`:
 
 - `types.ts` defines the capability-oriented `DesktopAPI` contract.
 - `tauriDesktop.ts` is the only frontend module that imports Tauri command,
-  event, dialog, opener, window, and URL implementations.
+  event, dialog, window, and URL implementations.
 - `errors.ts` converts native failures into stable, safe `DesktopError` values.
 - `src/platform/runtime.ts` selects the adapter and exports `desktopApi`,
   `isDesktop`, and the platform-aware fetch transport.

@@ -1,7 +1,7 @@
 use crate::{
     error::AppError,
     persistence::{
-        journal::{read_journal, recover_journal},
+        journal::{has_unresolved_pending, read_journal, recover_journal},
         manifest::checksum_file,
         paths::resolve_data_path,
         DataStore,
@@ -93,11 +93,15 @@ pub fn run_health_check(store: &DataStore) -> Result<HealthCheckResult, AppError
         }
     }
 
-    if read_journal(store.root())?
-        .iter()
-        .any(|entry| entry.status == "pending")
-    {
-        result.status = "degraded".to_owned();
+    match read_journal(store.root()) {
+        Ok(entries) if has_unresolved_pending(&entries) => {
+            result.status = "degraded".to_owned();
+        }
+        Ok(_) => {}
+        Err(error) if error.code == "journal_corrupt" => {
+            result.corrupted_files.push("backups/journal".to_owned());
+        }
+        Err(error) => return Err(error),
     }
     result.failed_checksums.sort();
     result.failed_checksums.dedup();

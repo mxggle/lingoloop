@@ -1,7 +1,11 @@
 use crate::{error::AppError, persistence::manifest::atomic_write, state::AppState};
 use serde::Serialize;
 use serde_json::{Map, Value};
-use std::{fs, path::PathBuf, sync::Arc};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use tauri::{AppHandle, Emitter, State};
 
 #[derive(Clone, Serialize)]
@@ -11,6 +15,57 @@ struct ConfigChanged<'a> {
 
 fn config_path(state: &AppState) -> PathBuf {
     state.config_directory.join("app-config.json")
+}
+
+pub fn migrate_legacy_config(
+    config_directory: &Path,
+    legacy_directories: &[PathBuf],
+) -> Result<usize, AppError> {
+    let destination = config_directory.join("app-config.json");
+    let mut config = if destination.exists() {
+        let bytes =
+            fs::read(&destination).map_err(|error| AppError::io("read_tauri_config", error))?;
+        serde_json::from_slice::<Value>(&bytes)?
+            .as_object()
+            .cloned()
+            .ok_or_else(|| {
+                AppError::new(
+                    "config_corrupt",
+                    "Desktop configuration is not a JSON object",
+                )
+                .operation("migrate_config")
+            })?
+    } else {
+        Map::new()
+    };
+    let mut imported = 0;
+    for directory in legacy_directories {
+        let source = directory.join("app-config.json");
+        if source == destination || !source.is_file() {
+            continue;
+        }
+        let bytes = fs::read(&source).map_err(|error| AppError::io("read_legacy_config", error))?;
+        let legacy = serde_json::from_slice::<Value>(&bytes)?;
+        let legacy = legacy.as_object().ok_or_else(|| {
+            AppError::new(
+                "invalid_migration_source",
+                "Legacy desktop configuration is not a JSON object",
+            )
+            .operation("migrate_config")
+        })?;
+        for (key, value) in legacy {
+            if !config.contains_key(key) {
+                config.insert(key.clone(), value.clone());
+                imported += 1;
+            }
+        }
+    }
+    if imported > 0 {
+        fs::create_dir_all(config_directory)
+            .map_err(|error| AppError::io("create_config_directory", error))?;
+        atomic_write(&destination, &serde_json::to_vec_pretty(&config)?)?;
+    }
+    Ok(imported)
 }
 
 fn read_config(state: &AppState) -> Result<Map<String, Value>, AppError> {

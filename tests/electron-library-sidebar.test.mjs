@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const modulePath = process.env.LIBRARY_SIDEBAR_MODULE;
-
-if (!modulePath) {
-  throw new Error("LIBRARY_SIDEBAR_MODULE is required");
-}
+const modulePath = new URL("../src/components/desktop/librarySidebar.ts", import.meta.url).href;
 
 const {
   buildLibraryItems,

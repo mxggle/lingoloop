@@ -205,8 +205,11 @@ export const DesktopAppLayout = ({
   };
 
   const handleAddFolder = useCallback(async () => {
-    const selected = await desktopApi?.openFolder();
+    const api = desktopApi;
+    if (!api) return;
+    const selected = await api.openFolder();
     if (!selected) return;
+    await api.approvePath(selected);
     addSourceFolder(selected);
   }, [addSourceFolder]);
 

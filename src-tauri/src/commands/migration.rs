@@ -23,32 +23,34 @@ pub async fn data_run_migration(
     indexed_db: Option<Value>,
 ) -> Result<MigrationResult, AppError> {
     let store = store(&state)?;
-    let mut combined = MigrationResult {
-        success: true,
-        migrated_counts: Default::default(),
-        errors: Vec::new(),
-    };
-    for source in discover_electron_data_dirs() {
-        let result = migrate_electron_source(&store, &source)?;
-        for (key, count) in result.migrated_counts {
-            *combined.migrated_counts.entry(key).or_default() += count;
+    store.with_exclusive_mutation(|| {
+        let mut combined = MigrationResult {
+            success: true,
+            migrated_counts: Default::default(),
+            errors: Vec::new(),
+        };
+        for source in discover_electron_data_dirs() {
+            let result = migrate_electron_source(&store, &source)?;
+            for (key, count) in result.migrated_counts {
+                *combined.migrated_counts.entry(key).or_default() += count;
+            }
+            combined.errors.extend(result.errors);
         }
-        combined.errors.extend(result.errors);
-    }
-    if let (Some(local_storage), Some(indexed_db)) = (local_storage, indexed_db) {
-        let result = migrate_browser_payload(&store, &local_storage, &indexed_db)?;
-        for (key, count) in result.migrated_counts {
-            *combined.migrated_counts.entry(key).or_default() += count;
+        if let (Some(local_storage), Some(indexed_db)) = (local_storage, indexed_db) {
+            let result = migrate_browser_payload(&store, &local_storage, &indexed_db)?;
+            for (key, count) in result.migrated_counts {
+                *combined.migrated_counts.entry(key).or_default() += count;
+            }
+            combined.errors.extend(result.errors);
         }
-        combined.errors.extend(result.errors);
-    }
-    combined.success = combined.errors.is_empty();
-    store.set_migration_status(if combined.success {
-        "completed"
-    } else {
-        "failed"
-    })?;
-    Ok(combined)
+        combined.success = combined.errors.is_empty();
+        store.set_migration_status(if combined.success {
+            "completed"
+        } else {
+            "failed"
+        })?;
+        Ok(combined)
+    })
 }
 
 #[tauri::command]

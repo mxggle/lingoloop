@@ -133,15 +133,27 @@ pub fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), AppError> {
         file.sync_all()
             .map_err(|error| AppError::io("sync_temporary_file", error))?;
         replace_file(&temporary, path).map_err(|error| AppError::io("replace_data_file", error))?;
-        if let Ok(directory) = fs::File::open(parent) {
-            let _ = directory.sync_all();
-        }
+        sync_parent_directory(parent)?;
         Ok(())
     })();
     if result.is_err() {
         let _ = fs::remove_file(temporary);
     }
     result
+}
+
+#[cfg(unix)]
+fn sync_parent_directory(parent: &Path) -> Result<(), AppError> {
+    let directory =
+        fs::File::open(parent).map_err(|error| AppError::io("open_parent_directory", error))?;
+    directory
+        .sync_all()
+        .map_err(|error| AppError::io("sync_parent_directory", error))
+}
+
+#[cfg(not(unix))]
+fn sync_parent_directory(_parent: &Path) -> Result<(), AppError> {
+    Ok(())
 }
 
 #[cfg(not(windows))]

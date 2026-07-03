@@ -22,7 +22,6 @@ node_modules
 .yarn/install-state.gz
 .pnp.*
 *.tsbuildinfo
-src-tauri
 
 # Environment variables
 .env
@@ -44,6 +43,12 @@ release
 releases
 dist-electron
 userData
+
+# Rust and Tauri generated output
+src-tauri/target
+src-tauri/gen
+src-tauri/.DS_Store
+src-tauri/binaries
 
 # System files (macOS, Windows, Linux)
 .DS_Store

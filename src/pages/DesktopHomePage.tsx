@@ -17,8 +17,11 @@ export const DesktopHomePage = ({ handleVideoIdSubmit }: DesktopHomePageProps) =
   const { mediaHistory, loadFromHistory, addSourceFolder } = usePlayerStore();
 
   const handleOpenFolder = async () => {
-    const selected = await desktopApi?.openFolder();
+    const api = desktopApi;
+    if (!api) return;
+    const selected = await api.openFolder();
     if (selected) {
+      await api.approvePath(selected);
       addSourceFolder(selected);
     }
   };

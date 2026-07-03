@@ -9,7 +9,7 @@ use crate::{
         paths::{resolve_data_path, CANONICAL_DIRECTORIES},
     },
 };
-use parking_lot::Mutex;
+use parking_lot::{Mutex, ReentrantMutex};
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -19,13 +19,14 @@ use std::{
     sync::{Arc, OnceLock, Weak},
 };
 
-static DIRECTORY_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Weak<Mutex<()>>>>> = OnceLock::new();
+static DIRECTORY_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Weak<ReentrantMutex<()>>>>> =
+    OnceLock::new();
 
 #[derive(Clone)]
 pub struct DataStore {
     root: PathBuf,
     app_version: String,
-    mutation_lock: Arc<Mutex<()>>,
+    mutation_lock: Arc<ReentrantMutex<()>>,
 }
 
 impl DataStore {
@@ -74,6 +75,14 @@ impl DataStore {
         let mut manifest = load_manifest(&self.root)?;
         manifest.migration_status = Some(status.to_owned());
         save_manifest(&self.root, &mut manifest)
+    }
+
+    pub(crate) fn with_exclusive_mutation<T>(
+        &self,
+        operation: impl FnOnce() -> Result<T, AppError>,
+    ) -> Result<T, AppError> {
+        let _guard = self.mutation_lock.lock();
+        operation()
     }
 
     pub fn get_json(&self, relative: impl AsRef<Path>) -> Result<Option<Value>, AppError> {
@@ -233,6 +242,7 @@ pub fn change_data_directory(
     destination_base: impl AsRef<Path>,
     pointer_path: impl AsRef<Path>,
 ) -> Result<PathBuf, AppError> {
+    let _guard = store.mutation_lock.lock();
     let destination_base = destination_base.as_ref();
     fs::create_dir_all(destination_base)
         .map_err(|error| AppError::io("create_destination_directory", error))?;
@@ -320,13 +330,46 @@ fn copy_directory(source: &Path, destination: &Path) -> Result<(), AppError> {
     Ok(())
 }
 
-fn directory_lock(root: &Path) -> Arc<Mutex<()>> {
+fn directory_lock(root: &Path) -> Arc<ReentrantMutex<()>> {
     let locks = DIRECTORY_LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
     let mut locks = locks.lock();
     if let Some(lock) = locks.get(root).and_then(Weak::upgrade) {
         return lock;
     }
-    let lock = Arc::new(Mutex::new(()));
+    let lock = Arc::new(ReentrantMutex::new(()));
     locks.insert(root.to_owned(), Arc::downgrade(&lock));
     lock
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{change_data_directory, DataStore};
+    use std::{sync::mpsc, time::Duration};
+
+    #[test]
+    fn directory_change_waits_for_active_store_mutation() {
+        let temp = tempfile::tempdir().unwrap();
+        let store = DataStore::open(temp.path().join("source/PawcastData"), "test").unwrap();
+        let guard = store.mutation_lock.lock();
+        let worker_store = store.clone();
+        let destination = temp.path().join("destination");
+        let pointer = temp.path().join("config/.pawcast-datadir");
+        let (sender, receiver) = mpsc::channel();
+
+        std::thread::spawn(move || {
+            sender
+                .send(change_data_directory(&worker_store, destination, pointer))
+                .unwrap();
+        });
+
+        assert!(
+            receiver.recv_timeout(Duration::from_secs(1)).is_err(),
+            "directory change must share the store mutation lock"
+        );
+        drop(guard);
+        assert!(receiver
+            .recv_timeout(Duration::from_secs(2))
+            .unwrap()
+            .is_ok());
+    }
 }

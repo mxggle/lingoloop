@@ -14,7 +14,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_shell::init())
         .register_asynchronous_uri_scheme_protocol("local-media", |context, request, responder| {
             let app = context.app_handle().clone();
             std::thread::spawn(move || {
@@ -49,10 +48,17 @@ pub fn run() {
                 .unwrap_or(true)
             {
                 let mut migration_failed = false;
-                for source in discover_electron_data_dirs()
+                let sources = discover_electron_data_dirs()
                     .into_iter()
                     .filter(|source| source != &config_directory)
+                    .collect::<Vec<_>>();
+                if let Err(error) =
+                    commands::config::migrate_legacy_config(&config_directory, &sources)
                 {
+                    migration_failed = true;
+                    eprintln!("automatic desktop config migration failed: {error}");
+                }
+                for source in sources {
                     match migrate_electron_source(&store, &source) {
                         Ok(result) if !result.success => {
                             migration_failed = true;
@@ -68,11 +74,13 @@ pub fn run() {
                         Ok(_) => {}
                     }
                 }
-                if migration_failed {
-                    store
-                        .set_migration_status("failed")
-                        .map_err(Box::<dyn std::error::Error>::from)?;
-                }
+                store
+                    .set_migration_status(if migration_failed {
+                        "failed"
+                    } else {
+                        "native-complete"
+                    })
+                    .map_err(Box::<dyn std::error::Error>::from)?;
             }
             app.manage(AppState::new(config_directory, active_data_directory));
             Ok(())

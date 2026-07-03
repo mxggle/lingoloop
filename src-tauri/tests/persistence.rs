@@ -164,6 +164,28 @@ fn failed_directory_copy_rolls_back_staging_and_pointer() {
 }
 
 #[test]
+fn successful_directory_change_preserves_verified_data_and_source() {
+    let temp = tempfile::tempdir().unwrap();
+    let source = DataStore::open(temp.path().join("source/PawcastData"), "test").unwrap();
+    source
+        .put_json("library/item.json", &json!({"id":"one"}))
+        .unwrap();
+    let pointer = temp.path().join("config/.pawcast-datadir");
+
+    let moved = change_data_directory(&source, temp.path().join("destination"), &pointer).unwrap();
+    let reopened = DataStore::open(&moved, "test").unwrap();
+    assert_eq!(
+        reopened.get_json("library/item.json").unwrap(),
+        Some(json!({"id":"one"}))
+    );
+    assert_eq!(
+        fs::read_to_string(pointer).unwrap(),
+        moved.to_string_lossy()
+    );
+    assert!(source.root().join("library/item.json").exists());
+}
+
+#[test]
 fn rejects_destination_nested_inside_active_directory() {
     let temp = tempfile::tempdir().unwrap();
     let source = DataStore::open(temp.path().join("PawcastData"), "test").unwrap();

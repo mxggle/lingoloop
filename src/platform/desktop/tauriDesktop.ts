@@ -1,12 +1,11 @@
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
-import { revealItemInDir } from "@tauri-apps/plugin-opener";
 
 import type {
   DesktopMediaFile,
+  DesktopFetchOptions,
   FolderTreeNode,
   HealthCheckResult,
   MediaTreeChangedPayload,
@@ -17,6 +16,7 @@ import type {
   WaveformMeta,
 } from "../../types/desktop";
 import { toDesktopError } from "./errors";
+import type { DesktopError } from "./errors";
 import type { DesktopAPI, DesktopUnlisten } from "./types";
 
 type Invoke = <T>(command: string, payload?: Record<string, unknown>) => Promise<T>;
@@ -38,10 +38,9 @@ export interface TauriDesktopDependencies {
   invoke: Invoke;
   listen<T>(event: string, handler: EventHandler<T>): Promise<Unlisten>;
   open(options: { multiple: false; directory: boolean }): Promise<string | string[] | null>;
-  revealItemInDir(path: string): Promise<void>;
   convertFileSrc(path: string, protocol?: string): string;
   getCurrentWindow?: () => CurrentWindow;
-  createWindow?: (label: string, options: Record<string, unknown>) => unknown;
+  reportError?: (error: DesktopError) => void;
 }
 
 const asSinglePath = (value: string | string[] | null): string | null =>
@@ -73,17 +72,8 @@ const createSubscription = (
   return stop;
 };
 
-const serializeRequest = (options?: RequestInit): Record<string, unknown> | undefined => {
-  if (!options) return undefined;
-  const headers = options.headers ? Object.fromEntries(new Headers(options.headers).entries()) : undefined;
-  return {
-    method: options.method,
-    headers,
-    body: typeof options.body === "string" ? options.body : undefined,
-  };
-};
-
 export const createTauriDesktop = (dependencies: TauriDesktopDependencies): DesktopAPI => {
+  const reportError = dependencies.reportError ?? ((error: DesktopError) => console.error(error));
   const execute = async <T>(operation: () => Promise<T>): Promise<T> => {
     try {
       return await operation();
@@ -128,14 +118,14 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
         }
         return () => {
           unlisten();
-          void call("unwatch_media_tree", { watchId });
+          void call("unwatch_media_tree", { watchId }).catch(reportError);
         };
       }),
     configGet: (key) => call("config_get", { key }),
     configSet: (key, value) => call("config_set", { key, value }),
     configGetAll: () => call("config_get_all"),
     onConfigChanged: (callback) => subscribe("config-changed", callback),
-    fetch: (url, options) => call("desktop_fetch", { url, options: serializeRequest(options) }),
+    fetch: (url, options: DesktopFetchOptions) => call("desktop_fetch", { url, options }),
     waveformAnalyze: (filePath, mediaId) => call<WaveformMeta | null>("waveform_analyze", { filePath, mediaId }),
     waveformGetMeta: (mediaId) => call<WaveformMeta | null>("waveform_get_meta", { mediaId }),
     waveformGetLevel: (mediaId, level) => call<WaveformLevel | null>("waveform_get_level", { mediaId, level }),
@@ -156,7 +146,7 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
     dataHealthCheck: () => call<HealthCheckResult>("data_health_check"),
     dataRecover: (strategy) => call<RecoveryResult>("data_recover", { strategy }),
     dataRunMigration: (localStorage, indexedDB) =>
-      call<MigrationResult>("data_run_migration", { localStorage, indexedDB }),
+      call<MigrationResult>("data_run_migration", { localStorage, indexedDb: indexedDB }),
     dataIsMigrated: () => call<boolean>("data_is_migrated"),
     approvePath: (filePath) => call("approve_path", { filePath }),
     mediaUrl: (filePath) => dependencies.convertFileSrc(filePath, "local-media"),
@@ -174,8 +164,6 @@ export const tauriDesktop = createTauriDesktop({
   invoke,
   listen,
   open,
-  revealItemInDir,
   convertFileSrc,
   getCurrentWindow,
-  createWindow: (label, options) => new WebviewWindow(label, options),
 });

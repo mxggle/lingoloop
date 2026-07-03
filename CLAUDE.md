@@ -25,15 +25,15 @@ This repository is a Vite + React 18 + TypeScript application for A-B looping, s
 
 ## Platform Architecture
 
-This project builds for both Electron and web. A strict layered architecture is
+This project builds for both Tauri and web. A strict layered architecture is
 enforced — read **[docs/platform-architecture.md](docs/platform-architecture.md)**
 before adding any feature that touches platform-specific behavior.
 
 Key rules (full details in the doc):
-- `isElectron()` is only allowed in `src/utils/platform.ts`, `src/stores/electronStorage.ts`, `src/components/layout/AppLayout.tsx`, and files inside `src/components/electron/` or `src/components/web/`.
-- `window.electronAPI` is only allowed in `electron/preload.ts`, `src/stores/electronStorage.ts`, and `src/components/electron/`.
-- Platform-specific components live in `src/components/electron/` or `src/components/web/`, never in shared directories.
-- Pages always use `<AppLayout>` (the facade) — never `ElectronAppLayout` or `WebAppLayout` directly.
+- Tauri imports and runtime detection are only allowed under `src/platform/desktop/` and `src/platform/runtime.ts`.
+- Shared code consumes the typed `DesktopAPI`; it must not invoke Rust commands directly.
+- Platform-specific components live in `src/components/desktop/` or `src/components/web/`, never in shared directories.
+- Pages always use `<AppLayout>` (the facade) — never `DesktopAppLayout` or `WebAppLayout` directly.
 
 ## Project Conventions
 
@@ -53,6 +53,8 @@ Key rules (full details in the doc):
 - Common commands:
   - `npm run build`
   - `npm run lint`
+  - `npm test`
+  - `npm run check:tauri`
 
 ## Response Expectations
 

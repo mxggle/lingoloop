@@ -74,3 +74,10 @@ export interface DesktopFetchResult {
   data: string;
   headers: Record<string, string>;
 }
+
+export interface DesktopFetchOptions {
+  method: string;
+  headers: Record<string, string>;
+  body?: string;
+  bodyBytes?: number[];
+}

@@ -3,6 +3,19 @@ use serde_json::json;
 use std::fs;
 
 #[test]
+fn completed_writes_leave_a_healthy_journal() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = DataStore::open(temp.path().join("PawcastData"), "test").unwrap();
+    store
+        .put_json("settings/app-settings.json", &json!({"version":1}))
+        .unwrap();
+
+    let health = run_health_check(&store).unwrap();
+    assert_eq!(health.status, "healthy");
+    assert!(health.corrupted_files.is_empty());
+}
+
+#[test]
 fn health_reports_checksum_failures_and_orphaned_index_references() {
     let temp = tempfile::tempdir().unwrap();
     let store = DataStore::open(temp.path().join("PawcastData"), "test").unwrap();
@@ -40,8 +53,36 @@ fn journal_recovery_commits_matching_temporary_files_and_rolls_back_unsafe_ones(
         store.get_json("library/recover.json").unwrap(),
         Some(json!({"ok":true}))
     );
+    let manifest = store.manifest().unwrap();
+    let recovered = manifest
+        .files
+        .iter()
+        .find(|entry| entry.path == "library/recover.json")
+        .expect("recovered file must be tracked in the manifest");
+    assert_eq!(
+        recovered.checksum,
+        pawcast_lib::persistence::manifest::checksum_file(
+            &store.root().join("library/recover.json")
+        )
+        .unwrap()
+    );
     assert!(!store.root().join("library/discard.json").exists());
     assert_no_temporary_files(store.root());
+}
+
+#[test]
+fn malformed_journal_marks_health_as_damaged() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = DataStore::open(temp.path().join("PawcastData"), "test").unwrap();
+    let journal_dir = store.root().join("backups/journal");
+    fs::create_dir_all(&journal_dir).unwrap();
+    fs::write(journal_dir.join("broken.jsonl"), "not-json\n").unwrap();
+
+    let health = run_health_check(&store).unwrap();
+    assert_eq!(health.status, "damaged");
+    assert!(health
+        .corrupted_files
+        .contains(&"backups/journal".to_string()));
 }
 
 #[test]

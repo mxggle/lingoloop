@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Tauri 2 desktop runtime with Rust persistence, filesystem, window, network, local-media, and waveform services.
+- Automatic non-destructive migration from the Pawcast Electron `1.0.0-beta.3` data layout.
+- Target-specific FFmpeg and FFprobe sidecar preparation and validation.
+
 ### Changed
 
 - Rebranded from LoopMate to Pawcast across all files, configs, and identifiers.
+- Replaced the Electron desktop runtime and IPC preload bridge with a typed Tauri `DesktopAPI` boundary.
 
 ## [1.0.0-beta.2] - 2026-06-05
 

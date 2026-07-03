@@ -1,5 +1,6 @@
 import type {
   DesktopFetchResult,
+  DesktopFetchOptions,
   DesktopMediaFile,
   FolderTreeNode,
   HealthCheckResult,
@@ -31,7 +32,7 @@ export interface DesktopAPI {
   configSet(key: string, value: unknown): Promise<void>;
   configGetAll(): Promise<unknown>;
   onConfigChanged(callback: (payload: { key: string }) => void): DesktopUnlisten;
-  fetch(url: string, options?: RequestInit): Promise<DesktopFetchResult>;
+  fetch(url: string, options: DesktopFetchOptions): Promise<DesktopFetchResult>;
   waveformAnalyze(filePath: string, mediaId: string): Promise<WaveformMeta | null>;
   waveformGetMeta(mediaId: string): Promise<WaveformMeta | null>;
   waveformGetLevel(mediaId: string, level: number): Promise<WaveformLevel | null>;

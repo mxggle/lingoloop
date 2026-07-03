@@ -144,8 +144,11 @@ export const FolderBrowser = ({
   );
 
   const handleAddFolder = useCallback(async () => {
-    const selected = await desktopApi?.openFolder();
+    const api = desktopApi;
+    if (!api) return;
+    const selected = await api.openFolder();
     if (!selected) return;
+    await api.approvePath(selected);
     addSourceFolder(selected);
   }, [addSourceFolder]);
 
@@ -162,7 +165,9 @@ export const FolderBrowser = ({
     }));
 
     try {
-      const tree = await desktopApi?.listMediaTree(folderPath) ?? [];
+      if (!desktopApi) return;
+      await desktopApi.approvePath(folderPath);
+      const tree = await desktopApi.listMediaTree(folderPath);
       setSourceTrees((state) => ({
         ...state,
         [folderPath]: { tree, loading: false },
@@ -209,11 +214,27 @@ export const FolderBrowser = ({
   useEffect(() => {
     const api = desktopApi;
     if (!api) return;
-    const disposers = sourceFolders.map((folderPath) =>
-      api.watchMediaTree(folderPath, () => {
-        void loadTree(folderPath);
-      })
-    );
+    const watchApprovedFolder = (folderPath: string) => {
+      let active = true;
+      let dispose: (() => void) | undefined;
+      void (async () => {
+        try {
+          await api.approvePath(folderPath);
+          const nextDispose = api.watchMediaTree(folderPath, () => {
+            void loadTree(folderPath);
+          });
+          if (active) dispose = nextDispose;
+          else nextDispose();
+        } catch (error) {
+          console.error("Failed to watch media tree:", error);
+        }
+      })();
+      return () => {
+        active = false;
+        dispose?.();
+      };
+    };
+    const disposers = sourceFolders.map(watchApprovedFolder);
 
     return () => {
       disposers.forEach((dispose) => dispose());

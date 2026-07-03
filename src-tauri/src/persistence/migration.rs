@@ -32,36 +32,50 @@ impl MigrationResult {
 }
 
 pub fn discover_electron_data_dirs() -> Vec<PathBuf> {
-    let mut bases = Vec::new();
-    #[cfg(target_os = "macos")]
-    if let Some(home) = env::var_os("HOME") {
-        bases.push(PathBuf::from(home).join("Library/Application Support"));
-    }
-    #[cfg(target_os = "windows")]
-    if let Some(app_data) = env::var_os("APPDATA") {
-        bases.push(PathBuf::from(app_data));
-    }
-    #[cfg(target_os = "linux")]
-    if let Some(config) = env::var_os("XDG_CONFIG_HOME") {
-        bases.push(PathBuf::from(config));
-    } else if let Some(home) = env::var_os("HOME") {
-        bases.push(PathBuf::from(home).join(".config"));
-    }
-    let mut candidates = Vec::new();
-    for base in bases {
-        for name in ["Pawcast", "pawcast", "com.pawcast.app"] {
-            let path = base.join(name);
-            if path.is_dir() {
-                candidates.push(path);
-            }
-        }
-    }
+    let home = env::var_os("HOME").map(PathBuf::from);
+    let appdata = env::var_os("APPDATA").map(PathBuf::from);
+    let xdg = env::var_os("XDG_CONFIG_HOME").map(PathBuf::from);
+    let mut candidates = electron_data_candidates(
+        env::consts::OS,
+        home.as_deref(),
+        appdata.as_deref(),
+        xdg.as_deref(),
+    )
+    .into_iter()
+    .filter(|path| path.is_dir())
+    .collect::<Vec<_>>();
     candidates.sort();
     candidates.dedup();
     candidates
 }
 
+pub fn electron_data_candidates(
+    operating_system: &str,
+    home: Option<&Path>,
+    appdata: Option<&Path>,
+    xdg_config_home: Option<&Path>,
+) -> Vec<PathBuf> {
+    let base = match operating_system {
+        "macos" => home.map(|path| path.join("Library/Application Support")),
+        "windows" => appdata.map(Path::to_path_buf),
+        "linux" => xdg_config_home
+            .map(Path::to_path_buf)
+            .or_else(|| home.map(|path| path.join(".config"))),
+        _ => None,
+    };
+    base.into_iter()
+        .flat_map(|base| ["Pawcast", "pawcast", "com.pawcast.app"].map(move |name| base.join(name)))
+        .collect()
+}
+
 pub fn migrate_electron_source(
+    store: &DataStore,
+    electron_user_data: &Path,
+) -> Result<MigrationResult, AppError> {
+    store.with_exclusive_mutation(|| migrate_electron_source_unlocked(store, electron_user_data))
+}
+
+fn migrate_electron_source_unlocked(
     store: &DataStore,
     electron_user_data: &Path,
 ) -> Result<MigrationResult, AppError> {
@@ -99,15 +113,20 @@ pub fn migrate_electron_source(
         }
     }
     result.success = result.errors.is_empty();
-    store.set_migration_status(if result.success {
-        "completed"
-    } else {
-        "failed"
-    })?;
     Ok(result)
 }
 
 pub fn migrate_browser_payload(
+    store: &DataStore,
+    local_storage: &Value,
+    indexed_db: &Value,
+) -> Result<MigrationResult, AppError> {
+    store.with_exclusive_mutation(|| {
+        migrate_browser_payload_unlocked(store, local_storage, indexed_db)
+    })
+}
+
+fn migrate_browser_payload_unlocked(
     store: &DataStore,
     local_storage: &Value,
     indexed_db: &Value,
@@ -236,7 +255,6 @@ pub fn migrate_browser_payload(
     }
     result.add("transcripts", transcripts);
     result.success = true;
-    store.set_migration_status("completed")?;
     Ok(result)
 }
 
@@ -246,6 +264,18 @@ fn import_canonical_directory(
     result: &mut MigrationResult,
 ) -> Result<(), AppError> {
     let manifest = crate::persistence::manifest::load_manifest(source)?;
+    for entry in &manifest.files {
+        let source_path = crate::persistence::paths::resolve_data_path(source, &entry.path)?;
+        let checksum = crate::persistence::manifest::checksum_file(&source_path)?;
+        if checksum != entry.checksum {
+            return Err(AppError::new(
+                "checksum_mismatch",
+                "Legacy Pawcast data failed checksum verification",
+            )
+            .operation("migrate_canonical_data")
+            .retryable(false));
+        }
+    }
     for entry in manifest.files {
         let collection = match entry.path.as_str() {
             "library/media-history.json" => Some(("items", "mediaHistory")),
@@ -580,19 +610,19 @@ fn merge_collection(
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let existing_ids: HashSet<String> = output
+    let mut existing_ids: HashSet<String> = output
         .iter()
         .filter_map(|item| item.get("id").and_then(Value::as_str).map(str::to_owned))
         .collect();
-    let additions: Vec<Value> = incoming_items
-        .into_iter()
-        .filter(|item| {
-            item.get("id")
-                .and_then(Value::as_str)
-                .map(|id| !existing_ids.contains(id))
-                .unwrap_or(false)
-        })
-        .collect();
+    let mut additions = Vec::new();
+    for item in incoming_items {
+        let Some(id) = item.get("id").and_then(Value::as_str) else {
+            continue;
+        };
+        if existing_ids.insert(id.to_owned()) {
+            additions.push(item);
+        }
+    }
     let count = additions.len();
     output.extend(additions);
     if count > 0 {

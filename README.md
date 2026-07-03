@@ -51,33 +51,32 @@ Designed for language learners to practice speaking:
 - **Touch Controls**: Mobile-friendly seek and loop controls.
 - **Dark/Light Theme**: Automatic or manual theme switching.
 - **Keyboard Shortcuts**: Comprehensive hotkeys for mouse-free operation.
-- **Privacy First**: Local files and recordings are stored in the browser (IndexedDB). The Electron build keeps everything on your machine.
+- **Privacy First**: The web build stores local data in browser storage. The Tauri desktop build uses the local `PawcastData` directory with journaled, checksum-verified writes.
 - **Internationalization**: Full UI translations in English, 日本語, and 中文.
 
 ## 🏗 Architecture
 
-Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) from a single TypeScript codebase. A 4-layer architecture keeps shared and platform-specific code strictly separated.
+Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Tauri 2) from one React codebase. A typed `DesktopAPI` boundary keeps shared components, stores, repositories, and services independent from Tauri transport details.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     Layer 4 · Entry Points                          │
 │                                                                     │
-│   pages/WebHomePage.tsx          pages/ElectronHomePage.tsx         │
-│   pages/PlayerPage.tsx           electron/main.ts                   │
+│   pages/*                        src-tauri/src/*                    │
 │   components/layout/AppLayout.tsx  ← single platform branch here    │
 └───────────────┬─────────────────────────┬───────────────────────────┘
                 │                         │
                 ▼                         ▼
 ┌───────────────────────┐   ┌─────────────────────────┐
-│  Layer 3 · Web UI     │   │  Layer 3 · Electron UI  │
+│  Layer 3 · Web UI     │   │  Layer 3 · Desktop UI   │
 │                       │   │                         │
-│  components/web/      │   │  components/electron/   │
-│  ├ WebAppLayout       │   │  ├ ElectronAppLayout    │
-│  ├ FileUploader       │   │  ├ ElectronFileOpener   │
-│  ├ MediaHistory       │   │  ├ FolderBrowser        │
-│  └ StorageUsageInfo   │   │  └ PlayHistory          │
+│  components/web/      │   │  components/desktop/    │
+│  └ WebAppLayout       │   │  ├ DesktopAppLayout     │
+│                       │   │  ├ DesktopFileOpener    │
+│                       │   │  ├ FolderBrowser        │
+│                       │   │  └ PlayHistory          │
 │                       │   │                         │
-│  Web APIs only        │   │  window.electronAPI only│
+│  Web APIs only        │   │  DesktopAPI only        │
 └───────────┬───────────┘   └────────────┬────────────┘
             │                            │
             └──────────┬─────────────────┘
@@ -91,14 +90,14 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) 
 │   components/transcript/ components/waveform/ components/bookmarks/ │
 │   stores/playerStore.ts  hooks/                                     │
 │                                                                     │
-│   No isElectron() · No window.electronAPI · No Layer 3 imports      │
+│   No Tauri imports · No platform UI imports                         │
 └───────────────────────────────┬─────────────────────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     Layer 1 · Core (Pure)                           │
 │                                                                     │
-│   utils/platform.ts          ← isElectron() defined here           │
-│   stores/electronStorage.ts  ← only file allowed to call IPC       │
+│   platform/desktop/types.ts  ← native capability contract          │
+│   platform/runtime.ts        ← runtime selection                    │
 │   utils/   services/   types/   i18n/                               │
 │                                                                     │
 │   No DOM APIs · No platform-specific calls                          │
@@ -106,10 +105,12 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) 
 ```
 
 **How it works at runtime:**
-- `AppLayout.tsx` makes a single `isElectron()` check and renders either `ElectronAppLayout` or `WebAppLayout`
-- All pages use `<AppLayout>` — they never know which shell they are inside
-- Shared state lives in Zustand (`playerStore`, `shadowingStore`, `themeStore`, etc.) and is persisted via `electronStorage`, which transparently routes to Electron IPC or `localStorage`
-- AI service calls are automatically proxied in the web build (`/api/opencode`, `/api/deepseek`) to avoid CORS, while the Electron build calls providers directly via IPC `fetch`
+
+- `AppLayout.tsx` selects `DesktopAppLayout` or `WebAppLayout` through `isDesktop()`.
+- All pages use `<AppLayout>` and remain platform-neutral.
+- `src/platform/desktop/tauriDesktop.ts` is the only frontend Tauri adapter.
+- Rust commands provide persistence, migration, filesystem watching, seekable local media, provider HTTP requests, waveform analysis, and auxiliary windows.
+- Zustand uses `desktopStorage` on Tauri and `localStorage` on web.
 
 ## 🛠 Tech Stack
 
@@ -119,7 +120,7 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) 
 - **State**: Zustand (with persistent storage and platform-aware adapters)
 - **Data Fetching & Virtualization**: TanStack Query, TanStack Virtual
 - **Audio**: Web Audio API, Tone.js
-- **Desktop**: Electron 41, electron-vite, electron-builder, electron-store
+- **Desktop**: Tauri 2.11, Rust 1.92+, FFmpeg/FFprobe sidecars
 - **AI SDKs**: OpenAI, Google GenAI, `@ai-sdk/xai` (Grok), custom adapters for DeepSeek / OpenCode / Ollama
 - **i18n**: i18next + react-i18next + browser language detector
 - **Deployment**: Vercel ready (SPA + API proxy for CORS-free AI requests)
@@ -128,9 +129,10 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) 
 
 ### Prerequisites
 
-- Node.js 18+
-- Yarn (classic) or npm
+- Node.js 20+
+- npm 10+
 - Browser with Web Audio API support (Chrome, Firefox, Safari, Edge)
+- Rust 1.92+ and the [Tauri platform prerequisites](https://v2.tauri.app/start/prerequisites/) for desktop development
 
 ### Web App
 
@@ -142,33 +144,34 @@ Pawcast ships as both a **web app** (Vite SPA) and a **desktop app** (Electron) 
 
 2. Install dependencies:
    ```bash
-   yarn install
+   npm install
    ```
 
 3. Start the Vite dev server:
    ```bash
-   yarn dev
+   npm run dev:web
    ```
 
-4. Open `http://localhost:5173`
+4. Open `http://localhost:3000`
 
-### Desktop App (Electron)
+### Desktop App (Tauri)
 
 ```bash
 # Dev mode with hot reload
-yarn dev:electron
+npm run dev:tauri
 
-# Build for production
-yarn build:electron
+# Build and package for the current platform
+npm run build:tauri
 
-# Package for current platform
-yarn dist
-
-# Platform-specific packaging
-yarn dist:win
-yarn dist:mac
-yarn dist:linux
+# Verify TypeScript, Rust, and sidecars
+npm test
+npm run check:tauri
+npm run verify:sidecars
 ```
+
+`npm run build:tauri` copies the platform-specific FFmpeg and FFprobe binaries supplied by the installer packages into Tauri's required target-triple names before packaging. Build each release artifact on its target operating system.
+
+When upgrading from desktop `1.0.0-beta.3`, Pawcast discovers the existing data-directory pointer and imports canonical data and settings without deleting the source. Older installations should run `1.0.0-beta.3` once first so browser-origin data is written into `PawcastData`.
 
 ## 🎛 Usage
 

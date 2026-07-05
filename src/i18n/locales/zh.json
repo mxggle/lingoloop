@@ -66,7 +66,17 @@
     "takeOf": "Take {{n}} / {{total}}",
     "recordFirstTake": "按 REC 录制第一段跟读",
     "record": "录音",
-    "takes": "录音版本",
+    "takes": {
+      "title": "跟读录音（{{count}}）",
+      "freeTake": "自由录音",
+      "playTake": "播放此录音",
+      "stopTake": "停止播放",
+      "playOriginal": "播放原声片段",
+      "deleteTake": "删除录音",
+      "deleted": "已删除录音",
+      "missingAudio": "找不到录音文件",
+      "playbackFailed": "无法播放录音"
+    },
     "take": "录音",
     "recordingNow": "正在录音...",
     "disableSentenceMode": "禁用单句模式",
@@ -88,7 +98,8 @@
     "recordingError": "录音错误：{{message}}",
     "recordingNotFound": "找不到录音",
     "recordingPlayError": "播放录音失败",
-    "recordingDeleted": "录音已删除"
+    "recordingDeleted": "录音已删除",
+    "practiceThisSentence": "练习这个句子"
   },
   "app": {
     "logoLabel": "Pawcast 标志"
@@ -337,7 +348,15 @@
     "studioDesc": "打开本地媒体文件或从YouTube流媒体，开始您的语言学习会话。",
     "proTip": "专业提示：批量练习",
     "desktopHint": "将文件夹拖到侧边栏，即可立即映射所有媒体，进行结构化的跟读练习。",
-    "podcasts": "播客与RSS"
+    "podcasts": "播客与RSS",
+    "continueStudying": "继续学习",
+    "resumeAt": "从 {{time}} 继续",
+    "stats": {
+      "bookmarks": "书签",
+      "glossary": "生词本",
+      "takes": "跟读录音",
+      "practiced": "已练习句子"
+    }
   },
   "player": {
     "play": "播放",

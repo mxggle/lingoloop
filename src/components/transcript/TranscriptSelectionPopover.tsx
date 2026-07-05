@@ -2,13 +2,15 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { AI_PROMPTS } from "../../config/prompts";
-import { BookmarkPlus, Loader, RotateCcw, Sparkles, X } from "lucide-react";
+import { BookmarkPlus, Loader, Mic, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { aiService } from "../../services/aiService";
 import { usePlayerStore, type TranscriptSegment } from "../../stores/playerStore";
 import { useTranscriptStore } from "../../stores/transcriptStore";
+import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
 import {
   AIProvider,
   AIServiceConfig,
@@ -38,6 +40,7 @@ export const TranscriptSelectionPopover = ({
   onClose,
 }: TranscriptSelectionPopoverProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [result, setResult] = useState<SelectionExplanationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -233,6 +236,21 @@ export const TranscriptSelectionPopover = ({
     }
   };
 
+  // Deep link into Sentence Practice with this segment preselected.
+  const handlePracticeSentence = () => {
+    const mediaId = getCurrentMediaId();
+    if (!mediaId) {
+      toast.error(t("glossary.loadMediaFirst"));
+      return;
+    }
+    const segments = useTranscriptStore.getState().mediaTranscripts[mediaId] ?? [];
+    const index = segments.findIndex((s) => s.id === segment.id);
+    if (index === -1) return;
+    useSentencePracticeStore.getState().setCurrentSentenceIndex(index);
+    onClose();
+    navigate("/sentence-practice");
+  };
+
   const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof HTMLElement) || target.closest("button")) {
@@ -311,6 +329,15 @@ export const TranscriptSelectionPopover = ({
         >
           <BookmarkPlus size={12} />
           {t("glossary.saveSelection")}
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePracticeSentence}
+          className="inline-flex items-center gap-1.5 rounded-md bg-purple-600/10 px-2.5 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-600/15 active:bg-purple-600/20 dark:bg-purple-400/10 dark:text-purple-300 dark:hover:bg-purple-400/15"
+        >
+          <Mic size={12} />
+          {t("sentencePractice.practiceThisSentence")}
         </button>
 
         {!result && (

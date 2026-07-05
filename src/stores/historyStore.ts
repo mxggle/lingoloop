@@ -23,6 +23,8 @@ export interface MediaHistoryItem {
   accessedAt: number;
   folderId?: string | null;
   playbackTime?: number;
+  /** Media duration in seconds, captured during playback for resume-progress UI. */
+  duration?: number;
   fileData?: Omit<MediaFile, "id">;
   youtubeData?: { title?: string; youtubeId?: string };
   storageId?: string;
@@ -55,7 +57,7 @@ export interface HistoryActions {
   addRecentYouTubeVideo: (video: YouTubeMedia) => void;
   clearRecentYouTubeVideos: () => void;
   addToMediaHistory: (item: Omit<MediaHistoryItem, "id" | "accessedAt">) => void;
-  updateHistoryPlaybackTime: (id: string, time: number) => void;
+  updateHistoryPlaybackTime: (id: string, time: number, duration?: number) => void;
   loadFromHistory: (historyItemId: string) => void;
   removeFromHistory: (historyItemId: string) => Promise<void>;
   clearMediaHistory: () => Promise<void>;
@@ -77,6 +79,14 @@ export interface HistoryActions {
   setActiveSidebarTab: (tab: "recent" | "folders") => void;
   toggleSidebarSection: (section: "explorer" | "recent") => void;
 }
+
+/** The mediaId a history item's transcripts/bookmarks/takes are keyed under. */
+export const deriveHistoryMediaId = (item: MediaHistoryItem): string | null => {
+  if (item.type === "file") {
+    return item.storageId || (item.fileData ? `file-${item.fileData.name}-${item.fileData.size}` : null);
+  }
+  return item.youtubeData?.youtubeId ? `youtube-${item.youtubeData.youtubeId}` : null;
+};
 
 const initialState: HistoryState = {
   recentYouTubeVideos: [],
@@ -147,8 +157,14 @@ export const useHistoryStore = create<HistoryState & HistoryActions>()(
           return { mediaHistory: [{ ...item, id, accessedAt: timestamp, folderId: null }, ...state.mediaHistory].slice(0, state.historyLimit) };
         }),
 
-      updateHistoryPlaybackTime: (id, time) =>
-        set((state) => ({ mediaHistory: state.mediaHistory.map((h) => h.id === id ? { ...h, playbackTime: time } : h) })),
+      updateHistoryPlaybackTime: (id, time, duration) =>
+        set((state) => ({
+          mediaHistory: state.mediaHistory.map((h) =>
+            h.id === id
+              ? { ...h, playbackTime: time, ...(duration && duration > 0 ? { duration } : {}) }
+              : h
+          ),
+        })),
 
       loadFromHistory: async (historyItemId) => {
         usePlayerStore.setState({ isLoadingMedia: true });
@@ -223,10 +239,7 @@ export const useHistoryStore = create<HistoryState & HistoryActions>()(
         const historyItem = get().mediaHistory.find((h) => h.id === historyItemId);
         if (!historyItem) return;
 
-        const derivedMediaId =
-          historyItem.type === "file"
-            ? historyItem.storageId || (historyItem.fileData ? `file-${historyItem.fileData.name}-${historyItem.fileData.size}` : null)
-            : historyItem.youtubeData?.youtubeId ? `youtube-${historyItem.youtubeData.youtubeId}` : null;
+        const derivedMediaId = deriveHistoryMediaId(historyItem);
 
         const ps = usePlayerStore.getState();
         const isDeletingCurrent =
@@ -273,11 +286,7 @@ export const useHistoryStore = create<HistoryState & HistoryActions>()(
 
       clearMediaHistory: async () => {
         const mediaIds = get().mediaHistory
-          .map((h) =>
-            h.type === "file"
-              ? h.storageId || (h.fileData ? `file-${h.fileData.name}-${h.fileData.size}` : null)
-              : h.youtubeData?.youtubeId ? `youtube-${h.youtubeData.youtubeId}` : null
-          )
+          .map(deriveHistoryMediaId)
           .filter(Boolean) as string[];
 
         revokeObjectUrlIfNeeded(usePlayerStore.getState().currentFile?.url);

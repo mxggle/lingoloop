@@ -66,7 +66,17 @@
     "takeOf": "テイク {{n}} / {{total}}",
     "recordFirstTake": "RECを押して最初のテイクを録音",
     "record": "録音",
-    "takes": "テイク一覧",
+    "takes": {
+      "title": "シャドーイング録音（{{count}}）",
+      "freeTake": "フリー録音",
+      "playTake": "この録音を再生",
+      "stopTake": "再生を停止",
+      "playOriginal": "元の音声を再生",
+      "deleteTake": "録音を削除",
+      "deleted": "録音を削除しました",
+      "missingAudio": "録音ファイルが見つかりません",
+      "playbackFailed": "録音を再生できませんでした"
+    },
     "take": "テイク",
     "recordingNow": "録音中...",
     "disableSentenceMode": "一文ずつ練習を無効化",
@@ -88,7 +98,8 @@
     "recordingError": "録音エラー：{{message}}",
     "recordingNotFound": "録音が見つかりません",
     "recordingPlayError": "録音の再生に失敗しました",
-    "recordingDeleted": "録音を削除しました"
+    "recordingDeleted": "録音を削除しました",
+    "practiceThisSentence": "この文を練習"
   },
   "app": {
     "logoLabel": "Pawcastロゴ"
@@ -337,7 +348,15 @@
     "studioDesc": "ローカルメディアファイルを開くか、YouTubeからストリーミングして、言語習得セッションを開始してください。",
     "proTip": "プロのヒント：バッチ練習",
     "desktopHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。",
-    "podcasts": "ポッドキャストとRSS"
+    "podcasts": "ポッドキャストとRSS",
+    "continueStudying": "学習を続ける",
+    "resumeAt": "{{time}} から再開",
+    "stats": {
+      "bookmarks": "ブックマーク",
+      "glossary": "単語帳",
+      "takes": "シャドーイング録音",
+      "practiced": "練習済みの文"
+    }
   },
   "player": {
     "play": "再生",

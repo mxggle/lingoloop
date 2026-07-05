@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
 import { useTranscriptStore } from "../stores/transcriptStore";
+import { useProgressStore } from "../stores/progressStore";
 import { useShadowingStore } from "../stores/shadowingStore";
 import type { ShadowingSegment } from "../stores/shadowingStore";
 import { storeMediaFile } from "../utils/mediaStorage";
@@ -260,6 +261,7 @@ export const useShadowingRecorder = () => {
 
                                 console.log("🎙️ [ShadowingRecorder] Adding segment to store:", segment);
                                 addSegment(mediaId, segment);
+                                useProgressStore.getState().recordStudyActivity(mediaId);
                                 // Also add to sentence recordings if per-sentence recording
                                 if (recordingSegmentId) {
                                     const { addSentenceRecording } = useShadowingStore.getState();

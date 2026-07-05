@@ -66,7 +66,7 @@ export const usePlaybackPersistence = () => {
       if (!historyId) return;
       if (Math.abs(time - lastSavedTime.current) <= thresholdSeconds) return;
 
-      updateHistoryPlaybackTime(historyId, time);
+      updateHistoryPlaybackTime(historyId, time, usePlayerStore.getState().duration);
       lastSavedTime.current = time;
     },
     [updateHistoryPlaybackTime]

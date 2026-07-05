@@ -66,7 +66,17 @@
     "takeOf": "Take {{n}} of {{total}}",
     "recordFirstTake": "Press REC to record your first take",
     "record": "Record",
-    "takes": "Takes",
+    "takes": {
+      "title": "Shadowing takes ({{count}})",
+      "freeTake": "Free take",
+      "playTake": "Play this take",
+      "stopTake": "Stop playback",
+      "playOriginal": "Play the original range",
+      "deleteTake": "Delete take",
+      "deleted": "Take deleted",
+      "missingAudio": "Recording audio not found",
+      "playbackFailed": "Could not play the recording"
+    },
     "take": "Take",
     "recordingNow": "Recording...",
     "disableSentenceMode": "Disable Sentence Mode",
@@ -88,7 +98,8 @@
     "recordingError": "Recording error: {{message}}",
     "recordingNotFound": "Recording not found",
     "recordingPlayError": "Failed to play recording",
-    "recordingDeleted": "Recording deleted"
+    "recordingDeleted": "Recording deleted",
+    "practiceThisSentence": "Practice this sentence"
   },
   "app": {
     "logoLabel": "Pawcast logo"
@@ -337,7 +348,15 @@
     "studioDesc": "Open a local media file or stream from YouTube to begin your language mastery session.",
     "proTip": "Pro Tip: Batch Practice",
     "desktopHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
-    "podcasts": "Podcasts & RSS"
+    "podcasts": "Podcasts & RSS",
+    "continueStudying": "Continue studying",
+    "resumeAt": "Resume at {{time}}",
+    "stats": {
+      "bookmarks": "Bookmarks",
+      "glossary": "Glossary entries",
+      "takes": "Shadowing takes",
+      "practiced": "Sentences practiced"
+    }
   },
   "player": {
     "play": "Play",

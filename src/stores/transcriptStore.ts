@@ -77,7 +77,10 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     try {
       const transcriptRecord = await getStoredTranscriptRecord(mediaId);
       const segments = transcriptRecord?.segments || [];
-      const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
+      const levelSystem = inferTranscriptLevelSystem(
+        get().transcriptLanguage,
+        segments.map((segment) => segment.text).join(" ")
+      );
       const studyBySegment =
         transcriptRecord?.studyBySegment && Object.keys(transcriptRecord.studyBySegment).length > 0
           ? transcriptRecord.studyBySegment
@@ -136,10 +139,11 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
 
       updatedSegments = nextSegments.sort((a, b) => a.startTime - b.startTime);
       updatedStudyBySegment = { ...(state.mediaTranscriptStudy[mediaId] || {}) };
-      const levelSystem = inferTranscriptLevelSystem(state.transcriptLanguage);
-
       acceptedSegments.forEach((segment) => {
-        updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(segment.text, levelSystem);
+        updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(
+          segment.text,
+          inferTranscriptLevelSystem(state.transcriptLanguage, segment.text)
+        );
       });
 
       return {
@@ -169,7 +173,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       if (updatedSegment) {
         updatedStudyBySegment[id] = buildSegmentTranscriptStudy(
           updatedSegment.text,
-          inferTranscriptLevelSystem(state.transcriptLanguage)
+          inferTranscriptLevelSystem(state.transcriptLanguage, updatedSegment.text)
         );
       }
       return {

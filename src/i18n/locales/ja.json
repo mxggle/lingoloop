@@ -598,6 +598,8 @@
     "selectionKnownItem": "{{type}} ・ {{level}}",
     "explainSelection": "文脈で説明",
     "levelToggle": "レベル表示の切り替え",
+    "levelSystemSetting": "ハイライトのレベル基準を選択",
+    "levelSystemAuto": "自動 ({{system}})",
     "levelsOn": "レベル表示 ON",
     "levelsOff": "レベル表示 OFF",
     "levelFilter": "レベル絞り込み",
@@ -612,6 +614,7 @@
     "scrollToCurrent": "再生中の文章を表示",
     "autoScroll": "自動スクロール",
     "languages": {
+      "auto": "自動検出",
       "en-US": "英語 (米国)",
       "en-GB": "英語 (英国)",
       "es-ES": "スペイン語",

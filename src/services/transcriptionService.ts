@@ -84,7 +84,7 @@ interface WhisperVerboseResponse {
 
 function normalizeWhisperLanguageCode(language?: string): string | undefined {
     const normalizedLanguage = language?.trim().replace("_", "-");
-    if (!normalizedLanguage) {
+    if (!normalizedLanguage || normalizedLanguage.toLowerCase() === "auto") {
         return undefined;
     }
 
@@ -248,6 +248,7 @@ class TranscriptionService {
                 model: "whisper-1",
                 response_format: "verbose_json",
                 timestamp_granularities: ["word", "segment"],
+                language: normalizeWhisperLanguageCode(config.language),
                 prompt:
                     "Please transcribe this audio with proper sentence breaks and punctuation. Break long sentences into shorter, more natural segments.",
                 temperature: 0.0,
@@ -262,6 +263,7 @@ class TranscriptionService {
                 file: audioFile,
                 model: "whisper-1",
                 response_format: "verbose_json",
+                language: normalizeWhisperLanguageCode(config.language),
                 temperature: 0.0,
             }, options.signal ? { signal: options.signal } : undefined);
         }
@@ -329,7 +331,7 @@ class TranscriptionService {
         const mimeType = audioBlob.type || "audio/wav";
         const model = TRANSCRIPTION_PROVIDERS.gemini.model;
 
-        const languageInstruction = config.language
+        const languageInstruction = normalizeWhisperLanguageCode(config.language)
             ? `Transcribe in ${config.language} language.`
             : "Detect the language automatically.";
 

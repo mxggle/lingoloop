@@ -607,6 +607,8 @@
     "selectionKnownItem": "{{type}} · {{level}}",
     "explainSelection": "Explain in context",
     "levelToggle": "Toggle transcript levels",
+    "levelSystemSetting": "Choose highlight level system",
+    "levelSystemAuto": "Auto ({{system}})",
     "levelsOn": "Levels On",
     "levelsOff": "Levels Off",
     "levelFilter": "Level Filter",
@@ -619,6 +621,7 @@
     "scrollToCurrent": "Locate active sentence",
     "autoScroll": "Auto-scroll to current",
     "languages": {
+      "auto": "Auto-detect",
       "en-US": "English (US)",
       "en-GB": "English (UK)",
       "es-ES": "Spanish",

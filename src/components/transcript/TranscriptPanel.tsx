@@ -151,6 +151,12 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   const [wasPlayingBeforeSelection, setWasPlayingBeforeSelection] = useState(false);
   const [selectionEnabled, setSelectionEnabled] = useState(false);
   const [levelFilterOpen, setLevelFilterOpen] = useState(false);
+  const [levelSystemMenuOpen, setLevelSystemMenuOpen] = useState(false);
+  const [levelSystemPreference, setLevelSystemPreference] = useState<"auto" | TranscriptLevelSystem>(() => {
+    if (typeof window === "undefined") return "auto";
+    const saved = localStorage.getItem("transcript_level_system");
+    return saved === "cefr" || saved === "jlpt" ? saved : "auto";
+  });
   const [highlightsEnabled, setHighlightsEnabled] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       return true;
@@ -166,6 +172,7 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   const { selection: playerSelection, setSelection } = usePlayerSelection();
 
   const LANGUAGE_OPTIONS = [
+    { value: "auto", label: t("transcript.languages.auto") },
     { value: "en-US", label: t("transcript.languages.en-US") },
     { value: "en-GB", label: t("transcript.languages.en-GB") },
     { value: "es-ES", label: t("transcript.languages.es-ES") },
@@ -386,10 +393,22 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
     return lookup;
   }, [bookmarks, filteredSegments]);
 
-  const levelSystem: TranscriptLevelSystem = useMemo(
-    () => inferTranscriptLevelSystem(transcriptLanguage),
-    [transcriptLanguage]
+  const detectedLevelSystem: TranscriptLevelSystem = useMemo(
+    () => inferTranscriptLevelSystem(
+      transcriptLanguage,
+      transcriptSegments.map((segment) => segment.text).join(" ")
+    ),
+    [transcriptLanguage, transcriptSegments]
   );
+  const levelSystem = levelSystemPreference === "auto"
+    ? detectedLevelSystem
+    : levelSystemPreference;
+
+  const selectLevelSystem = (preference: "auto" | TranscriptLevelSystem) => {
+    setLevelSystemPreference(preference);
+    localStorage.setItem("transcript_level_system", preference);
+    setLevelSystemMenuOpen(false);
+  };
 
   const levelOptions = useMemo(
     () => getLevelOptionsForSystem(levelSystem),
@@ -857,19 +876,50 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
 
             <div className="transcript-header-actions flex items-center gap-1 flex-shrink-0">
               {/* Level highlight toggle (JLPT / CEFR) */}
-              <button
-                onClick={() => setHighlightsEnabled((previous) => !previous)}
-                aria-pressed={highlightsEnabled}
-                className={cn(
-                  "hidden @[300px]/transcript:flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500",
-                  highlightsEnabled
-                    ? headerIconBtnActive
-                    : "text-gray-500 hover:bg-black/5 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200"
+              <div className="relative hidden @[300px]/transcript:block">
+                <button
+                  onClick={() => setLevelSystemMenuOpen((open) => !open)}
+                  aria-expanded={levelSystemMenuOpen}
+                  className={cn(
+                    "flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-semibold uppercase tracking-wide transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-500",
+                    highlightsEnabled
+                      ? headerIconBtnActive
+                      : "text-gray-500 hover:bg-black/5 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-200"
+                  )}
+                  title={t("transcript.levelSystemSetting")}
+                >
+                  {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
+                </button>
+                {levelSystemMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setLevelSystemMenuOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border border-gray-200 bg-white p-2 shadow-xl dark:border-white/10 dark:bg-gray-900">
+                      {(["auto", "jlpt", "cefr"] as const).map((preference) => (
+                        <button
+                          key={preference}
+                          onClick={() => selectLevelSystem(preference)}
+                          className={cn(
+                            "w-full rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-white/5",
+                            levelSystemPreference === preference
+                              ? "font-medium text-primary-600 dark:text-primary-400"
+                              : "text-gray-600 dark:text-gray-300"
+                          )}
+                        >
+                          {preference === "auto"
+                            ? t("transcript.levelSystemAuto", { system: detectedLevelSystem.toUpperCase() })
+                            : preference.toUpperCase()}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setHighlightsEnabled((previous) => !previous)}
+                        className="mt-1 w-full border-t border-gray-100 px-2 pt-2 text-left text-xs text-gray-600 dark:border-white/10 dark:text-gray-300"
+                      >
+                        {highlightsEnabled ? t("transcript.levelsOff") : t("transcript.levelsOn")}
+                      </button>
+                    </div>
+                  </>
                 )}
-                title={t("transcript.levelToggle")}
-              >
-                {levelSystem === "jlpt" ? "JLPT" : "CEFR"}
-              </button>
+              </div>
 
               {/* Level filter */}
               <div className="relative hidden @[340px]/transcript:block">

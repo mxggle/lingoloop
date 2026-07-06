@@ -102,6 +102,33 @@ test("platformFetch rejects an already-aborted request without invoking desktop"
   assert.equal(desktopFetch.mock.callCount(), 0);
 });
 
+test("platformFetch rejects when a desktop request is aborted in flight", async () => {
+  let resolveDesktopRequest: ((result: DesktopFetchResult) => void) | undefined;
+  let markDesktopStarted: (() => void) | undefined;
+  const desktopStarted = new Promise<void>((resolve) => {
+    markDesktopStarted = resolve;
+  });
+  const desktopFetch = mock.fn(() => new Promise<DesktopFetchResult>((resolve) => {
+    resolveDesktopRequest = resolve;
+    markDesktopStarted?.();
+  }));
+  const fetch = createPlatformFetch(() => ({ fetch: desktopFetch }));
+  const controller = new AbortController();
+
+  const response = fetch("https://example.test", { signal: controller.signal });
+  await desktopStarted;
+  controller.abort();
+
+  await assert.rejects(
+    response,
+    (error: unknown) => error instanceof DOMException && error.name === "AbortError",
+  );
+  assert.equal(desktopFetch.mock.callCount(), 1);
+
+  // Let the underlying Tauri request settle without changing the aborted result.
+  resolveDesktopRequest?.(successfulResult);
+});
+
 test("platformFetch uses the injected web transport when desktop is unavailable", async () => {
   const webFetch = mock.fn(async () => new Response("web"));
   const fetch = createPlatformFetch(() => null, webFetch as typeof globalThis.fetch);

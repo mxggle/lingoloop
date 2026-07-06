@@ -204,9 +204,16 @@ interface SegmentedToken {
 }
 
 export const inferTranscriptLevelSystem = (
-  languageCode: string
+  languageCode: string,
+  transcriptText = ""
 ): TranscriptLevelSystem => {
-  return languageCode.startsWith("ja") ? "jlpt" : "cefr";
+  const normalizedLanguage = languageCode.trim().toLowerCase();
+  if (normalizedLanguage.startsWith("ja")) return "jlpt";
+  if (normalizedLanguage && normalizedLanguage !== "auto") return "cefr";
+
+  return /[\u3040-\u30ff\u31f0-\u31ff]|[。、]/u.test(transcriptText)
+    ? "jlpt"
+    : "cefr";
 };
 
 export const getLevelOptionsForSystem = (

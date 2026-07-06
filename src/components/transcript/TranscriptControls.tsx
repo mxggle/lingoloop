@@ -2,6 +2,7 @@ import { useTranscriptStore } from "../../stores/transcriptStore";
 import { TranscriptUploader } from "./TranscriptUploader";
 
 const LANGUAGE_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
   { value: "en-US", label: "English (US)" },
   { value: "en-GB", label: "English (UK)" },
   { value: "es-ES", label: "Spanish" },

@@ -48,7 +48,22 @@ export const createPlatformFetch = (
     headers: Object.fromEntries(request.headers.entries()),
     ...await serializeBody(request, init?.body),
   };
-  const result = await api.fetch(request.url, options);
+  if (request.signal.aborted) {
+    throw request.signal.reason ?? new DOMException("The operation was aborted.", "AbortError");
+  }
+  const desktopRequest = api.fetch(request.url, options);
+  const result = await new Promise<Awaited<ReturnType<DesktopFetchCapability["fetch"]>>>(
+    (resolve, reject) => {
+      const handleAbort = () => {
+        reject(request.signal.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+      };
+
+      request.signal.addEventListener("abort", handleAbort, { once: true });
+      desktopRequest.then(resolve, reject).finally(() => {
+        request.signal.removeEventListener("abort", handleAbort);
+      });
+    },
+  );
   const body = [101, 204, 205, 304].includes(result.status) ? null : result.data;
   return new Response(body, {
     status: result.status,

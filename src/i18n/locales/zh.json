@@ -597,6 +597,8 @@
     "selectionKnownItem": "{{type}} · {{level}}",
     "explainSelection": "结合语境解释",
     "levelToggle": "切换等级显示",
+    "levelSystemSetting": "选择高亮等级标准",
+    "levelSystemAuto": "自动 ({{system}})",
     "levelsOn": "等级开启",
     "levelsOff": "等级关闭",
     "levelFilter": "等级筛选",
@@ -611,6 +613,7 @@
     "scrollToCurrent": "定位当前句子",
     "autoScroll": "自动滚动",
     "languages": {
+      "auto": "自动检测",
       "en-US": "英语 (美国)",
       "en-GB": "英语 (英国)",
       "es-ES": "西班牙语",

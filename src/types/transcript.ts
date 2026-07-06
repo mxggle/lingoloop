@@ -8,6 +8,7 @@ export interface TranscriptSegment {
   endTime: number;
   confidence: number;
   isFinal: boolean;
+  source?: "youtube" | "ai" | "imported";
   words?: TranscriptWord[];
   wordIds?: string[];
 }

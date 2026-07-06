@@ -16,6 +16,8 @@ import type {
   RecoveryResult,
   WaveformLevel,
   WaveformMeta,
+  YouTubePreparedMedia,
+  YouTubePreparationProgress,
 } from "../../types/desktop";
 import { toDesktopError } from "./errors";
 import type { DesktopError } from "./errors";
@@ -138,6 +140,8 @@ export const createTauriDesktop = (dependencies: TauriDesktopDependencies): Desk
     waveformGetLevel: (mediaId, level) => call<WaveformLevel | null>("waveform_get_level", { mediaId, level }),
     waveformDelete: (mediaId) => call("waveform_delete", { mediaId }),
     onWaveformProgress: (callback) => subscribe("waveform-progress", callback),
+    youtubePrepare: (videoId, language) => call<YouTubePreparedMedia>("youtube_prepare", { videoId, language }),
+    onYouTubePreparationProgress: (callback) => subscribe<YouTubePreparationProgress>("youtube-preparation-progress", callback),
     dataGet: (path) => call("data_get", { path }),
     dataPut: (path, data) => call("data_put", { path, data }),
     dataDelete: (path) => call("data_delete", { path }),

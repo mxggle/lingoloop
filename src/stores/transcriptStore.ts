@@ -37,12 +37,12 @@ export interface TranscriptActions {
   addTranscriptSegment: (segment: Omit<TranscriptSegment, "id">) => void;
   addTranscriptSegments: (segments: Array<Omit<TranscriptSegment, "id">>) => void;
   updateTranscriptSegment: (id: string, changes: Partial<TranscriptSegment>) => void;
-  clearTranscript: () => void;
+  clearTranscript: (source?: TranscriptSegment["source"]) => void;
   setShowTranscript: (show: boolean) => void;
   toggleShowTranscript: () => void;
   setTranscriptLanguage: (language: string) => void;
-  exportTranscript: (format: "txt" | "srt" | "vtt") => string;
-  importTranscript: (file: File) => Promise<void>;
+  exportTranscript: (format: "txt" | "srt" | "vtt", source?: "youtube" | "ai") => string;
+  importTranscript: (file: File, source?: "ai" | "imported") => Promise<void>;
   createBookmarkFromTranscript: (segmentId: string) => void;
   loadTranscriptForMedia: (mediaId: string) => Promise<void>;
   addGlossaryEntry: (entry: CreateGlossaryEntryInput) => boolean;
@@ -127,7 +127,9 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       segments.forEach((segment) => {
         const newSegment = { ...segment, id: crypto.randomUUID() };
         const isDuplicate = nextSegments.some(
-          (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 && s.text === newSegment.text
+          (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 &&
+            s.text === newSegment.text &&
+            (s.source ?? "ai") === (newSegment.source ?? "ai")
         );
         if (!isDuplicate) {
           nextSegments.push(newSegment);
@@ -185,23 +187,49 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
   },
 
-  clearTranscript() {
+  clearTranscript(source) {
     const mediaId = getMediaId();
     if (!mediaId) return;
-    set((state) => ({
-      mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: [] },
-      mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: {} },
-    }));
-    void deleteStoredTranscript(mediaId);
+    if (!source) {
+      set((state) => ({
+        mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: [] },
+        mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: {} },
+      }));
+      void deleteStoredTranscript(mediaId);
+      return;
+    }
+
+    let retainedSegments: TranscriptSegment[] = [];
+    let retainedStudy: MediaTranscriptStudy = {};
+    set((state) => {
+      retainedSegments = (state.mediaTranscripts[mediaId] || []).filter((segment) => {
+        const segmentSource = segment.source ?? "ai";
+        return segmentSource !== source;
+      });
+      const retainedIds = new Set(retainedSegments.map((segment) => segment.id));
+      retainedStudy = Object.fromEntries(
+        Object.entries(state.mediaTranscriptStudy[mediaId] || {}).filter(([id]) => retainedIds.has(id))
+      );
+      return {
+        mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: retainedSegments },
+        mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: retainedStudy },
+      };
+    });
+    void setStoredTranscript(mediaId, retainedSegments, retainedStudy);
   },
 
   setShowTranscript: (show) => set({ showTranscript: show }),
   toggleShowTranscript: () => set((s) => ({ showTranscript: !s.showTranscript })),
   setTranscriptLanguage: (language) => set({ transcriptLanguage: language }),
 
-  exportTranscript(format) {
+  exportTranscript(format, source) {
     const mediaId = getMediaId();
-    const segments = mediaId ? get().mediaTranscripts[mediaId] || [] : [];
+    const allSegments = mediaId ? get().mediaTranscripts[mediaId] || [] : [];
+    const segments = source === "youtube"
+      ? allSegments.filter((segment) => segment.source === "youtube")
+      : source === "ai"
+        ? allSegments.filter((segment) => segment.source !== "youtube")
+        : allSegments;
     if (segments.length === 0) {
       toast.error(i18n.t("transcript.noDataToExport"));
       return "";
@@ -221,7 +249,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     return "";
   },
 
-  async importTranscript(file) {
+  async importTranscript(file, source = "imported") {
     try {
       const mediaId = getMediaId();
       if (!mediaId) { toast.error(i18n.t("player.noMediaLoadedSimple")); return; }
@@ -231,7 +259,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
         reader.onerror = () => reject(reader.error);
         reader.readAsText(file);
       });
-      get().clearTranscript();
+      get().clearTranscript(source === "ai" ? "ai" : undefined);
       const fileName = file.name.toLowerCase();
       let segs: Omit<TranscriptSegment, "id">[] = [];
       if (fileName.endsWith(".srt")) segs = parseSrt(content);
@@ -240,7 +268,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       else if (content.includes("WEBVTT")) segs = parseVtt(content);
       else if (content.includes("-->") && /^\d+$/m.test(content.split("\n")[0]?.trim())) segs = parseSrt(content);
       else segs = parseTxt(content);
-      segs.forEach((s) => get().addTranscriptSegment(s));
+      segs.forEach((s) => get().addTranscriptSegment({ ...s, source }));
     } catch (error) { console.error("Error importing transcript:", error); toast.error(i18n.t("transcript.importError")); }
 
     function norm(c: string) { return c.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim(); }

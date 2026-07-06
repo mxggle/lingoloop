@@ -13,6 +13,8 @@ import type {
   AiSettingsChangedPayload,
   WaveformLevel,
   WaveformMeta,
+  YouTubePreparedMedia,
+  YouTubePreparationProgress,
 } from "../../types/desktop";
 
 export type DesktopUnlisten = (() => void) & { ready: Promise<void> };
@@ -44,6 +46,8 @@ export interface DesktopAPI {
   waveformGetLevel(mediaId: string, level: number): Promise<WaveformLevel | null>;
   waveformDelete(mediaId: string): Promise<void>;
   onWaveformProgress(callback: (payload: { mediaId: string; fraction: number }) => void): DesktopUnlisten;
+  youtubePrepare(videoId: string, language?: string): Promise<YouTubePreparedMedia>;
+  onYouTubePreparationProgress(callback: (payload: YouTubePreparationProgress) => void): DesktopUnlisten;
   dataGet(path: string): Promise<unknown>;
   dataPut(path: string, data: unknown): Promise<void>;
   dataDelete(path: string): Promise<void>;

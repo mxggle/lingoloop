@@ -119,6 +119,7 @@ pub fn run() {
             commands::waveform::waveform_get_meta,
             commands::waveform::waveform_get_level,
             commands::waveform::waveform_delete,
+            commands::youtube::youtube_prepare,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Pawcast");

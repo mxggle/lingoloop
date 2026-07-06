@@ -5,6 +5,7 @@ import {
   assignWordsToSegments,
   findMatchingBookmarkId,
   findSegmentIndexAtTime,
+  getSegmentHighlightEnd,
   isTimeWithinSegment,
   normalizeRange,
 } from "../src/utils/transcriptSegments.ts";
@@ -71,6 +72,17 @@ test("isTimeWithinSegment is boundary-inclusive", () => {
   assert.equal(isTimeWithinSegment(2, s), true);
   assert.equal(isTimeWithinSegment(0.99, s), false);
   assert.equal(isTimeWithinSegment(2.01, s), false);
+});
+
+test("getSegmentHighlightEnd hands overlapping cues off at the next start", () => {
+  assert.equal(getSegmentHighlightEnd(seg("a", 14, 18), seg("b", 15, 19)), 15);
+  assert.equal(getSegmentHighlightEnd(seg("a", 14, 18), seg("b", 14, 19)), 14);
+});
+
+test("getSegmentHighlightEnd preserves gaps and repairs missing durations", () => {
+  assert.equal(getSegmentHighlightEnd(seg("a", 14, 14.5), seg("b", 15, 19)), 14.5);
+  assert.equal(getSegmentHighlightEnd(seg("a", 14, 14), seg("b", 15, 19)), 15);
+  assert.equal(getSegmentHighlightEnd(seg("a", 14, 18)), 18);
 });
 
 test("findMatchingBookmarkId matches within the 0.5s tolerance", () => {

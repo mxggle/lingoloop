@@ -56,6 +56,27 @@ export function assignWordsToSegments(
 export const isTimeWithinSegment = (time: number, segment: TranscriptSegment) =>
   time >= segment.startTime && time <= segment.endTime;
 
+/**
+ * Derive a presentation-only end time for an active transcript row.
+ * Overlapping caption cues hand off at the next cue's start, while the source
+ * end time remains unchanged for seeking, looping, persistence, and export.
+ */
+export const getSegmentHighlightEnd = (
+  segment: TranscriptSegment,
+  nextSegment?: TranscriptSegment
+) => {
+  const nextStart = nextSegment?.startTime;
+  if (typeof nextStart !== "number" || nextStart < segment.startTime) {
+    return segment.endTime;
+  }
+
+  if (!Number.isFinite(segment.endTime) || segment.endTime <= segment.startTime) {
+    return nextStart;
+  }
+
+  return Math.min(segment.endTime, nextStart);
+};
+
 export const findMatchingBookmarkId = (
   segment: TranscriptSegment,
   bookmarks: LoopBookmark[]

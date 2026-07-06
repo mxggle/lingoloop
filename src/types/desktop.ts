@@ -52,6 +52,17 @@ export interface WaveformLevel {
   rms: number[];
 }
 
+export interface YouTubePreparedMedia {
+  audioPath: string;
+  transcript: Array<{ text: string; startTime: number; endTime: number }>;
+}
+
+export interface YouTubePreparationProgress {
+  videoId: string;
+  stage: "checking" | "downloading" | "captions" | "ready";
+  fraction: number;
+}
+
 export interface HealthCheckResult {
   manifestOk: boolean;
   failedChecksums: string[];

@@ -23,6 +23,7 @@ import {
   ListMusic,
   ChevronDown,
   SlidersHorizontal,
+  BadgeCheck,
 } from "lucide-react";
 import { cn } from "../../utils/cn";
 import { TimelineOverflowMenu } from "../player/TimelineOverflowMenu";
@@ -38,6 +39,7 @@ import { useProgressStore } from "../../stores/progressStore";
 import {
   findMatchingBookmarkId,
   findSegmentIndexAtTime,
+  getSegmentHighlightEnd,
 } from "../../utils/transcriptSegments";
 
 import { TranscriptSegment as TranscriptSegmentType, LoopBookmark } from "../../stores/playerStore";
@@ -133,9 +135,20 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
       setSelectedBookmarkId: state.setSelectedBookmarkId,
     }))
   );
-  const transcriptSegments = useTranscriptStore(
+  const allTranscriptSegments = useTranscriptStore(
     (state) => (mediaId ? state.mediaTranscripts[mediaId] ?? EMPTY_SEGMENTS : EMPTY_SEGMENTS)
   );
+  const [transcriptSource, setTranscriptSource] = useState<"youtube" | "ai">("youtube");
+  const hasStoredYouTubeCaptions = allTranscriptSegments.some(
+    (segment) => segment.source === "youtube"
+  );
+  const transcriptSegments = useMemo(() => {
+    if (!currentYouTube) return allTranscriptSegments;
+    if (transcriptSource === "youtube") {
+      return allTranscriptSegments.filter((segment) => segment.source === "youtube");
+    }
+    return allTranscriptSegments.filter((segment) => segment.source !== "youtube");
+  }, [allTranscriptSegments, currentYouTube, transcriptSource]);
   const bookmarks = useBookmarkStore(
     (state) => (mediaId ? state.mediaBookmarks[mediaId] ?? EMPTY_BOOKMARKS : EMPTY_BOOKMARKS)
   );
@@ -228,6 +241,10 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   useEffect(() => {
     setActiveSelection(null);
   }, [mediaId, activeTabId]);
+
+  useEffect(() => {
+    setTranscriptSource(currentYouTube ? "youtube" : "ai");
+  }, [currentYouTube?.id]);
 
   // Handle auto-pause on selection and auto-resume on dismissal
   useEffect(() => {
@@ -522,6 +539,7 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
   const handleTranscribeBookmark = () => {
     const bookmark = bookmarks.find((b) => b.id === activeTabId);
     if (bookmark) {
+      setTranscriptSource("ai");
       transcribeMedia({ start: bookmark.start, end: bookmark.end });
     }
   };
@@ -542,11 +560,14 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
     showApiKeyInput,
     setShowApiKeyInput,
     currentProvider,
+    isAutomaticYouTubeLookup,
+    youtubeCaptionsUnavailable,
     transcribeMedia,
     cancelTranscription,
   } = useTranscriptionRunner({ getFallbackRange: getPreferredTranscriptRange });
 
   const handleTranscribeDefault = () => {
+    setTranscriptSource("ai");
     transcribeMedia(getPreferredTranscriptRange());
   };
 
@@ -678,7 +699,10 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
 
   // Handle export
   const handleExport = (format: "txt" | "srt" | "vtt") => {
-    const content = exportTranscript(format);
+    const content = exportTranscript(
+      format,
+      currentYouTube ? transcriptSource : undefined
+    );
     if (!content) return;
 
     // Create a blob and download link
@@ -1068,14 +1092,14 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                     disabled: transcriptSegments.length === 0,
                     hideAtClass: "@[640px]/transcript:hidden",
                   },
-                  {
+                  ...(!currentYouTube || transcriptSource === "ai" ? [{
                     id: "clear",
                     label: t("transcript.clearTranscript"),
                     icon: <Trash size={12} />,
-                    onSelect: () => clearTranscript(),
+                    onSelect: () => clearTranscript(currentYouTube ? "ai" : undefined),
                     disabled: transcriptSegments.length === 0,
                     destructive: true,
-                  },
+                  }] : []),
                 ]}
               />
             </div>
@@ -1113,28 +1137,61 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
             </div>
           )}
 
+          {currentYouTube && hasStoredYouTubeCaptions && (
+            <div className="mb-3 flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-white/10 dark:bg-white/5">
+              <button
+                type="button"
+                onClick={() => setTranscriptSource("youtube")}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-medium transition-colors",
+                  transcriptSource === "youtube"
+                    ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                )}
+              >
+                <BadgeCheck size={14} />
+                {t("transcript.youtubeCaptions")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTranscriptSource("ai")}
+                className={cn(
+                  "flex flex-1 items-center justify-center rounded-md px-3 py-2 text-xs font-medium transition-colors",
+                  transcriptSource === "ai"
+                    ? "bg-white text-gray-900 shadow-sm dark:bg-gray-800 dark:text-white"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                )}
+              >
+                {t("transcript.aiTranscript")}
+              </button>
+            </div>
+          )}
+
           {/* Centered loading state only while no segments exist yet; once
               partial segments stream in, the slim status bar below the list
               takes over so the transcript stays readable. */}
           {isProcessing && filteredSegments.length === 0 && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Loader size={24} className="animate-spin text-primary-500 mb-2" />
-              <p className="text-gray-600 dark:text-gray-400">
-                {transcriptionStatus || t("transcript.processingTranscription")}
-              </p>
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span>{transcriptionStatus || t("transcript.processingTranscription")}</span>
+                <span className="tabular-nums text-gray-400 dark:text-gray-500">{processingProgress}%</span>
+              </div>
               <div className="w-full max-w-xs bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-3">
                 <div
                   className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
-              <button
-                type="button"
-                onClick={cancelTranscription}
-                className="mt-3 rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                {t("transcript.cancelTranscription")}
-              </button>
+              {!isAutomaticYouTubeLookup && (
+                <button
+                  type="button"
+                  onClick={cancelTranscription}
+                  className="mt-3 rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                >
+                  {t("transcript.cancelTranscription")}
+                </button>
+              )}
             </div>
           )}
 
@@ -1188,7 +1245,14 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                         </span>
                       </div>
                       <h3 className="text-xs @[260px]/transcript:text-sm font-medium text-gray-800 dark:text-gray-200">
-                        {t(!currentFile && !currentYouTube ? "transcript.loadMediaFirst" : "transcript.clickToTranscribe", { provider: transcriptionService.getProviderInfo(currentProvider).name })}
+                        {t(
+                          !currentFile && !currentYouTube
+                            ? "transcript.loadMediaFirst"
+                            : currentYouTube && youtubeCaptionsUnavailable
+                              ? "transcript.youtubeCaptionsUnavailable"
+                              : "transcript.clickToTranscribe",
+                          { provider: transcriptionService.getProviderInfo(currentProvider).name }
+                        )}
                       </h3>
                       <p className="mx-auto mt-2 max-w-md text-[11px] @[260px]/transcript:text-xs @[400px]/transcript:text-sm text-gray-500 dark:text-gray-400">
                         {currentFile || currentYouTube
@@ -1235,7 +1299,10 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                                   : t("transcript.transcribeWithWhisper")}
                               </span>
                             </button>
-                            <TranscriptUploader variant="prominent" />
+                            <TranscriptUploader
+                              variant="prominent"
+                              destinationSource={currentYouTube ? "ai" : "imported"}
+                            />
                           </div>
                           <div className="text-[10px] @[260px]/transcript:text-xs text-gray-400 dark:text-gray-500">
                             .srt / .vtt / .txt
@@ -1280,6 +1347,10 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                   >
                     <TranscriptSegmentItem
                       segment={segment}
+                      highlightEndTime={getSegmentHighlightEnd(
+                        segment,
+                        filteredSegments[virtualItem.index + 1]
+                      )}
                       matchedBookmarkId={segmentBookmarkLookup.get(segment.id) ?? null}
                       isPracticed={practicedSegmentIds.has(segment.id)}
                       study={displayTranscriptStudy[segment.id]}
@@ -1313,13 +1384,15 @@ export const TranscriptPanel = ({ onCollapse }: TranscriptPanelProps = {}) => {
                 style={{ width: `${processingProgress}%` }}
               />
             </div>
-            <button
-              type="button"
-              onClick={cancelTranscription}
-              className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors shrink-0"
-            >
-              {t("common.cancel")}
-            </button>
+            {!isAutomaticYouTubeLookup && (
+              <button
+                type="button"
+                onClick={cancelTranscription}
+                className="text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors shrink-0"
+              >
+                {t("common.cancel")}
+              </button>
+            )}
           </div>
         )}
       </div>

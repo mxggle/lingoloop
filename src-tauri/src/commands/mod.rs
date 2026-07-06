@@ -5,3 +5,4 @@ pub mod http;
 pub mod migration;
 pub mod waveform;
 pub mod windows;
+pub mod youtube;

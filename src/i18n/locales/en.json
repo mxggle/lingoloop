@@ -562,7 +562,18 @@
     "unsupportedFileType": "Unsupported file type",
     "noMediaToTranscribe": "No media loaded to transcribe",
     "openaiClientNotInitialized": "Transcription service not initialized",
-    "youtubeTranscriptionWarning": "YouTube transcription requires server-side processing. Using simulation instead.",
+    "youtubeTranscriptionWarning": "YouTube audio and captions can only be prepared in the desktop app.",
+    "youtubeCaptionsUnavailable": "No YouTube captions found. Transcribe the downloaded audio with {{provider}}.",
+    "youtubeCaptionsImported_one": "YouTube captions imported · {{count}} segment",
+    "youtubeCaptionsImported_other": "YouTube captions imported · {{count}} segments",
+    "youtubeCaptions": "YouTube captions",
+    "aiTranscript": "AI transcript",
+    "youtubePreparation": {
+      "checking": "Checking saved YouTube media…",
+      "downloading": "Downloading YouTube audio…",
+      "captions": "Searching for YouTube captions…",
+      "importing": "Adding captions to the transcript…"
+    },
     "transcriptionFailed": "Failed to transcribe media. ",
     "invalidApiKey": "Invalid API key. Please check your API key.",
     "rateLimitExceeded": "Rate limit exceeded. Please try again later.",
@@ -828,7 +839,12 @@
     "loopSelection": "Loop Selection",
     "touchSelectHint": "Tap and drag to select loop",
     "desktopSelectHint": "Drag on waveform to select loop area",
-    "youtubePlaceholder": "Placeholder waveform displayed. Real waveform coming soon.",
+    "youtubePlaceholder": "Preparing YouTube audio waveform…",
+    "youtubePreparation": {
+      "checking": "Checking saved audio…",
+      "downloading": "Downloading YouTube audio…",
+      "captions": "Searching for captions…"
+    },
     "analyzing": "Analyzing waveform...",
     "analysisError": "Waveform analysis failed. Using preview.",
     "zoomIn": "Zoom In",

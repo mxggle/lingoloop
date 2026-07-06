@@ -23,7 +23,7 @@ interface CachedLevel {
 export class WaveformLoader {
   private metas = new Map<string, WaveformMeta>();
   private levels = new Map<string, Map<number, CachedLevel>>();
-  private pendingAnalysis = new Set<string>();
+  private pendingAnalysis = new Map<string, Promise<WaveformMeta | null>>();
 
   /** True when the native desktop waveform capability is available. */
   get isAvailable(): boolean {
@@ -43,15 +43,6 @@ export class WaveformLoader {
       throw new Error('WaveformLoader: desktop waveform API not available');
     }
 
-    if (this.pendingAnalysis.has(mediaId)) {
-      // Wait for existing analysis
-      const meta = this.metas.get(mediaId);
-      if (meta) return meta;
-      throw new Error('WaveformLoader: analysis already in progress for ' + mediaId);
-    }
-
-    this.pendingAnalysis.add(mediaId);
-
     const api = desktopApi;
     if (!api) return null;
 
@@ -64,12 +55,22 @@ export class WaveformLoader {
       });
     }
 
+    let analysis = this.pendingAnalysis.get(mediaId);
+    if (!analysis) {
+      analysis = api.waveformAnalyze(filePath, mediaId)
+        .then((meta) => {
+          if (meta) this.metas.set(mediaId, meta);
+          return meta;
+        })
+        .finally(() => {
+          this.pendingAnalysis.delete(mediaId);
+        });
+      this.pendingAnalysis.set(mediaId, analysis);
+    }
+
     try {
-      const meta = await api.waveformAnalyze(filePath, mediaId);
-      if (meta) this.metas.set(mediaId, meta);
-      return meta;
+      return await analysis;
     } finally {
-      this.pendingAnalysis.delete(mediaId);
       unsub?.();
     }
   }

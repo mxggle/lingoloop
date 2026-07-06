@@ -561,7 +561,17 @@
     "unsupportedFileType": "サポートされていないファイルタイプです",
     "noMediaToTranscribe": "文字起こしするメディアがありません",
     "openaiClientNotInitialized": "文字起こしサービスが初期化されていません",
-    "youtubeTranscriptionWarning": "YouTubeの文字起こしにはサーバーサイドの処理が必要です。代わりにシミュレーションを使用しています。",
+    "youtubeTranscriptionWarning": "YouTubeの音声と字幕はデスクトップアプリでのみ準備できます。",
+    "youtubeCaptionsUnavailable": "YouTube字幕が見つかりませんでした。ダウンロードした音声を{{provider}}で文字起こしできます。",
+    "youtubeCaptionsImported": "YouTube字幕をインポートしました · {{count}}セグメント",
+    "youtubeCaptions": "YouTube字幕",
+    "aiTranscript": "AI文字起こし",
+    "youtubePreparation": {
+      "checking": "保存済みのYouTubeメディアを確認しています…",
+      "downloading": "YouTube音声をダウンロードしています…",
+      "captions": "YouTube字幕を検索しています…",
+      "importing": "字幕をトランスクリプトに追加しています…"
+    },
     "transcriptionFailed": "メディアの文字起こしに失敗しました。",
     "invalidApiKey": "無効なAPIキーです。APIキーを確認してください。",
     "rateLimitExceeded": "レート制限を超えました。後でもう一度お試しください。",
@@ -827,7 +837,12 @@
     "loopSelection": "ループ選択",
     "touchSelectHint": "タップしてドラッグするとループを選択できます",
     "desktopSelectHint": "波形をドラッグしてループ範囲を選択します",
-    "youtubePlaceholder": "プレースホルダー波形を表示中。リアル波形機能は近日公開予定",
+    "youtubePlaceholder": "YouTube音声の波形を準備しています…",
+    "youtubePreparation": {
+      "checking": "保存済みの音声を確認しています…",
+      "downloading": "YouTube音声をダウンロードしています…",
+      "captions": "字幕を検索しています…"
+    },
     "analyzing": "波形を解析中...",
     "analysisError": "波形の解析に失敗しました。プレビューを表示しています。",
     "zoomIn": "拡大",

@@ -97,3 +97,7 @@ Add native capabilities in this order:
 
 Every event subscription returns immediate cleanup. Cleanup must remain safe
 when asynchronous Tauri listener registration resolves after React unmounts.
+
+## Feature architecture references
+
+- [YouTube media and transcript architecture](./youtube-media-architecture.md)

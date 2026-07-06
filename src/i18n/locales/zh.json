@@ -561,7 +561,17 @@
     "unsupportedFileType": "不支持的文件类型",
     "noMediaToTranscribe": "没有要转录的媒体",
     "openaiClientNotInitialized": "转录服务未初始化",
-    "youtubeTranscriptionWarning": "YouTube转录需要服务器端处理。正在使用模拟代替。",
+    "youtubeTranscriptionWarning": "YouTube 音频和字幕只能在桌面应用中准备。",
+    "youtubeCaptionsUnavailable": "未找到 YouTube 字幕。可使用 {{provider}} 转录已下载的音频。",
+    "youtubeCaptionsImported": "已导入 YouTube 字幕 · {{count}} 个片段",
+    "youtubeCaptions": "YouTube 字幕",
+    "aiTranscript": "AI 转录",
+    "youtubePreparation": {
+      "checking": "正在检查已保存的 YouTube 媒体…",
+      "downloading": "正在下载 YouTube 音频…",
+      "captions": "正在搜索 YouTube 字幕…",
+      "importing": "正在将字幕添加到转录文本…"
+    },
     "transcriptionFailed": "转录媒体失败。",
     "invalidApiKey": "无效的API密钥。请检查您的API密钥。",
     "rateLimitExceeded": "已超出速率限制。请稍后再试。",
@@ -827,7 +837,12 @@
     "loopSelection": "循环选择",
     "touchSelectHint": "轻触并拖动以选择循环",
     "desktopSelectHint": "在波形上拖动以选择循环区域",
-    "youtubePlaceholder": "此处为占位波形，真实波形功能即将上线",
+    "youtubePlaceholder": "正在准备 YouTube 音频波形…",
+    "youtubePreparation": {
+      "checking": "正在检查已保存的音频…",
+      "downloading": "正在下载 YouTube 音频…",
+      "captions": "正在搜索字幕…"
+    },
     "analyzing": "正在分析波形...",
     "analysisError": "波形分析失败，正在使用预览。",
     "zoomIn": "放大",

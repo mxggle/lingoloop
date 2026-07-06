@@ -32,7 +32,7 @@
     "targets": "all",
     "category": "Education",
     "copyright": "Copyright © 2026 Pawcast",
-    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe"],
+    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe", "binaries/yt-dlp"],
     "icon": ["icons/icon.png", "icons/icon.icns"]
   }
 }

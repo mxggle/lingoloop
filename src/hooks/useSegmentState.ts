@@ -23,13 +23,16 @@ interface SegmentState {
  * Loop / play state is read synchronously from the Zustand store via getState()
  * (which is free — no subscription overhead).
  */
-export function useSegmentState(segment: TranscriptSegment): SegmentState {
+export function useSegmentState(
+  segment: TranscriptSegment,
+  highlightEndTime = segment.endTime
+): SegmentState {
   // Read the high-frequency time via useSyncExternalStore.  React will only
   // re-render this component if the *return value* of the selector differs.
   const state = useSyncExternalStore(
     subscribeCurrentTime,
-    () => computeSegmentState(segment),
-    () => computeSegmentState(segment)
+    () => computeSegmentState(segment, highlightEndTime),
+    () => computeSegmentState(segment, highlightEndTime)
   );
 
   return state;
@@ -38,7 +41,10 @@ export function useSegmentState(segment: TranscriptSegment): SegmentState {
 // Cache to avoid creating new objects when nothing changed.
 const stateCache = new WeakMap<TranscriptSegment, SegmentState>();
 
-function computeSegmentState(segment: TranscriptSegment): SegmentState {
+function computeSegmentState(
+  segment: TranscriptSegment,
+  highlightEndTime: number
+): SegmentState {
   const currentTime = getCurrentTime();
   const { isLooping, loopStart, loopEnd, isPlaying } =
     usePlayerStore.getState();
@@ -55,7 +61,7 @@ function computeSegmentState(segment: TranscriptSegment): SegmentState {
     ? currentTime >= expectedLoopStart && currentTime <= segment.endTime
     : !isLooping &&
       currentTime >= segment.startTime &&
-      currentTime <= segment.endTime;
+      currentTime < highlightEndTime;
 
   // Return the cached object if the values haven't changed.  This prevents
   // React from re-rendering when useSyncExternalStore compares snapshots via

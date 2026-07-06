@@ -6,10 +6,12 @@ import { useTranslation } from "react-i18next";
 
 interface TranscriptUploaderProps {
   variant?: "compact" | "prominent";
+  destinationSource?: "ai" | "imported";
 }
 
 export const TranscriptUploader = ({
   variant = "compact",
+  destinationSource = "imported",
 }: TranscriptUploaderProps) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ export const TranscriptUploader = ({
     }
 
     try {
-      await importTranscript(file);
+      await importTranscript(file, destinationSource);
     } catch (error) {
       console.error("Error uploading transcript:", error);
       toast.error(t("transcript.uploadError"));

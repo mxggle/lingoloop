@@ -21,6 +21,8 @@ import { TranscriptWordRenderer } from "./TranscriptWordRenderer";
 
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
+  /** Presentation-only boundary used to prevent overlapping active rows. */
+  highlightEndTime?: number;
   matchedBookmarkId: string | null;
   /** Whether this sentence has a saved practice recording. */
   isPracticed?: boolean;
@@ -36,6 +38,7 @@ interface TranscriptSegmentItemProps {
 export const TranscriptSegmentItem = memo(
   ({
     segment,
+    highlightEndTime,
     matchedBookmarkId,
     isPracticed = false,
     study,
@@ -65,7 +68,10 @@ export const TranscriptSegmentItem = memo(
     const createBookmarkFromTranscript = useTranscriptStore((state) => state.createBookmarkFromTranscript);
     const deleteBookmark = useBookmarkStore((state) => state.deleteBookmark);
 
-    const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
+    const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(
+      segment,
+      highlightEndTime
+    );
     const isBookmarked = matchedBookmarkId !== null;
 
     const shouldShowPauseButton = isActive && isPlaying;

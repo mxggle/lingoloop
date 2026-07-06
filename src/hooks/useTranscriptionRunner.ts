@@ -7,6 +7,8 @@ import { transcriptionService } from "../services/transcriptionService";
 import type { TranscriptionProvider } from "../types/aiService";
 import { encodeWAV } from "../utils/wavEncoder";
 import { breakIntoSentences as utilBreakIntoSentences } from "../utils/sentenceBreaker";
+import { desktopApi } from "../platform/runtime";
+import { prepareYouTubeMedia, subscribeYouTubePreparation } from "../services/youtubeMediaService";
 import {
   assignWordsToSegments,
   normalizeRange,
@@ -34,9 +36,16 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
   const [errorMessage, setErrorMessage] = useState("");
   const [apiKey, setApiKey] = useState<string>("");
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [isAutomaticYouTubeLookup, setIsAutomaticYouTubeLookup] = useState(false);
+  const [youtubeCaptionsUnavailable, setYouTubeCaptionsUnavailable] = useState(false);
+  const [youtubeCaptionsAvailable, setYouTubeCaptionsAvailable] = useState(false);
   const [currentProvider, setCurrentProvider] = useState<TranscriptionProvider>("openai");
   const abortControllerRef = useRef<AbortController | null>(null);
   const getFallbackRangeRef = useRef(getFallbackRange);
+  const automaticLookupRef = useRef<string | null>(null);
+  const currentYouTubeId = usePlayerStore((state) => state.currentYouTube?.id ?? null);
+  const transcriptLanguageSetting = useTranscriptStore((state) => state.transcriptLanguage);
+  const isTranscriptLoading = useTranscriptStore((state) => state.isTranscriptLoading);
   getFallbackRangeRef.current = getFallbackRange;
 
   // Load API key and transcription provider settings, and stay in sync with
@@ -75,6 +84,74 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
     };
   }, []);
 
+  // YouTube captions are cheap compared with speech-to-text. Look them up as
+  // soon as the media opens and reuse the same preparation job as waveform loading.
+  useEffect(() => {
+    if (!desktopApi || !currentYouTubeId || isTranscriptLoading) return;
+    const existingSegments = useTranscriptStore.getState().getCurrentMediaTranscripts();
+    if (existingSegments.some((segment) => segment.source === "youtube")) {
+      setYouTubeCaptionsAvailable(true);
+      return;
+    }
+    const lookupKey = `${currentYouTubeId}:${transcriptLanguageSetting}`;
+    if (automaticLookupRef.current === lookupKey) return;
+    automaticLookupRef.current = lookupKey;
+
+    let active = true;
+    setIsProcessing(true);
+    setIsAutomaticYouTubeLookup(true);
+    setYouTubeCaptionsUnavailable(false);
+    setYouTubeCaptionsAvailable(false);
+    setProcessingProgress(2);
+    setTranscriptionStatus(t("transcript.youtubePreparation.checking"));
+    const unsubscribe = subscribeYouTubePreparation(currentYouTubeId, (progress) => {
+      if (!active || progress.stage === "ready") return;
+      const stageBase = progress.stage === "checking" ? 0 : progress.stage === "downloading" ? 5 : 62;
+      const stageSpan = progress.stage === "checking" ? 5 : progress.stage === "downloading" ? 57 : 8;
+      setProcessingProgress(Math.round(stageBase + progress.fraction * stageSpan));
+      setTranscriptionStatus(t(`transcript.youtubePreparation.${progress.stage}`));
+    });
+
+    void prepareYouTubeMedia(currentYouTubeId, transcriptLanguageSetting)
+      .then((prepared) => {
+        if (!active || usePlayerStore.getState().currentYouTube?.id !== currentYouTubeId) return;
+        if (prepared.transcript.length > 0) {
+          setYouTubeCaptionsAvailable(true);
+          setTranscriptionStatus(t("transcript.youtubePreparation.importing"));
+          setProcessingProgress(90);
+          useTranscriptStore.getState().addTranscriptSegments(
+            prepared.transcript.map((segment) => ({
+              ...segment,
+              confidence: 1,
+              isFinal: true,
+              source: "youtube" as const,
+            }))
+          );
+          setProcessingProgress(100);
+        } else {
+          setYouTubeCaptionsUnavailable(true);
+        }
+      })
+      .catch((error) => {
+        if (active) console.error("YouTube caption lookup failed:", error);
+      })
+      .finally(() => {
+        if (!active) return;
+        unsubscribe();
+        setTranscriptionStatus(null);
+        setIsProcessing(false);
+        setIsAutomaticYouTubeLookup(false);
+      });
+
+    return () => {
+      active = false;
+      unsubscribe();
+      setTranscriptionStatus(null);
+      setIsProcessing(false);
+      setIsAutomaticYouTubeLookup(false);
+    };
+  }, [currentYouTubeId, isTranscriptLoading, t, transcriptLanguageSetting]);
+
   // Abort an in-flight transcription when the consumer unmounts.
   useEffect(() => {
     return () => {
@@ -82,6 +159,28 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
       abortControllerRef.current = null;
     };
   }, []);
+
+  const sliceAudioBlob = async (blob: Blob, range: TimeRange): Promise<Blob> => {
+    const audioContext = new AudioContext();
+    try {
+      const audioBuffer = await audioContext.decodeAudioData(await blob.arrayBuffer());
+      const startFrame = Math.max(0, Math.floor(range.start * audioBuffer.sampleRate));
+      const endFrame = Math.min(audioBuffer.length, Math.floor(range.end * audioBuffer.sampleRate));
+      const frameCount = endFrame - startFrame;
+      if (frameCount <= 0) throw new Error("Invalid time range");
+
+      const slicedData = new Float32Array(frameCount);
+      for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+        const channelData = audioBuffer.getChannelData(channel);
+        for (let index = 0; index < frameCount; index++) {
+          slicedData[index] += channelData[startFrame + index] / audioBuffer.numberOfChannels;
+        }
+      }
+      return encodeWAV(slicedData, audioBuffer.sampleRate);
+    } finally {
+      await audioContext.close();
+    }
+  };
 
   const extractAudioFromMedia = async (range?: TimeRange): Promise<Blob> => {
     const { currentFile } = usePlayerStore.getState();
@@ -207,38 +306,6 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
     });
   };
 
-  // Demo path for YouTube videos, whose audio we cannot access directly.
-  const simulateTranscription = async () => {
-    const { clearTranscript, addTranscriptSegment } = useTranscriptStore.getState();
-    const sampleSegments = [
-      { text: "Welcome to this audio demonstration.", startTime: 0.0, endTime: 3.5, confidence: 0.92 },
-      { text: "Today we'll explore the key features of our application.", startTime: 3.5, endTime: 7.2, confidence: 0.89 },
-      { text: "The first feature is the ability to create precise loops.", startTime: 7.2, endTime: 10.8, confidence: 0.95 },
-      { text: "You can set the start and end points exactly where you want them.", startTime: 10.8, endTime: 14.5, confidence: 0.91 },
-      { text: "This is perfect for musicians practicing difficult passages.", startTime: 14.5, endTime: 18.2, confidence: 0.88 },
-      { text: "Or for language learners who want to repeat specific phrases.", startTime: 18.2, endTime: 22.0, confidence: 0.93 },
-      { text: "The second feature is our waveform visualization.", startTime: 22.0, endTime: 25.8, confidence: 0.9 },
-      { text: "It helps you see the audio structure and identify specific parts.", startTime: 25.8, endTime: 30.0, confidence: 0.87 },
-      { text: "And now we've added automatic transcription.", startTime: 30.0, endTime: 33.2, confidence: 0.94 },
-      { text: "So you can read along as you listen.", startTime: 33.2, endTime: 36.0, confidence: 0.92 },
-    ];
-
-    clearTranscript();
-
-    for (let i = 0; i < sampleSegments.length; i++) {
-      const segment = sampleSegments[i];
-      setProcessingProgress(Math.round(((i + 1) / sampleSegments.length) * 100));
-      addTranscriptSegment({
-        text: segment.text,
-        startTime: Math.max(0, segment.startTime),
-        endTime: Math.max(segment.startTime, segment.endTime),
-        confidence: segment.confidence,
-        isFinal: true,
-      });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  };
-
   const transcribeMedia = async (
     requestedRange?: Partial<TimeRange>,
     options?: { forceFullRange?: boolean }
@@ -257,11 +324,6 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
       return;
     }
 
-    if (!apiKey && currentProvider !== "local-whisper") {
-      setShowApiKeyInput(true);
-      return;
-    }
-
     const range = options?.forceFullRange
       ? normalizeRange(requestedRange)
       : normalizeRange(requestedRange) || getFallbackRangeRef.current?.();
@@ -272,12 +334,13 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
 
     try {
       setIsProcessing(true);
+      setIsAutomaticYouTubeLookup(false);
       setErrorMessage("");
       setTranscriptionStatus(null);
 
       // Only clear if doing full transcript
       if (!range || options?.forceFullRange) {
-        clearTranscript();
+        clearTranscript("ai");
       }
 
       abortControllerRef.current?.abort();
@@ -286,15 +349,39 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
       startTranscribing();
       setProcessingProgress(10);
 
-      // For YouTube videos, we can't directly access the audio
+      let youtubeAudioBlob: Blob | null = null;
       if (currentYouTube) {
-        toast.error(t("transcript.youtubeTranscriptionWarning"));
-        await simulateTranscription();
-        return;
+        const prepared = await prepareYouTubeMedia(currentYouTube.id, transcriptLanguage);
+        if (prepared.transcript.length > 0) {
+          setYouTubeCaptionsAvailable(true);
+          const hasStoredCaptions = useTranscriptStore.getState()
+            .getCurrentMediaTranscripts()
+            .some((segment) => segment.source === "youtube");
+          if (!hasStoredCaptions) {
+            addTranscriptSegments(prepared.transcript.map((segment) => ({
+              ...segment,
+              confidence: 1,
+              isFinal: true,
+              source: "youtube" as const,
+            })));
+          }
+        }
+        if (!desktopApi) throw new Error(t("transcript.youtubeTranscriptionWarning"));
+        const response = await fetch(desktopApi.mediaUrl(prepared.audioPath));
+        if (!response.ok) throw new Error(t("transcript.errorLoadingAudio"));
+        const downloadedAudio = await response.blob();
+        youtubeAudioBlob = range && !options?.forceFullRange
+          ? await sliceAudioBlob(downloadedAudio, range)
+          : downloadedAudio;
       }
 
-      const audioBlob = await extractAudioFromMedia(range);
+      const audioBlob = youtubeAudioBlob ?? await extractAudioFromMedia(range);
       setProcessingProgress(30);
+
+      if (!apiKey && currentProvider !== "local-whisper") {
+        setShowApiKeyInput(true);
+        return;
+      }
 
       const providerInfo = transcriptionService.getProviderInfo(currentProvider);
       toast(t("transcript.processingWithProvider", { provider: providerInfo.name }));
@@ -307,7 +394,10 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
         language: transcriptLanguage,
       };
       const shouldUseChunkedTranscription =
-        !range && duration >= PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS;
+        !range && (
+          duration >= PROGRESSIVE_TRANSCRIPTION_THRESHOLD_SECONDS ||
+          (currentProvider === "local-whisper" && youtubeAudioBlob !== null)
+        );
 
       const result = shouldUseChunkedTranscription
         ? await transcriptionService.transcribeInChunks(
@@ -332,6 +422,7 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
                   endTime: Math.max(segment.start, segment.end),
                   confidence: segment.confidence,
                   isFinal: true,
+                  source: "ai" as const,
                 }))
               );
             },
@@ -374,6 +465,7 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
               endTime: Math.max(segment.start + startTimeOffset, segment.end + startTimeOffset),
               confidence: segment.confidence,
               isFinal: true,
+              source: "ai" as const,
               words,
               wordIds,
             };
@@ -393,6 +485,7 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
             endTime: Math.max(startTime + startTimeOffset, endTime + startTimeOffset),
             confidence: 0.85,
             isFinal: true,
+            source: "ai" as const,
           };
         }));
       }
@@ -448,6 +541,9 @@ export const useTranscriptionRunner = ({ getFallbackRange }: TranscriptionRunner
     showApiKeyInput,
     setShowApiKeyInput,
     currentProvider,
+    isAutomaticYouTubeLookup,
+    youtubeCaptionsUnavailable,
+    youtubeCaptionsAvailable,
     transcribeMedia,
     cancelTranscription,
   };

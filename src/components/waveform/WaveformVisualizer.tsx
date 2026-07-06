@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback, useMemo } from "react";
 import { usePlayerStore } from "../../stores/playerStore";
 import { useBookmarkStore } from "../../stores/bookmarkStore";
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -13,7 +13,6 @@ import {
   setCachedWaveform,
 } from "../../utils/mediaStorage";
 import { useShadowingPlayer } from "../../hooks/useShadowingPlayer";
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { bumpRender } from "../../utils/perfMonitor";
@@ -32,6 +31,7 @@ import type { BookmarkRenderData } from "../../player/WaveformRenderer";
 import { playbackClock } from "../../player/PlaybackClock";
 import { waveformLoader } from "../../player/WaveformLoader";
 import { usePlayerSelection } from "../../player/hooks";
+import { prepareYouTubeMedia, subscribeYouTubePreparation } from "../../services/youtubeMediaService";
 
 // Stable empty arrays used in selectors to avoid creating
 // a new [] on every render (prevents infinite re-render loops)
@@ -121,8 +121,9 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
   const [waveformData, setWaveformData] = useState<Float32Array | null>(null);
   const [waveformLoadState, setWaveformLoadState] = useState<{
-    status: "idle" | "placeholder" | "analyzing" | "ready" | "error";
+    status: "idle" | "placeholder" | "preparing" | "analyzing" | "ready" | "error";
     progress: number;
+    stage?: "checking" | "downloading" | "captions";
   }>({ status: "idle", progress: 0 });
 
   const [isDragging, setIsDragging] = useState(false);
@@ -228,6 +229,19 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
   // Shadowing panel expand/collapse state
   const [isShadowingExpanded, setIsShadowingExpanded] = useState(false);
   const prevShouldExpandRef = useRef(false);
+
+  // Canvas pixels and renderer buffers live outside React state. Clear them at
+  // the media identity boundary, before paint, so the previous media's waveform
+  // is never shown while the next waveform is loading (or when none exists).
+  useLayoutEffect(() => {
+    setWaveformData(null);
+    setWaveformLoadState({ status: "idle", progress: 0 });
+    setShadowingWaveforms([]);
+    ffmpegMediaIdRef.current = null;
+    ffmpegReadyRef.current = false;
+    rendererRef.current?.clearWaveform();
+    rendererRef.current?.setShadowingWaveforms([]);
+  }, [mediaId]);
 
   // Auto-expand shadowing when recording or segments exist
   useEffect(() => {
@@ -366,13 +380,6 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
     [bookmarkMap]
   );
 
-  // YouTube notice dismissal state
-  const [isYoutubeNoticeDismissed, setIsYoutubeNoticeDismissed] = useState(false);
-
-  useEffect(() => {
-    if (currentYouTube?.id) setIsYoutubeNoticeDismissed(false);
-  }, [currentYouTube?.id]);
-
   useEffect(() => {
     if (typeof waveformZoom !== "number" || !isFinite(waveformZoom)) {
       setWaveformZoom(1);
@@ -462,7 +469,45 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
 
       try {
         if (currentYouTube) {
-          if (!cancelled) setWaveformPreview(createPlaceholderWaveform(duration || 0, 1200));
+          if (!waveformLoader.isAvailable) {
+            if (!cancelled) setWaveformPreview(createPlaceholderWaveform(duration || 0, 1200));
+            return;
+          }
+          setWaveformLoadState({ status: "preparing", progress: 2, stage: "checking" });
+          const unsubscribePreparation = subscribeYouTubePreparation(currentYouTube.id, (progress) => {
+            if (cancelled || progress.stage === "ready") return;
+            const stageBase = progress.stage === "checking" ? 0 : progress.stage === "downloading" ? 5 : 62;
+            const stageSpan = progress.stage === "checking" ? 5 : progress.stage === "downloading" ? 57 : 8;
+            setWaveformLoadState({
+              status: "preparing",
+              progress: Math.round(stageBase + progress.fraction * stageSpan),
+              stage: progress.stage,
+            });
+          });
+          let prepared;
+          try {
+            prepared = await prepareYouTubeMedia(currentYouTube.id);
+          } finally {
+            unsubscribePreparation();
+          }
+          const mediaId = buildNativeWaveformId(`youtube-${currentYouTube.id}`);
+          ffmpegMediaIdRef.current = mediaId;
+          setWaveformLoadState({ status: "analyzing", progress: 70 });
+          let meta = await waveformLoader.getMeta(mediaId);
+          if (!meta) meta = await waveformLoader.analyze(prepared.audioPath, mediaId, (fraction) => {
+            if (!cancelled) setWaveformLoadState({ status: "analyzing", progress: Math.round(70 + fraction * 30) });
+          });
+          if (!meta || cancelled) return;
+          const levelData = await waveformLoader.loadForViewport({
+            mediaId,
+            visibleDuration: duration / (waveformZoom ?? 1),
+            canvasWidth: staticCanvasRef.current?.clientWidth ?? 800,
+          });
+          if (levelData && !cancelled) {
+            rendererRef.current?.setWaveformData(levelData);
+            ffmpegReadyRef.current = true;
+            setWaveformLoadState({ status: "ready", progress: 100 });
+          }
           return;
         }
 
@@ -558,6 +603,7 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
         setWaveformPreview(analysis);
       } catch (error) {
         console.error("Error loading audio for waveform:", error);
+        if (!cancelled) setWaveformLoadState({ status: "error", progress: 0 });
       }
     };
 
@@ -1168,16 +1214,23 @@ export const WaveformVisualizer = ({ className }: WaveformVisualizerProps) => {
             <div className="absolute bg-primary-500/30 border border-primary-500 pointer-events-none" style={{ left: `${timeToPosition(Math.min(dragStart, dragEnd))}%`, width: `${timeToPosition(Math.max(dragStart, dragEnd)) - timeToPosition(Math.min(dragStart, dragEnd))}%`, top: 0, height: "100%", zIndex: 5 }} />
           )}
 
-          {currentYouTube && !isYoutubeNoticeDismissed && (
-            <div className="absolute top-2 right-2 z-20 flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-sm rounded border border-white/10 shadow-sm">
-              <span className="text-white/80 text-xs font-medium">{t("waveform.youtubePlaceholder")}</span>
-              <button onClick={(e) => { e.stopPropagation(); setIsYoutubeNoticeDismissed(true); }} className="p-0.5 hover:bg-white/20 rounded-full text-white/70 hover:text-white transition-colors"><X size={12} /></button>
-            </div>
-          )}
-
-          {!currentYouTube && (waveformLoadState.status === "analyzing" || waveformLoadState.status === "error") && (
-            <div className="absolute top-2 right-2 z-20 flex items-center gap-2 px-3 py-1.5 bg-black/55 backdrop-blur-sm rounded border border-white/10 shadow-sm">
-              <span className="text-white/80 text-xs font-medium">{waveformLoadState.status === "error" ? t("waveform.analysisError") : `${t("waveform.analyzing")} ${waveformLoadState.progress}%`}</span>
+          {(waveformLoadState.status === "preparing" || waveformLoadState.status === "analyzing" || waveformLoadState.status === "error") && (
+            <div className="absolute top-2 right-2 z-20 w-56 rounded-lg border border-white/10 bg-gray-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+              <div className="flex items-center justify-between gap-3 text-[11px] font-medium text-white/90">
+                <span className="truncate">
+                  {waveformLoadState.status === "error"
+                    ? t("waveform.analysisError")
+                    : waveformLoadState.status === "analyzing"
+                      ? t("waveform.analyzing")
+                      : t(`waveform.youtubePreparation.${waveformLoadState.stage ?? "checking"}`)}
+                </span>
+                {waveformLoadState.status !== "error" && <span className="tabular-nums text-white/60">{waveformLoadState.progress}%</span>}
+              </div>
+              {waveformLoadState.status !== "error" && (
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full rounded-full bg-primary-400 transition-[width] duration-300 ease-out" style={{ width: `${waveformLoadState.progress}%` }} />
+                </div>
+              )}
             </div>
           )}
 

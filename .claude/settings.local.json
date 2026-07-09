@@ -26,7 +26,54 @@
       "WebFetch(domain:devtk.ai)",
       "WebFetch(domain:mem0.ai)",
       "Bash(wc -l /Users/szy/CascadeProjects/modern-ab-loop/local/*.md)",
-      "PowerShell(npm run lint)"
+      "PowerShell(npm run lint)",
+      "Bash(rg --files /Users/harry/code/lingoloop/src)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/harry/.bridgespace/bin/bs-claude-hook.cjs' session-start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/harry/.bridgespace/bin/bs-claude-hook.cjs' user-prompt-submit"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/harry/.bridgespace/bin/bs-claude-hook.cjs' stop idle \"Finished working\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node '/Users/harry/.bridgespace/bin/bs-claude-hook.cjs' notification needs-input \"Needs input\""
+          }
+        ]
+      }
     ]
   }
 }

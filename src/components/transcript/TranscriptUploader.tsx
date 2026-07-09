@@ -1,19 +1,21 @@
 import { useRef } from "react";
-import { usePlayerStore } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { toast } from "react-hot-toast";
 import { Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface TranscriptUploaderProps {
   variant?: "compact" | "prominent";
+  destinationSource?: "ai" | "imported";
 }
 
 export const TranscriptUploader = ({
   variant = "compact",
+  destinationSource = "imported",
 }: TranscriptUploaderProps) => {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { importTranscript } = usePlayerStore();
+  const { importTranscript } = useTranscriptStore();
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -38,7 +40,7 @@ export const TranscriptUploader = ({
     }
 
     try {
-      await importTranscript(file);
+      await importTranscript(file, destinationSource);
     } catch (error) {
       console.error("Error uploading transcript:", error);
       toast.error(t("transcript.uploadError"));

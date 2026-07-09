@@ -2,6 +2,7 @@ import { useShallow } from "zustand/react/shallow";
 import { usePlayerStore } from "../../stores/playerStore";
 import { WaveformVisualizer } from "../waveform/WaveformVisualizer";
 import { TimelineToolbar } from "./TimelineToolbar";
+import { TakesDrawer } from "./TakesDrawer";
 import { TrackHeader } from "./TrackHeader";
 import { formatTime } from "../../utils/formatTime";
 import { cn } from "../../utils/cn";
@@ -59,7 +60,7 @@ export const TimelinePanel = ({
 
   // Full mode: toolbar + time ruler + waveform
   return (
-    <div className={cn("flex flex-col h-full min-h-0 @container/timeline bg-white dark:bg-gray-950/40 rounded-t-xl border border-gray-200 dark:border-white/5 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
+    <div className={cn("flex flex-col h-full min-h-0 @container/timeline bg-white dark:bg-gray-950/40 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       <TimelineToolbar
         collapsed={collapsed}
         onCollapse={onCollapse}
@@ -77,6 +78,8 @@ export const TimelinePanel = ({
       <div className="timeline-waveform-frame shrink-0 h-[120px] bg-gray-100 dark:bg-[#0b0e1c] relative overflow-hidden">
         <WaveformVisualizer className="mx-auto h-full w-full max-w-[1280px]" />
       </div>
+
+      <TakesDrawer mediaId={mediaId} />
     </div>
   );
 };

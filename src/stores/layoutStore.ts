@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { electronStorage } from "./electronStorage";
-import { settingsRepository } from "../repositories/settingsRepository";
+import { desktopStorage } from "./desktopStorage";
 
 export interface LayoutSettings {
   showPlayer: boolean;
@@ -76,23 +75,8 @@ export const useLayoutStore = create<LayoutState>()(
     }),
     {
       name: "layout-storage",
-      storage: createJSONStorage(() => electronStorage),
+      storage: createJSONStorage(() => desktopStorage),
       merge: mergePersistedLayoutState,
     }
   )
 );
-
-// ─── Dual-write sync ───
-let _layoutSaveTimer: ReturnType<typeof setTimeout>
-useLayoutStore.subscribe((state) => {
-  clearTimeout(_layoutSaveTimer)
-  _layoutSaveTimer = setTimeout(() => {
-    settingsRepository.saveLayoutSettings({
-      version: 1,
-      ...state.layoutSettings,
-      isSidebarOpen: true,
-      sidebarWidth: 320,
-      activeSidebarTab: 'history',
-    }).catch(() => {})
-  }, 300)
-})

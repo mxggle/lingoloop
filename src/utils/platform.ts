@@ -1,24 +1,16 @@
-export const isElectron = (): boolean => true
+import { desktopApi, isDesktop } from "../platform/runtime";
 
-export const getPlatform = (): string =>
-  window.electronAPI?.platform ?? 'electron'
+export { isDesktop };
 
-const ensureLeadingSlash = (path: string): string =>
-  path.startsWith('/') ? path : `/${path}`
+export const getPlatform = (): string => {
+  if (typeof navigator === "undefined") return "unknown";
+  const userAgent = navigator.userAgent;
+  if (userAgent.includes("Mac")) return "darwin";
+  if (userAgent.includes("Windows")) return "win32";
+  if (userAgent.includes("Linux")) return "linux";
+  return "unknown";
+};
 
-const encodePathForUrl = (path: string): string =>
-  ensureLeadingSlash(path)
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')
-
-/**
- * Convert a native filesystem path to a URL suitable for <audio>/<video>.
- * Uses the custom local-media:// protocol which bypasses
- * cross-origin restrictions that block file:// URLs in dev mode.
- */
-export const nativePathToUrl = (filePath: string): string => {
-  const normalized = filePath.replace(/\\/g, '/')
-  const encodedPath = encodePathForUrl(normalized)
-  return `local-media://media${encodedPath}`
-}
+/** Convert a native path through Tauri's registered local-media protocol. */
+export const nativePathToUrl = (filePath: string): string =>
+  desktopApi?.mediaUrl(filePath) ?? filePath;

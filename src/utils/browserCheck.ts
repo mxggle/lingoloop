@@ -1,6 +1,6 @@
 /**
  * Utility functions for checking browser capabilities.
- * Electron-only app — all checks return Electron defaults.
+ * Desktop-only app — all checks return desktop defaults.
  */
 
 export interface BrowserCapabilities {
@@ -20,7 +20,7 @@ export function checkAudioRecordingSupport(): BrowserCapabilities {
         supportsMediaRecorder,
         supportsGetUserMedia,
         supportsAudioRecording,
-        browserName: 'Electron',
+        browserName: 'desktop app',
         isMobile: false,
     };
 }

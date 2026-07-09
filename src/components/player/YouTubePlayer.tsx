@@ -27,7 +27,7 @@ declare global {
   interface Window {
     YT: {
       Player: new (
-        elementId: string,
+        element: string | HTMLElement,
         options: {
           videoId: string;
           playerVars?: {
@@ -37,6 +37,7 @@ declare global {
             enablejsapi?: number;
             modestbranding?: number;
             rel?: number;
+            origin?: string;
           };
           events?: {
             onReady?: (event: YTEvent) => void;
@@ -62,6 +63,50 @@ interface YouTubePlayerProps {
   hiddenMode?: boolean;
 }
 
+let youtubeApiPromise: Promise<void> | null = null;
+let youtubePlayerSequence = 0;
+
+// The YouTube iframe API can throw internally (e.g. "this.g.src" errors) when a
+// method is called while its iframe is mid-navigation, even on an otherwise
+// valid, non-destroyed player. Guard every call so a transient API hiccup logs
+// a warning instead of crashing the component tree.
+const callPlayerSafely = <T,>(fn: () => T): T | undefined => {
+  try {
+    return fn();
+  } catch (error) {
+    console.warn("YouTube player call failed:", error);
+    return undefined;
+  }
+};
+
+const loadYouTubeIframeApi = (): Promise<void> => {
+  if (window.YT?.Player) return Promise.resolve();
+  if (youtubeApiPromise) return youtubeApiPromise;
+
+  youtubeApiPromise = new Promise<void>((resolve, reject) => {
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      previousReady?.();
+      resolve();
+    };
+
+    const existingScript = document.getElementById("youtube-iframe-api");
+    if (existingScript) return;
+
+    const script = document.createElement("script");
+    script.id = "youtube-iframe-api";
+    script.src = "https://www.youtube.com/iframe_api";
+    script.async = true;
+    script.onerror = () => {
+      youtubeApiPromise = null;
+      reject(new Error("YouTube iframe API failed to load"));
+    };
+    document.head.appendChild(script);
+  });
+
+  return youtubeApiPromise;
+};
+
 export const YouTubePlayer = ({
   videoId,
   hiddenMode = false,
@@ -69,7 +114,8 @@ export const YouTubePlayer = ({
   const [player, setPlayer] = useState<YTPlayer | null>(null);
   const [apiLoaded, setApiLoaded] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
-  const playerRef = useRef<HTMLDivElement>(null);
+  const playerHostRef = useRef<HTMLDivElement>(null);
+  const [playerTargetId] = useState(() => `youtube-player-${++youtubePlayerSequence}`);
   const lastSeekTime = useRef<number>(0);
   const playbackSyncFrameRef = useRef<number | null>(null);
   const lastReportedTimeRef = useRef(0);
@@ -110,30 +156,41 @@ export const YouTubePlayer = ({
 
   // Load YouTube API
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-
-      const firstScriptTag = document.getElementsByTagName("script")[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-
-      window.onYouTubeIframeAPIReady = () => {
-        setApiLoaded(true);
-      };
-    } else {
-      setApiLoaded(true);
-    }
+    let active = true;
+    void loadYouTubeIframeApi()
+      .then(() => {
+        if (active) setApiLoaded(true);
+      })
+      .catch((error) => {
+        if (active) {
+          console.error(error);
+          toast.error(t("youtube.errorLoadingVideo"));
+        }
+      });
 
     return () => {
-      window.onYouTubeIframeAPIReady = () => { };
+      active = false;
     };
-  }, []);
+  }, [t]);
 
   // Initialize YouTube player
   useEffect(() => {
-    if (!apiLoaded || !playerRef.current || !videoId) return;
+    const host = playerHostRef.current;
+    if (!apiLoaded || !host || !videoId) return;
 
-    const newPlayer = new window.YT.Player("youtube-player", {
+    // The iframe API replaces its target node. Creating that node inside a
+    // stable React-owned host avoids StrictMode teardown reusing a detached iframe.
+    let active = true;
+    let newPlayer: YTPlayer | null = null;
+    const initializeTimer = window.setTimeout(() => {
+      if (!active || !playerHostRef.current) return;
+      const target = document.createElement("div");
+      target.id = playerTargetId;
+      target.className = "h-full w-full";
+      host.replaceChildren(target);
+      setPlayer(null);
+
+      newPlayer = new window.YT.Player(target, {
       videoId,
       playerVars: {
         autoplay: 0,
@@ -142,13 +199,19 @@ export const YouTubePlayer = ({
         enablejsapi: 1,
         modestbranding: 1,
         rel: 0,
+        origin: window.location.origin,
       },
       events: {
         onReady: (event) => {
+          if (!active) {
+            return;
+          }
           setPlayer(event.target);
-          setDuration(event.target.getDuration());
+          const duration = callPlayerSafely(() => event.target.getDuration());
+          if (duration !== undefined) setDuration(duration);
         },
         onStateChange: (event) => {
+          if (!active) return;
           if (usePlayerStore.getState().isTransitioning) return;
 
           if (event.data === window.YT.PlayerState.PLAYING) {
@@ -156,8 +219,8 @@ export const YouTubePlayer = ({
               setIsPlaying(true);
             }
             // User may have used YouTube controls to seek
-            const currentTime = event.target.getCurrentTime();
-            setCurrentTime(currentTime);
+            const currentTime = callPlayerSafely(() => event.target.getCurrentTime());
+            if (currentTime !== undefined) setCurrentTime(currentTime);
             lastSeekTime.current = Date.now();
           } else if (event.data === window.YT.PlayerState.PAUSED) {
             if (usePlayerStore.getState().isPlaying) {
@@ -166,8 +229,8 @@ export const YouTubePlayer = ({
             // User may have paused to seek
             setIsSeeking(true);
             // Get the current time to update our UI
-            const currentTime = event.target.getCurrentTime();
-            setCurrentTime(currentTime);
+            const currentTime = callPlayerSafely(() => event.target.getCurrentTime());
+            if (currentTime !== undefined) setCurrentTime(currentTime);
           } else if (event.data === window.YT.PlayerState.ENDED) {
             setIsPlaying(false);
             setCurrentTime(0);
@@ -177,14 +240,19 @@ export const YouTubePlayer = ({
           toast.error(t("youtube.errorLoadingVideo"));
         },
       },
-    });
+      });
+    }, 0);
 
     return () => {
+      active = false;
+      window.clearTimeout(initializeTimer);
       if (newPlayer) {
-        newPlayer.destroy();
+        callPlayerSafely(() => newPlayer!.destroy());
       }
+      host.replaceChildren();
+      setPlayer(null);
     };
-  }, [apiLoaded, videoId, setDuration, setIsPlaying, setCurrentTime, t]);
+  }, [apiLoaded, playerTargetId, videoId, setDuration, setIsPlaying, setCurrentTime, t]);
 
   // Handle initial seek when player is ready
   const hasPerformedInitialSeek = useRef(false);
@@ -192,7 +260,7 @@ export const YouTubePlayer = ({
     if (player && !hasPerformedInitialSeek.current) {
       hasPerformedInitialSeek.current = true;
       if (currentTime > 0) {
-        player.seekTo(currentTime, true);
+        callPlayerSafely(() => player.seekTo(currentTime, true));
       }
     }
   }, [player]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -201,10 +269,13 @@ export const YouTubePlayer = ({
   useEffect(() => {
     if (!player) return;
 
+    const state = callPlayerSafely(() => player.getPlayerState());
+    if (state === undefined) return;
+
     if (isPlaying) {
-      if (player.getPlayerState() !== window.YT.PlayerState.PLAYING) {
+      if (state !== window.YT.PlayerState.PLAYING) {
         setIsTransitioning(true);
-        player.playVideo();
+        callPlayerSafely(() => player.playVideo());
         // YouTube API doesn't have a reliable callback for when play starts,
         // but it's usually fast enough.
         setTimeout(() => setIsTransitioning(false), 100);
@@ -212,9 +283,9 @@ export const YouTubePlayer = ({
       // Reset seeking state when playback resumes
       setIsSeeking(false);
     } else {
-      if (player.getPlayerState() !== window.YT.PlayerState.PAUSED) {
+      if (state !== window.YT.PlayerState.PAUSED) {
         setIsTransitioning(true);
-        player.pauseVideo();
+        callPlayerSafely(() => player.pauseVideo());
         setIsTransitioning(false);
       }
     }
@@ -226,14 +297,14 @@ export const YouTubePlayer = ({
 
     // Calculate effective volume (0-100 for YouTube)
     const effectiveVolume = masterMuted ? 0 : (masterVolume * mediaVolume);
-    player.setVolume(effectiveVolume * 100);
+    callPlayerSafely(() => player.setVolume(effectiveVolume * 100));
   }, [masterVolume, mediaVolume, masterMuted, player]);
 
   // Handle playback rate changes
   useEffect(() => {
     if (!player) return;
 
-    player.setPlaybackRate(playbackRate);
+    callPlayerSafely(() => player.setPlaybackRate(playbackRate));
   }, [playbackRate, player]);
 
   // Handle custom timeline slider changes and seeking operations (rewind/fast forward)
@@ -250,7 +321,7 @@ export const YouTubePlayer = ({
       lastSeekTime.current = Date.now();
 
       // Seek to the new time
-      player.seekTo(currentTime, true);
+      callPlayerSafely(() => player.seekTo(currentTime, true));
 
       // After a short delay, reset the seeking state
       setTimeout(() => {
@@ -279,7 +350,11 @@ export const YouTubePlayer = ({
     }
 
     const syncTime = () => {
-      const playerTime = player.getCurrentTime();
+      const playerTime = callPlayerSafely(() => player.getCurrentTime());
+      if (playerTime === undefined) {
+        playbackSyncFrameRef.current = window.requestAnimationFrame(syncTime);
+        return;
+      }
 
       // Update store time only if we're not currently seeking
       // This prevents overwriting the optimistic store update with the old player time
@@ -313,7 +388,7 @@ export const YouTubePlayer = ({
         // Only jump back when we reach or exceed the end time
         // Use a small tolerance to account for timing precision
         if (playerTime >= loopEnd + 0.005) {
-          player.seekTo(loopStart, true);
+          callPlayerSafely(() => player.seekTo(loopStart, true));
           console.log(
             `YouTube Loop: Audio reached ${playerTime.toFixed(
               3
@@ -323,7 +398,7 @@ export const YouTubePlayer = ({
           );
         } else if (playerTime < loopStart - startBuffer && playerTime > 0) {
           // If somehow we're before the start point (e.g., user dragged the slider)
-          player.seekTo(loopStart, true);
+          callPlayerSafely(() => player.seekTo(loopStart, true));
           console.log("YouTube Loop: Jumping to start point", loopStart);
         }
       }
@@ -340,7 +415,7 @@ export const YouTubePlayer = ({
   if (hiddenMode) {
     return (
       <div className="sr-only" aria-hidden="true">
-        <div id="youtube-player"></div>
+        <div ref={playerHostRef}></div>
       </div>
     );
   }
@@ -361,8 +436,7 @@ export const YouTubePlayer = ({
         }}
       >
         <div
-          id="youtube-player"
-          ref={playerRef}
+          ref={playerHostRef}
           className="absolute top-0 left-0 w-full h-full"
         />
       </div>

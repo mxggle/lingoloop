@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { usePlayerStore } from "../stores/playerStore";
+import { useTranscriptStore } from "../stores/transcriptStore";
+import { useProgressStore } from "../stores/progressStore";
 import { useShadowingStore } from "../stores/shadowingStore";
 import type { ShadowingSegment } from "../stores/shadowingStore";
 import { storeMediaFile } from "../utils/mediaStorage";
@@ -147,7 +149,8 @@ export const useShadowingRecorder = () => {
 
             // Look up the transcript segment to determine auto-stop time
             if (targetSegmentId) {
-                const { mediaTranscripts, getCurrentMediaId: getMediaId } = usePlayerStore.getState();
+                const { getCurrentMediaId: getMediaId } = usePlayerStore.getState();
+                const { mediaTranscripts } = useTranscriptStore.getState();
                 const currentMediaId = getMediaId();
                 const allSegments = currentMediaId ? (mediaTranscripts[currentMediaId] || []) : [];
                 const targetSeg = allSegments.find((s) => s.id === targetSegmentId);
@@ -258,6 +261,7 @@ export const useShadowingRecorder = () => {
 
                                 console.log("🎙️ [ShadowingRecorder] Adding segment to store:", segment);
                                 addSegment(mediaId, segment);
+                                useProgressStore.getState().recordStudyActivity(mediaId);
                                 // Also add to sentence recordings if per-sentence recording
                                 if (recordingSegmentId) {
                                     const { addSentenceRecording } = useShadowingStore.getState();

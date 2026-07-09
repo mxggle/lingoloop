@@ -66,7 +66,17 @@
     "takeOf": "テイク {{n}} / {{total}}",
     "recordFirstTake": "RECを押して最初のテイクを録音",
     "record": "録音",
-    "takes": "テイク一覧",
+    "takes": {
+      "title": "シャドーイング録音（{{count}}）",
+      "freeTake": "フリー録音",
+      "playTake": "この録音を再生",
+      "stopTake": "再生を停止",
+      "playOriginal": "元の音声を再生",
+      "deleteTake": "録音を削除",
+      "deleted": "録音を削除しました",
+      "missingAudio": "録音ファイルが見つかりません",
+      "playbackFailed": "録音を再生できませんでした"
+    },
     "take": "テイク",
     "recordingNow": "録音中...",
     "disableSentenceMode": "一文ずつ練習を無効化",
@@ -88,7 +98,9 @@
     "recordingError": "録音エラー：{{message}}",
     "recordingNotFound": "録音が見つかりません",
     "recordingPlayError": "録音の再生に失敗しました",
-    "recordingDeleted": "録音を削除しました"
+    "recordingDeleted": "録音を削除しました",
+    "practiceThisSentence": "この文を練習",
+    "practicedBadge": "練習済み"
   },
   "app": {
     "logoLabel": "Pawcastロゴ"
@@ -108,13 +120,17 @@
     "alreadySaved": "この選択範囲はすでに用語集にあります",
     "loadMediaFirst": "用語集に保存するには先にメディアを読み込んでください",
     "unknownMedia": "不明なメディア",
-    "entryCount": "{{count}} 件保存済み",
+    "entryCount": "{{count}} 件",
     "emptyTitle": "保存したテキストはまだありません",
     "emptyDescription": "トランスクリプト内のテキストを選択して保存すると、復習リストを作れます。",
     "playContext": "文脈を再生",
+    "openOriginalMedia": "元のメディアを開く",
     "playingContext": "保存した文脈を再生しています",
     "sourceMediaRequired": "この文脈を再生するには元のメディアを読み込んでください",
-    "deleteEntry": "用語集項目を削除"
+    "deleteEntry": "用語集項目を削除",
+    "searchPlaceholder": "保存した単語やフレーズを検索",
+    "clearSearch": "検索をクリア",
+    "noResults": "検索に一致する項目がありません。"
   },
   "settings": {
     "title": "設定",
@@ -186,7 +202,7 @@
       "remigrate": "再移行",
       "recoverySuccess": "復旧が完了しました",
       "recoveryFailed": "復旧に失敗しました: {{message}}",
-      "electronOnly": "データ管理はデスクトップアプリで利用できます",
+      "desktopOnly": "データ管理はデスクトップアプリで利用できます",
       "storage": "ストレージ",
       "usedOf": "/ {{total}} 使用中",
       "audioCache": "音声キャッシュ",
@@ -336,8 +352,16 @@
     "startPracticing": "練習を開始",
     "studioDesc": "ローカルメディアファイルを開くか、YouTubeからストリーミングして、言語習得セッションを開始してください。",
     "proTip": "プロのヒント：バッチ練習",
-    "electronHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。",
-    "podcasts": "ポッドキャストとRSS"
+    "desktopHint": "サイドバーにフォルダをドラッグすると、すべてのメディアを即座にマッピングして構造化されたシャドーイングセッションを行えます。",
+    "podcasts": "ポッドキャストとRSS",
+    "continueStudying": "学習を続ける",
+    "resumeAt": "{{time}} から再開",
+    "stats": {
+      "bookmarks": "ブックマーク",
+      "glossary": "単語帳",
+      "takes": "シャドーイング録音",
+      "practiced": "練習済みの文"
+    }
   },
   "player": {
     "play": "再生",
@@ -537,7 +561,17 @@
     "unsupportedFileType": "サポートされていないファイルタイプです",
     "noMediaToTranscribe": "文字起こしするメディアがありません",
     "openaiClientNotInitialized": "文字起こしサービスが初期化されていません",
-    "youtubeTranscriptionWarning": "YouTubeの文字起こしにはサーバーサイドの処理が必要です。代わりにシミュレーションを使用しています。",
+    "youtubeTranscriptionWarning": "YouTubeの音声と字幕はデスクトップアプリでのみ準備できます。",
+    "youtubeCaptionsUnavailable": "YouTube字幕が見つかりませんでした。ダウンロードした音声を{{provider}}で文字起こしできます。",
+    "youtubeCaptionsImported": "YouTube字幕をインポートしました · {{count}}セグメント",
+    "youtubeCaptions": "YouTube字幕",
+    "aiTranscript": "AI文字起こし",
+    "youtubePreparation": {
+      "checking": "保存済みのYouTubeメディアを確認しています…",
+      "downloading": "YouTube音声をダウンロードしています…",
+      "captions": "YouTube字幕を検索しています…",
+      "importing": "字幕をトランスクリプトに追加しています…"
+    },
     "transcriptionFailed": "メディアの文字起こしに失敗しました。",
     "invalidApiKey": "無効なAPIキーです。APIキーを確認してください。",
     "rateLimitExceeded": "レート制限を超えました。後でもう一度お試しください。",
@@ -574,6 +608,8 @@
     "selectionKnownItem": "{{type}} ・ {{level}}",
     "explainSelection": "文脈で説明",
     "levelToggle": "レベル表示の切り替え",
+    "levelSystemSetting": "ハイライトのレベル基準を選択",
+    "levelSystemAuto": "自動 ({{system}})",
     "levelsOn": "レベル表示 ON",
     "levelsOff": "レベル表示 OFF",
     "levelFilter": "レベル絞り込み",
@@ -587,7 +623,23 @@
     "exportTranscript": "トランスクリプトをエクスポート",
     "scrollToCurrent": "再生中の文章を表示",
     "autoScroll": "自動スクロール",
+    "translation": {
+      "menuTitle": "翻訳",
+      "showTranslation": "翻訳を表示",
+      "language": "翻訳先の言語",
+      "loading": "翻訳中…",
+      "retry": "翻訳に失敗しました — 再試行",
+      "configureApiKey": "翻訳するには AI キーを設定",
+      "clickToReveal": "クリックして翻訳を表示",
+      "blurTitle": "ぼかし",
+      "blurMode": {
+        "none": "常に表示",
+        "hover": "ぼかし — ホバーで表示",
+        "click": "ぼかし — クリックで表示"
+      }
+    },
     "languages": {
+      "auto": "自動検出",
       "en-US": "英語 (米国)",
       "en-GB": "英語 (英国)",
       "es-ES": "スペイン語",
@@ -740,6 +792,9 @@
     "hideSidebar": "サイドバーを隠す",
     "showSidebar": "サイドバーを表示",
     "keyboardShortcuts": "キーボードショートカット",
+    "shortcutGroupPlayback": "再生",
+    "shortcutGroupLoop": "ABループ",
+    "shortcutGroupNavigation": "ナビゲーション",
     "playPause": "再生/一時停止",
     "setAPoint": "現在時刻にAポイントを設定",
     "setBPoint": "現在時刻にBポイントを設定",
@@ -797,7 +852,12 @@
     "loopSelection": "ループ選択",
     "touchSelectHint": "タップしてドラッグするとループを選択できます",
     "desktopSelectHint": "波形をドラッグしてループ範囲を選択します",
-    "youtubePlaceholder": "プレースホルダー波形を表示中。リアル波形機能は近日公開予定",
+    "youtubePlaceholder": "YouTube音声の波形を準備しています…",
+    "youtubePreparation": {
+      "checking": "保存済みの音声を確認しています…",
+      "downloading": "YouTube音声をダウンロードしています…",
+      "captions": "字幕を検索しています…"
+    },
     "analyzing": "波形を解析中...",
     "analysisError": "波形の解析に失敗しました。プレビューを表示しています。",
     "zoomIn": "拡大",
@@ -828,6 +888,7 @@
   },
   "sidebar": {
     "library": "ライブラリ",
+    "navigation": "ナビゲーション",
     "explorer": "エクスプローラー",
     "recent": "最近",
     "addFolder": "フォルダーを追加",

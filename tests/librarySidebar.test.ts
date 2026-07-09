@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import type { FolderTreeNode } from "../src/types/electron.d.ts";
+import type { FolderTreeNode } from "../src/types/desktop.ts";
 import {
   filterFolderTree,
   sortFolderTree,
-} from "../src/components/electron/librarySidebar.ts";
+} from "../src/components/desktop/librarySidebar.ts";
 
 const tree: FolderTreeNode[] = [
   {

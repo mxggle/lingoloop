@@ -66,7 +66,17 @@
     "takeOf": "Take {{n}} of {{total}}",
     "recordFirstTake": "Press REC to record your first take",
     "record": "Record",
-    "takes": "Takes",
+    "takes": {
+      "title": "Shadowing takes ({{count}})",
+      "freeTake": "Free take",
+      "playTake": "Play this take",
+      "stopTake": "Stop playback",
+      "playOriginal": "Play the original range",
+      "deleteTake": "Delete take",
+      "deleted": "Take deleted",
+      "missingAudio": "Recording audio not found",
+      "playbackFailed": "Could not play the recording"
+    },
     "take": "Take",
     "recordingNow": "Recording...",
     "disableSentenceMode": "Disable Sentence Mode",
@@ -88,7 +98,9 @@
     "recordingError": "Recording error: {{message}}",
     "recordingNotFound": "Recording not found",
     "recordingPlayError": "Failed to play recording",
-    "recordingDeleted": "Recording deleted"
+    "recordingDeleted": "Recording deleted",
+    "practiceThisSentence": "Practice this sentence",
+    "practicedBadge": "Practiced"
   },
   "app": {
     "logoLabel": "Pawcast logo"
@@ -108,13 +120,18 @@
     "alreadySaved": "This selection is already in your glossary",
     "loadMediaFirst": "Load media before saving to the glossary",
     "unknownMedia": "Unknown media",
-    "entryCount": "{{count}} saved",
     "emptyTitle": "No saved text yet",
     "emptyDescription": "Select text in a transcript and save it to build your review list.",
     "playContext": "Play context",
+    "openOriginalMedia": "Open original media",
     "playingContext": "Playing saved context",
     "sourceMediaRequired": "Load the source media first to play this context",
-    "deleteEntry": "Delete glossary entry"
+    "deleteEntry": "Delete glossary entry",
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries",
+    "searchPlaceholder": "Search saved words and phrases",
+    "clearSearch": "Clear search",
+    "noResults": "No entries match your search."
   },
   "settings": {
     "title": "Settings",
@@ -186,7 +203,7 @@
       "remigrate": "Re-migrate",
       "recoverySuccess": "Recovery completed successfully",
       "recoveryFailed": "Recovery failed: {{message}}",
-      "electronOnly": "Data management is available in the desktop app",
+      "desktopOnly": "Data management is available in the desktop app",
       "storage": "Storage",
       "usedOf": "used of {{total}}",
       "audioCache": "Audio cache",
@@ -336,8 +353,16 @@
     "startPracticing": "Start Practicing",
     "studioDesc": "Open a local media file or stream from YouTube to begin your language mastery session.",
     "proTip": "Pro Tip: Batch Practice",
-    "electronHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
-    "podcasts": "Podcasts & RSS"
+    "desktopHint": "Drag a folder to the sidebar to instantly map all media for a structured shadowing session.",
+    "podcasts": "Podcasts & RSS",
+    "continueStudying": "Continue studying",
+    "resumeAt": "Resume at {{time}}",
+    "stats": {
+      "bookmarks": "Bookmarks",
+      "glossary": "Glossary entries",
+      "takes": "Shadowing takes",
+      "practiced": "Sentences practiced"
+    }
   },
   "player": {
     "play": "Play",
@@ -537,7 +562,18 @@
     "unsupportedFileType": "Unsupported file type",
     "noMediaToTranscribe": "No media loaded to transcribe",
     "openaiClientNotInitialized": "Transcription service not initialized",
-    "youtubeTranscriptionWarning": "YouTube transcription requires server-side processing. Using simulation instead.",
+    "youtubeTranscriptionWarning": "YouTube audio and captions can only be prepared in the desktop app.",
+    "youtubeCaptionsUnavailable": "No YouTube captions found. Transcribe the downloaded audio with {{provider}}.",
+    "youtubeCaptionsImported_one": "YouTube captions imported · {{count}} segment",
+    "youtubeCaptionsImported_other": "YouTube captions imported · {{count}} segments",
+    "youtubeCaptions": "YouTube captions",
+    "aiTranscript": "AI transcript",
+    "youtubePreparation": {
+      "checking": "Checking saved YouTube media…",
+      "downloading": "Downloading YouTube audio…",
+      "captions": "Searching for YouTube captions…",
+      "importing": "Adding captions to the transcript…"
+    },
     "transcriptionFailed": "Failed to transcribe media. ",
     "invalidApiKey": "Invalid API key. Please check your API key.",
     "rateLimitExceeded": "Rate limit exceeded. Please try again later.",
@@ -582,6 +618,8 @@
     "selectionKnownItem": "{{type}} · {{level}}",
     "explainSelection": "Explain in context",
     "levelToggle": "Toggle transcript levels",
+    "levelSystemSetting": "Choose highlight level system",
+    "levelSystemAuto": "Auto ({{system}})",
     "levelsOn": "Levels On",
     "levelsOff": "Levels Off",
     "levelFilter": "Level Filter",
@@ -593,7 +631,23 @@
     "dropdownArrow": "▾",
     "scrollToCurrent": "Locate active sentence",
     "autoScroll": "Auto-scroll to current",
+    "translation": {
+      "menuTitle": "Translation",
+      "showTranslation": "Show translation",
+      "language": "Translate into",
+      "loading": "Translating…",
+      "retry": "Translation failed — retry",
+      "configureApiKey": "Set up an AI key to translate",
+      "clickToReveal": "Click to reveal translation",
+      "blurTitle": "Blur",
+      "blurMode": {
+        "none": "Always show",
+        "hover": "Blur — reveal on hover",
+        "click": "Blur — reveal on click"
+      }
+    },
     "languages": {
+      "auto": "Auto-detect",
       "en-US": "English (US)",
       "en-GB": "English (UK)",
       "es-ES": "Spanish",
@@ -740,6 +794,9 @@
     "hideSidebar": "Hide Sidebar",
     "showSidebar": "Show Sidebar",
     "keyboardShortcuts": "Keyboard Shortcuts",
+    "shortcutGroupPlayback": "Playback",
+    "shortcutGroupLoop": "A-B Loop",
+    "shortcutGroupNavigation": "Navigation",
     "playPause": "Play/Pause",
     "setAPoint": "Set A point at current time",
     "setBPoint": "Set B point at current time",
@@ -797,7 +854,12 @@
     "loopSelection": "Loop Selection",
     "touchSelectHint": "Tap and drag to select loop",
     "desktopSelectHint": "Drag on waveform to select loop area",
-    "youtubePlaceholder": "Placeholder waveform displayed. Real waveform coming soon.",
+    "youtubePlaceholder": "Preparing YouTube audio waveform…",
+    "youtubePreparation": {
+      "checking": "Checking saved audio…",
+      "downloading": "Downloading YouTube audio…",
+      "captions": "Searching for captions…"
+    },
     "analyzing": "Analyzing waveform...",
     "analysisError": "Waveform analysis failed. Using preview.",
     "zoomIn": "Zoom In",
@@ -828,6 +890,7 @@
   },
   "sidebar": {
     "library": "LIBRARY",
+    "navigation": "Navigation",
     "explorer": "EXPLORER",
     "recent": "RECENT",
     "addFolder": "Add folder",

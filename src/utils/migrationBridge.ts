@@ -1,4 +1,5 @@
 import type { MigrationPayload } from '../types/persistence'
+import { desktopApi } from '../platform/runtime'
 
 async function readAllFromStore(db: IDBDatabase, storeName: string): Promise<unknown[]> {
   return new Promise((resolve, reject) => {
@@ -73,10 +74,10 @@ export async function collectIndexedDBData(): Promise<MigrationPayload['indexedD
 }
 
 export async function runMigrationIfNeeded(): Promise<boolean> {
-  if (!window.electronAPI) return false
+  if (!desktopApi) return false
 
   try {
-    const isMigrated = await window.electronAPI.dataIsMigrated()
+    const isMigrated = await desktopApi.dataIsMigrated()
     if (isMigrated) return false
   } catch {
     return false
@@ -85,7 +86,7 @@ export async function runMigrationIfNeeded(): Promise<boolean> {
   try {
     const localStorageData = await collectLocalStorageData()
     const indexedDBData = await collectIndexedDBData()
-    const result = await window.electronAPI.dataRunMigration(localStorageData, indexedDBData)
+    const result = await desktopApi.dataRunMigration(localStorageData, indexedDBData)
     console.log('Migration result:', result)
     return result.success
   } catch (err) {

@@ -16,7 +16,7 @@ import { SettingsSection } from "./SettingsSection";
 import { SettingsIconChip } from "./SettingsIconChip";
 
 // Visual-only storage breakdown. Real per-category usage is only wired up in the
-// desktop (Electron) data panel; on web these figures are illustrative.
+// desktop data panel; on web these figures are illustrative.
 const STORAGE_TOTAL_MB = 8192;
 const STORAGE_SEGMENTS = [
   { id: "audio", labelKey: "settingsPage.data.audioCache", icon: HardDrive, bytes: 1840, color: "var(--theme-primary)" },

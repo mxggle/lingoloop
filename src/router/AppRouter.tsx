@@ -19,12 +19,12 @@ const GlossaryPage = lazy(async () => {
   return { default: module.GlossaryPage };
 });
 const SettingsWindowPage = lazy(async () => {
-  const module = await import("../pages/ElectronSettingsWindowPage");
-  return { default: module.ElectronSettingsWindowPage };
+  const module = await import("../pages/DesktopSettingsWindowPage");
+  return { default: module.DesktopSettingsWindowPage };
 });
 const GlossaryWindowPage = lazy(async () => {
-  const module = await import("../pages/ElectronGlossaryWindowPage");
-  return { default: module.ElectronGlossaryWindowPage };
+  const module = await import("../pages/DesktopGlossaryWindowPage");
+  return { default: module.DesktopGlossaryWindowPage };
 });
 const SentencePracticePage = lazy(async () => {
   const module = await import("../pages/SentencePracticePage");

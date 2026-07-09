@@ -1,7 +1,8 @@
-import { usePlayerStore } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import { TranscriptUploader } from "./TranscriptUploader";
 
 const LANGUAGE_OPTIONS = [
+  { value: "auto", label: "Auto-detect" },
   { value: "en-US", label: "English (US)" },
   { value: "en-GB", label: "English (UK)" },
   { value: "es-ES", label: "Spanish" },
@@ -15,7 +16,7 @@ const LANGUAGE_OPTIONS = [
 
 export const TranscriptControls = () => {
   const { transcriptLanguage, setTranscriptLanguage, exportTranscript } =
-    usePlayerStore();
+    useTranscriptStore();
 
   return (
     <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex flex-wrap items-center justify-between gap-2">

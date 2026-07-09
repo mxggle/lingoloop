@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
+import { desktopApi } from "../platform/runtime";
 import {
   DEFAULT_OPENCODE_BASE_URL,
   aiService,
@@ -14,6 +15,7 @@ import {
   TranscriptionProvider,
   normalizeModelId,
 } from "../types/aiService";
+import { getAiSettingsPayload } from "../utils/aiSettingsSync";
 
 export type ConnectionStatus = "idle" | "success" | "error";
 
@@ -546,7 +548,7 @@ export function useAiSettingsState(): UseAiSettingsStateResult {
       window.dispatchEvent(new CustomEvent("aiSettingsUpdated"));
       window.dispatchEvent(new CustomEvent("ai-settings-updated"));
       settingsBroadcastChannel?.postMessage({ type: "ai-settings-updated" });
-      void window.electronAPI?.configSet("ai-settings-storage", Date.now().toString());
+      void desktopApi?.broadcastAiSettings(getAiSettingsPayload());
     }, 400);
 
     return () => {

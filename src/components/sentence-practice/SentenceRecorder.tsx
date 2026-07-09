@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { UniversalAudioRecorder } from "../../utils/audioRecorder";
 import { storeMediaFile, retrieveMediaFile } from "../../utils/mediaStorage";
 import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
+import { useProgressStore } from "../../stores/progressStore";
 import { formatTime } from "../../utils/formatTime";
 import { recordingRepository } from "../../repositories/recordingRepository";
 
@@ -146,6 +147,7 @@ export const SentenceRecorder = ({ mediaId, sentenceIndex }: SentenceRecorderPro
             createdAt: Date.now(),
             peaks: peaksRef.current.length > 0 ? [...peaksRef.current] : undefined,
           });
+          useProgressStore.getState().markSentencePracticed(mediaId, sentenceIndex);
 
           toast.success(t("sentencePractice.recordingSaved"));
         } catch (error) {

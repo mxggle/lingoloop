@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { toast } from "react-hot-toast";
 import i18n from "../i18n";
 import {
@@ -6,7 +7,9 @@ import {
   setStoredTranscript,
   deleteStoredTranscript,
 } from "../utils/mediaStorage";
-import { useMediaStore } from "./mediaStore";
+import { desktopStorage } from "./desktopStorage";
+import { seedFromLegacyPlayerStorage } from "./legacyPlayerStorage";
+import { usePlayerStore } from "./playerStore";
 import { useBookmarkStore } from "./bookmarkStore";
 import type { TranscriptSegment, MediaTranscripts, MediaTranscriptStudies } from "../types/transcript";
 import type { CreateGlossaryEntryInput, GlossaryEntry, MediaTranscriptStudy } from "../types/transcriptStudy";
@@ -16,9 +19,6 @@ import {
   inferTranscriptLevelSystem,
 } from "../utils/transcriptStudy";
 import { createGlossaryEntry, isDuplicateGlossaryEntry } from "../utils/glossary";
-import { transcriptRepository } from "../repositories/transcriptRepository";
-import { transcriptStudyRepository } from "../repositories/transcriptStudyRepository";
-import type { PersistedSegmentStudy, PersistedTranscriptSegment } from "../types/persistence";
 
 export interface TranscriptState {
   mediaTranscripts: MediaTranscripts;
@@ -37,12 +37,12 @@ export interface TranscriptActions {
   addTranscriptSegment: (segment: Omit<TranscriptSegment, "id">) => void;
   addTranscriptSegments: (segments: Array<Omit<TranscriptSegment, "id">>) => void;
   updateTranscriptSegment: (id: string, changes: Partial<TranscriptSegment>) => void;
-  clearTranscript: () => void;
+  clearTranscript: (source?: TranscriptSegment["source"]) => void;
   setShowTranscript: (show: boolean) => void;
   toggleShowTranscript: () => void;
   setTranscriptLanguage: (language: string) => void;
-  exportTranscript: (format: "txt" | "srt" | "vtt") => string;
-  importTranscript: (file: File) => Promise<void>;
+  exportTranscript: (format: "txt" | "srt" | "vtt", source?: "youtube" | "ai") => string;
+  importTranscript: (file: File, source?: "ai" | "imported") => Promise<void>;
   createBookmarkFromTranscript: (segmentId: string) => void;
   loadTranscriptForMedia: (mediaId: string) => Promise<void>;
   addGlossaryEntry: (entry: CreateGlossaryEntryInput) => boolean;
@@ -52,10 +52,17 @@ export interface TranscriptActions {
 }
 
 function getMediaId(): string | null {
-  return useMediaStore.getState().getCurrentMediaId();
+  return usePlayerStore.getState().getCurrentMediaId();
 }
 
-export const useTranscriptStore = create<TranscriptState & TranscriptActions>()((set, get) => ({
+/** Monotonic id for transcript loads — lets the latest load own the shared loading flag. */
+let transcriptLoadRequestId = 0;
+
+export const STUDY_STORAGE_KEY = "pawcast-study";
+
+export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
+  persist(
+    (set, get) => ({
   mediaTranscripts: {},
   mediaTranscriptStudy: {},
   glossaryEntries: [],
@@ -65,27 +72,36 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
   transcriptLanguage: "en-US",
 
   async loadTranscriptForMedia(mediaId: string) {
+    const requestId = ++transcriptLoadRequestId;
     set({ isTranscriptLoading: true });
-    const transcriptRecord = await getStoredTranscriptRecord(mediaId);
-    const segments = transcriptRecord?.segments || [];
-    const levelSystem = inferTranscriptLevelSystem(get().transcriptLanguage);
-    const studyBySegment =
-      transcriptRecord?.studyBySegment && Object.keys(transcriptRecord.studyBySegment).length > 0
-        ? transcriptRecord.studyBySegment
-        : buildTranscriptStudy(segments, levelSystem);
+    try {
+      const transcriptRecord = await getStoredTranscriptRecord(mediaId);
+      const segments = transcriptRecord?.segments || [];
+      const levelSystem = inferTranscriptLevelSystem(
+        get().transcriptLanguage,
+        segments.map((segment) => segment.text).join(" ")
+      );
+      const studyBySegment =
+        transcriptRecord?.studyBySegment && Object.keys(transcriptRecord.studyBySegment).length > 0
+          ? transcriptRecord.studyBySegment
+          : buildTranscriptStudy(segments, levelSystem);
 
-    if (transcriptRecord && Object.keys(transcriptRecord.studyBySegment).length === 0 && segments.length > 0) {
-      void setStoredTranscript(mediaId, segments, studyBySegment);
-    }
+      if (transcriptRecord && Object.keys(transcriptRecord.studyBySegment).length === 0 && segments.length > 0) {
+        void setStoredTranscript(mediaId, segments, studyBySegment);
+      }
 
-    set((state) => {
-      const currentMediaId = getMediaId();
-      return {
+      set((state) => ({
         mediaTranscripts: { ...state.mediaTranscripts, [mediaId]: segments },
         mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId]: studyBySegment },
-        isTranscriptLoading: currentMediaId === mediaId ? false : state.isTranscriptLoading,
-      };
-    });
+      }));
+    } finally {
+      // Only the latest in-flight load owns the shared loading flag; a stale
+      // load finishing after a newer one started must not clear it early,
+      // and an aborted/failed load must not leave it stuck on.
+      if (requestId === transcriptLoadRequestId) {
+        set({ isTranscriptLoading: false });
+      }
+    }
   },
 
   startTranscribing: () => set({ isTranscribing: true }),
@@ -111,7 +127,9 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       segments.forEach((segment) => {
         const newSegment = { ...segment, id: crypto.randomUUID() };
         const isDuplicate = nextSegments.some(
-          (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 && s.text === newSegment.text
+          (s) => Math.abs(s.startTime - newSegment.startTime) < 0.1 &&
+            s.text === newSegment.text &&
+            (s.source ?? "ai") === (newSegment.source ?? "ai")
         );
         if (!isDuplicate) {
           nextSegments.push(newSegment);
@@ -123,10 +141,11 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
 
       updatedSegments = nextSegments.sort((a, b) => a.startTime - b.startTime);
       updatedStudyBySegment = { ...(state.mediaTranscriptStudy[mediaId] || {}) };
-      const levelSystem = inferTranscriptLevelSystem(state.transcriptLanguage);
-
       acceptedSegments.forEach((segment) => {
-        updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(segment.text, levelSystem);
+        updatedStudyBySegment![segment.id] = buildSegmentTranscriptStudy(
+          segment.text,
+          inferTranscriptLevelSystem(state.transcriptLanguage, segment.text)
+        );
       });
 
       return {
@@ -156,7 +175,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       if (updatedSegment) {
         updatedStudyBySegment[id] = buildSegmentTranscriptStudy(
           updatedSegment.text,
-          inferTranscriptLevelSystem(state.transcriptLanguage)
+          inferTranscriptLevelSystem(state.transcriptLanguage, updatedSegment.text)
         );
       }
       return {
@@ -168,23 +187,49 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     void setStoredTranscript(mediaId, updatedSegments, updatedStudyBySegment);
   },
 
-  clearTranscript() {
+  clearTranscript(source) {
     const mediaId = getMediaId();
     if (!mediaId) return;
-    set((state) => ({
-      mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: [] },
-      mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: {} },
-    }));
-    void deleteStoredTranscript(mediaId);
+    if (!source) {
+      set((state) => ({
+        mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: [] },
+        mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: {} },
+      }));
+      void deleteStoredTranscript(mediaId);
+      return;
+    }
+
+    let retainedSegments: TranscriptSegment[] = [];
+    let retainedStudy: MediaTranscriptStudy = {};
+    set((state) => {
+      retainedSegments = (state.mediaTranscripts[mediaId] || []).filter((segment) => {
+        const segmentSource = segment.source ?? "ai";
+        return segmentSource !== source;
+      });
+      const retainedIds = new Set(retainedSegments.map((segment) => segment.id));
+      retainedStudy = Object.fromEntries(
+        Object.entries(state.mediaTranscriptStudy[mediaId] || {}).filter(([id]) => retainedIds.has(id))
+      );
+      return {
+        mediaTranscripts: { ...state.mediaTranscripts, [mediaId!]: retainedSegments },
+        mediaTranscriptStudy: { ...state.mediaTranscriptStudy, [mediaId!]: retainedStudy },
+      };
+    });
+    void setStoredTranscript(mediaId, retainedSegments, retainedStudy);
   },
 
   setShowTranscript: (show) => set({ showTranscript: show }),
   toggleShowTranscript: () => set((s) => ({ showTranscript: !s.showTranscript })),
   setTranscriptLanguage: (language) => set({ transcriptLanguage: language }),
 
-  exportTranscript(format) {
+  exportTranscript(format, source) {
     const mediaId = getMediaId();
-    const segments = mediaId ? get().mediaTranscripts[mediaId] || [] : [];
+    const allSegments = mediaId ? get().mediaTranscripts[mediaId] || [] : [];
+    const segments = source === "youtube"
+      ? allSegments.filter((segment) => segment.source === "youtube")
+      : source === "ai"
+        ? allSegments.filter((segment) => segment.source !== "youtube")
+        : allSegments;
     if (segments.length === 0) {
       toast.error(i18n.t("transcript.noDataToExport"));
       return "";
@@ -204,7 +249,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     return "";
   },
 
-  async importTranscript(file) {
+  async importTranscript(file, source = "imported") {
     try {
       const mediaId = getMediaId();
       if (!mediaId) { toast.error(i18n.t("player.noMediaLoadedSimple")); return; }
@@ -214,7 +259,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
         reader.onerror = () => reject(reader.error);
         reader.readAsText(file);
       });
-      get().clearTranscript();
+      get().clearTranscript(source === "ai" ? "ai" : undefined);
       const fileName = file.name.toLowerCase();
       let segs: Omit<TranscriptSegment, "id">[] = [];
       if (fileName.endsWith(".srt")) segs = parseSrt(content);
@@ -223,7 +268,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       else if (content.includes("WEBVTT")) segs = parseVtt(content);
       else if (content.includes("-->") && /^\d+$/m.test(content.split("\n")[0]?.trim())) segs = parseSrt(content);
       else segs = parseTxt(content);
-      segs.forEach((s) => get().addTranscriptSegment(s));
+      segs.forEach((s) => get().addTranscriptSegment({ ...s, source }));
     } catch (error) { console.error("Error importing transcript:", error); toast.error(i18n.t("transcript.importError")); }
 
     function norm(c: string) { return c.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").trim(); }
@@ -276,7 +321,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
       const truncateAt = cleanText.lastIndexOf(" ", 40);
       title = truncateAt > 20 ? cleanText.substring(0, truncateAt) + "..." : cleanText.substring(0, 37) + "...";
     }
-    const ms = useMediaStore.getState();
+    const ms = usePlayerStore.getState();
     useBookmarkStore.getState().addBookmark({
       name: title, start: segment.startTime, end: segment.endTime,
       mediaName: ms.currentFile?.name, mediaType: ms.currentFile?.type,
@@ -296,7 +341,7 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     const currentMediaId = getMediaId();
     if (!entry || !currentMediaId || entry.mediaId !== currentMediaId) return false;
     const startTime = Math.max(0, entry.startTime - 0.15);
-    useMediaStore.setState({ currentTime: startTime, loopStart: startTime, loopEnd: entry.endTime, isLooping: true, isPlaying: true, loopCount: 0 });
+    usePlayerStore.setState({ currentTime: startTime, loopStart: startTime, loopEnd: entry.endTime, isLooping: true, isPlaying: true, loopCount: 0 });
     useBookmarkStore.setState({ selectedBookmarkId: null });
     return true;
   },
@@ -304,44 +349,28 @@ export const useTranscriptStore = create<TranscriptState & TranscriptActions>()(
     const mediaId = getMediaId();
     return mediaId ? get().mediaTranscripts[mediaId] || [] : [];
   },
-}));
-
-// ─── Dual-write sync ───
-let _transcriptSaveTimer: ReturnType<typeof setTimeout>
-useTranscriptStore.subscribe((state) => {
-  clearTimeout(_transcriptSaveTimer)
-  _transcriptSaveTimer = setTimeout(() => {
-    // Sync transcripts
-    const mediaIds = Object.keys(state.mediaTranscripts || {})
-    for (const mediaId of mediaIds) {
-      const segments = state.mediaTranscripts[mediaId]
-      if (Array.isArray(segments) && segments.length > 0) {
-        transcriptRepository.saveTranscript(mediaId, segments as PersistedTranscriptSegment[]).catch(() => {})
-      }
+    }),
+    {
+      name: STUDY_STORAGE_KEY,
+      storage: createJSONStorage(() => desktopStorage),
+      version: 1,
+      // Transcripts themselves persist per-media via mediaStorage; only the
+      // glossary and study preferences live in this key.
+      partialize: (state) => ({
+        glossaryEntries: state.glossaryEntries,
+        showTranscript: state.showTranscript,
+        transcriptLanguage: state.transcriptLanguage,
+      }),
     }
+  )
+);
 
-    // Sync study data
-    const studyIds = Object.keys(state.mediaTranscriptStudy || {})
-    for (const mediaId of studyIds) {
-      const study = state.mediaTranscriptStudy[mediaId]
-      if (study && typeof study === 'object') {
-        const segmentStudies: PersistedSegmentStudy[] = []
-        for (const segId of Object.keys(study)) {
-          const s = study[segId]
-          if (s) {
-            segmentStudies.push({
-              segmentId: segId,
-              levelSystem: s.levelSystem || 'cefr',
-              updatedAt: s.updatedAt || Date.now(),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              items: (s.items || []) as any,
-            })
-          }
-        }
-        if (segmentStudies.length > 0) {
-          transcriptStudyRepository.saveStudy(mediaId, segmentStudies).catch(() => {})
-        }
-      }
-    }
-  }, 300)
-})
+void seedFromLegacyPlayerStorage(useTranscriptStore, STUDY_STORAGE_KEY, (legacy) => {
+  const picked: Partial<TranscriptState> = {};
+  if (Array.isArray(legacy.glossaryEntries) && legacy.glossaryEntries.length > 0) {
+    picked.glossaryEntries = legacy.glossaryEntries as GlossaryEntry[];
+  }
+  if (typeof legacy.showTranscript === "boolean") picked.showTranscript = legacy.showTranscript;
+  if (typeof legacy.transcriptLanguage === "string") picked.transcriptLanguage = legacy.transcriptLanguage;
+  return picked;
+});

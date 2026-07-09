@@ -88,13 +88,21 @@ export class WaveformRenderer {
   // ==================== Public API ====================
 
   setWaveform(peaks: Float32Array, duration: number): void {
-    this._peaks = peaks; this._duration = duration; this.redrawStatic();
+    this._peaks = peaks;
+    this._min = null; this._max = null; this._rms = null;
+    this._duration = duration; this.redrawStatic();
   }
   setWaveformData(data: WaveformLevelData): void {
+    this._peaks = null;
     this._min = data.min;
     this._max = data.max;
     this._rms = data.rms;
     this._duration = (data.min.length * data.samplesPerPeak) / data.sampleRate;
+    this.redrawStatic();
+  }
+  clearWaveform(): void {
+    this._peaks = null; this._min = null; this._max = null; this._rms = null;
+    this._duration = 0;
     this.redrawStatic();
   }
   setViewport(zoom: number, scrollOffset: number): void {

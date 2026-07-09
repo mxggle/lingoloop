@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { desktopApi } from "../../platform/runtime";
 
 const languages = [
   { code: "en", name: "English", nativeName: "English" },
@@ -14,7 +15,7 @@ export const LanguageSelector: React.FC = () => {
 
   const handleLanguageChange = (languageCode: string) => {
     void i18n.changeLanguage(languageCode);
-    void window.electronAPI?.configSet("i18nextLng", languageCode);
+    void desktopApi?.configSet("i18nextLng", languageCode);
   };
 
   return (

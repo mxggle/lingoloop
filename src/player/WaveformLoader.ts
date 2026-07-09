@@ -1,4 +1,5 @@
 import type { WaveformLevelData, WaveformLevelMeta } from './types';
+import { desktopApi } from '../platform/runtime';
 
 // Matches the structure returned by IPC
 interface WaveformMeta {
@@ -16,18 +17,17 @@ interface CachedLevel {
 /**
  * Service that loads and caches FFmpeg-generated waveform data.
  *
- * On Electron: uses IPC to request analysis from main process.
+ * On desktop: uses the native waveform service.
  * On web: falls back to AudioContext-based analysis (Float32Array peaks).
  */
 export class WaveformLoader {
   private metas = new Map<string, WaveformMeta>();
   private levels = new Map<string, Map<number, CachedLevel>>();
-  private pendingAnalysis = new Set<string>();
+  private pendingAnalysis = new Map<string, Promise<WaveformMeta | null>>();
 
-  /** True if we're running in Electron with the waveform IPC available. */
+  /** True when the native desktop waveform capability is available. */
   get isAvailable(): boolean {
-    return typeof window !== 'undefined'
-      && !!window.electronAPI?.waveformAnalyze;
+    return desktopApi !== null;
   }
 
   /**
@@ -40,33 +40,37 @@ export class WaveformLoader {
     onProgress?: (fraction: number) => void,
   ): Promise<WaveformMeta | null> {
     if (!this.isAvailable) {
-      throw new Error('WaveformLoader: Electron waveform API not available');
+      throw new Error('WaveformLoader: desktop waveform API not available');
     }
 
-    if (this.pendingAnalysis.has(mediaId)) {
-      // Wait for existing analysis
-      const meta = this.metas.get(mediaId);
-      if (meta) return meta;
-      throw new Error('WaveformLoader: analysis already in progress for ' + mediaId);
-    }
-
-    this.pendingAnalysis.add(mediaId);
+    const api = desktopApi;
+    if (!api) return null;
 
     let unsub: (() => void) | undefined;
     if (onProgress) {
-      unsub = window.electronAPI!.onWaveformProgress((payload) => {
+      unsub = api.onWaveformProgress((payload) => {
         if (payload.mediaId === mediaId) {
           onProgress(payload.fraction);
         }
       });
     }
 
+    let analysis = this.pendingAnalysis.get(mediaId);
+    if (!analysis) {
+      analysis = api.waveformAnalyze(filePath, mediaId)
+        .then((meta) => {
+          if (meta) this.metas.set(mediaId, meta);
+          return meta;
+        })
+        .finally(() => {
+          this.pendingAnalysis.delete(mediaId);
+        });
+      this.pendingAnalysis.set(mediaId, analysis);
+    }
+
     try {
-      const meta = await window.electronAPI!.waveformAnalyze(filePath, mediaId);
-      if (meta) this.metas.set(mediaId, meta);
-      return meta;
+      return await analysis;
     } finally {
-      this.pendingAnalysis.delete(mediaId);
       unsub?.();
     }
   }
@@ -78,7 +82,7 @@ export class WaveformLoader {
 
     if (!this.isAvailable) return null;
 
-    const meta = await window.electronAPI!.waveformGetMeta(mediaId);
+    const meta = await desktopApi?.waveformGetMeta(mediaId) ?? null;
     if (meta) this.metas.set(mediaId, meta);
     return meta;
   }
@@ -98,7 +102,7 @@ export class WaveformLoader {
 
     if (!this.isAvailable) return null;
 
-    const raw = await window.electronAPI!.waveformGetLevel(mediaId, level);
+    const raw = await desktopApi?.waveformGetLevel(mediaId, level) ?? null;
     if (!raw) return null;
 
     const data: WaveformLevelData = {

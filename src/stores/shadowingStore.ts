@@ -49,6 +49,7 @@ interface ShadowingActions {
     addSegment: (mediaId: string, segment: ShadowingSegment) => void;
     getSegments: (mediaId: string) => ShadowingSegment[];
     clearSegments: (mediaId: string) => void;
+    removeSegment: (mediaId: string, segmentRecordingId: string) => Promise<void>;
     deleteAllSegments: (mediaId: string) => Promise<void>;
     removeOverlappingSegments: (mediaId: string, startTime: number, endTime: number) => Promise<void>;
     setRecordingSegmentId: (segmentId: string | undefined) => void;
@@ -158,6 +159,44 @@ export const useShadowingStore = create<ShadowingState & ShadowingActions>()(
                 delete rest[mediaId];
                 return { sessions: rest };
             }),
+
+            removeSegment: async (mediaId, segmentRecordingId) => {
+                const session = get().sessions[mediaId];
+                const target = session?.segments.find((s) => s.id === segmentRecordingId);
+                if (!target) return;
+
+                set((state) => {
+                    const current = state.sessions[mediaId];
+                    if (!current) return state;
+                    const nextSentenceRecordings = { ...state.sentenceRecordings };
+                    if (target.segmentId && nextSentenceRecordings[target.segmentId]) {
+                        nextSentenceRecordings[target.segmentId] = nextSentenceRecordings[
+                            target.segmentId
+                        ].filter((s) => s.id !== segmentRecordingId);
+                    }
+                    return {
+                        sessions: {
+                            ...state.sessions,
+                            [mediaId]: {
+                                segments: current.segments.filter((s) => s.id !== segmentRecordingId),
+                            },
+                        },
+                        sentenceRecordings: nextSentenceRecordings,
+                    };
+                });
+
+                // Delete the audio file only when no remaining take references it
+                // (overlap splits can share one file via fileOffset).
+                const remaining = get().sessions[mediaId]?.segments ?? [];
+                const stillReferenced = remaining.some((s) => s.storageId === target.storageId);
+                if (!stillReferenced) {
+                    try {
+                        await deleteMediaFile(target.storageId);
+                    } catch (error) {
+                        console.error(`🗑️ [ShadowingStore] Failed to delete file ${target.storageId}:`, error);
+                    }
+                }
+            },
 
             deleteAllSegments: async (mediaId) => {
                 const session = get().sessions[mediaId];

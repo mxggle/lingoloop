@@ -11,6 +11,7 @@ import OpenAI from "openai";
 import { TranscriptionProvider, TRANSCRIPTION_PROVIDERS } from "../types/aiService";
 import { encodeWAV } from "../utils/wavEncoder";
 import { buildChunkRanges, dedupeOverlappingSegments } from "../utils/transcriptionChunks";
+import { platformFetch } from "../platform/runtime";
 
 // --- Types ---
 
@@ -83,7 +84,7 @@ interface WhisperVerboseResponse {
 
 function normalizeWhisperLanguageCode(language?: string): string | undefined {
     const normalizedLanguage = language?.trim().replace("_", "-");
-    if (!normalizedLanguage) {
+    if (!normalizedLanguage || normalizedLanguage.toLowerCase() === "auto") {
         return undefined;
     }
 
@@ -234,6 +235,7 @@ class TranscriptionService {
         const openai = new OpenAI({
             apiKey: config.apiKey,
             dangerouslyAllowBrowser: true,
+            fetch: platformFetch,
         });
 
         const audioFile = new File([audioBlob], "audio.wav", { type: "audio/wav" });
@@ -246,6 +248,7 @@ class TranscriptionService {
                 model: "whisper-1",
                 response_format: "verbose_json",
                 timestamp_granularities: ["word", "segment"],
+                language: normalizeWhisperLanguageCode(config.language),
                 prompt:
                     "Please transcribe this audio with proper sentence breaks and punctuation. Break long sentences into shorter, more natural segments.",
                 temperature: 0.0,
@@ -260,6 +263,7 @@ class TranscriptionService {
                 file: audioFile,
                 model: "whisper-1",
                 response_format: "verbose_json",
+                language: normalizeWhisperLanguageCode(config.language),
                 temperature: 0.0,
             }, options.signal ? { signal: options.signal } : undefined);
         }
@@ -287,7 +291,7 @@ class TranscriptionService {
             formData.append("language", language);
         }
 
-        const response = await fetch(
+        const response = await platformFetch(
             "https://api.groq.com/openai/v1/audio/transcriptions",
             {
                 method: "POST",
@@ -327,7 +331,7 @@ class TranscriptionService {
         const mimeType = audioBlob.type || "audio/wav";
         const model = TRANSCRIPTION_PROVIDERS.gemini.model;
 
-        const languageInstruction = config.language
+        const languageInstruction = normalizeWhisperLanguageCode(config.language)
             ? `Transcribe in ${config.language} language.`
             : "Detect the language automatically.";
 
@@ -406,7 +410,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
         const apiKey = config.apiKey;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        const response = await fetch(url, {
+        const response = await platformFetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
@@ -447,7 +451,7 @@ Example: 2 minutes and 15.5 seconds = 135.5 (NOT 2:15.5, NOT 135, NOT "2m15s")`,
             formData.append("language", language);
         }
 
-        const response = await fetch(`${baseURL}/v1/audio/transcriptions`, {
+        const response = await platformFetch(`${baseURL}/v1/audio/transcriptions`, {
             method: "POST",
             body: formData,
             signal: options.signal,

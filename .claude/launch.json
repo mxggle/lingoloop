@@ -4,14 +4,15 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:web"],
-      "port": 3000
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
     },
     {
-      "name": "electron",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:electron"],
-      "port": 3000
+      "name": "landing",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "website", "-l", "4599"],
+      "port": 4599
     }
   ]
 }

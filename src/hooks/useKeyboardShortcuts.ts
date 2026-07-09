@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useBookmarkStore } from '@/stores/bookmarkStore'
+import { seekForward, seekBackward, toggleLooping } from '@/stores/playerActions'
 import { toast } from 'react-hot-toast'
 import { requestOpenSettings } from '@/utils/settingsIntents'
 
@@ -20,10 +22,13 @@ const isEditableTarget = (target: EventTarget | null): boolean => {
   )
 }
 
+const isInteractiveTarget = (target: EventTarget | null): boolean =>
+  target instanceof HTMLElement &&
+  target.closest('button, a, [role="button"], [role="menuitem"]') !== null
+
 export const useKeyboardShortcuts = () => {
   const { t } = useTranslation()
   const {
-    isPlaying,
     currentTime,
     duration,
     volume,
@@ -33,23 +38,25 @@ export const useKeyboardShortcuts = () => {
     playbackRate,
     currentFile,
     currentYouTube,
-    setIsPlaying,
+    togglePlay,
     setCurrentTime,
     setVolume,
     setLoopPoints,
     setIsLooping,
+    seekStepSeconds,
+    seekSmallStepSeconds,
+  } = usePlayerStore()
+  const {
     addBookmark: storeAddBookmark,
     deleteBookmark,
     getCurrentMediaBookmarks,
-    seekStepSeconds,
-    seekSmallStepSeconds,
-    seekForward,
-    seekBackward,
-    toggleLooping,
-  } = usePlayerStore()
+  } = useBookmarkStore()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // A held key must perform one action, not toggle transport every repeat.
+      if (e.repeat) return
+
       // ⌘, (Cmd+Comma) — open Settings (standard macOS shortcut)
       if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault()
@@ -67,11 +74,17 @@ export const useKeyboardShortcuts = () => {
         return
       }
 
+      // Let focused controls handle Space/Enter themselves. Handling Space
+      // here as well would toggle on keydown and again via the native click.
+      if (isInteractiveTarget(e.target)) {
+        return
+      }
+
       switch (e.key) {
         // Play/Pause - Spacebar
         case ' ':
           e.preventDefault()
-          setIsPlaying(!isPlaying)
+          togglePlay()
           break
 
         // Set A point - A key
@@ -232,7 +245,6 @@ export const useKeyboardShortcuts = () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [
-    isPlaying,
     currentTime,
     duration,
     volume,
@@ -240,7 +252,7 @@ export const useKeyboardShortcuts = () => {
     loopEnd,
     isLooping,
     playbackRate,
-    setIsPlaying,
+    togglePlay,
     setCurrentTime,
     setVolume,
     setLoopPoints,
@@ -252,9 +264,6 @@ export const useKeyboardShortcuts = () => {
     deleteBookmark,
     seekSmallStepSeconds,
     seekStepSeconds,
-    seekForward,
-    seekBackward,
     t,
-    toggleLooping
   ])
 }

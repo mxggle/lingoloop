@@ -1,11 +1,13 @@
 import { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
-import { Bookmark, Brain, Pause, Play, Repeat } from "lucide-react";
+import { Bookmark, Brain, CheckCircle2, Pause, Play, Repeat } from "lucide-react";
 import {
   TranscriptSegment as TranscriptSegmentType,
   usePlayerStore,
 } from "../../stores/playerStore";
+import { useBookmarkStore } from "../../stores/bookmarkStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
 import type {
   SegmentTranscriptStudy,
   TranscriptStudyLevel,
@@ -16,10 +18,18 @@ import { ExplanationDrawer } from "./ExplanationDrawer";
 import { TranscriptSelectionPopover } from "./TranscriptSelectionPopover";
 import { TranscriptTextRenderer } from "./TranscriptTextRenderer";
 import { TranscriptWordRenderer } from "./TranscriptWordRenderer";
+import {
+  TranscriptTranslationLine,
+  type TranslationBlurMode,
+} from "./TranscriptTranslationLine";
 
 interface TranscriptSegmentItemProps {
   segment: TranscriptSegmentType;
+  /** Presentation-only boundary used to prevent overlapping active rows. */
+  highlightEndTime?: number;
   matchedBookmarkId: string | null;
+  /** Whether this sentence has a saved practice recording. */
+  isPracticed?: boolean;
   study: SegmentTranscriptStudy | undefined;
   highlightsEnabled: boolean;
   activeLevels: Set<TranscriptStudyLevel> | null;
@@ -27,12 +37,18 @@ interface TranscriptSegmentItemProps {
   selectionEnabled: boolean;
   onSelectionChange: (selection: TranscriptSelectionState | null) => void;
   onClearSelection: () => void;
+  /** Whether to render an AI translation line beneath the transcript text. */
+  translationEnabled: boolean;
+  translationLanguage: string;
+  translationBlurMode: TranslationBlurMode;
 }
 
 export const TranscriptSegmentItem = memo(
   ({
     segment,
+    highlightEndTime,
     matchedBookmarkId,
+    isPracticed = false,
     study,
     highlightsEnabled,
     activeLevels,
@@ -40,29 +56,33 @@ export const TranscriptSegmentItem = memo(
     selectionEnabled,
     onSelectionChange,
     onClearSelection,
+    translationEnabled,
+    translationLanguage,
+    translationBlurMode,
   }: TranscriptSegmentItemProps) => {
     const { t } = useTranslation();
     const [showExplanation, setShowExplanation] = useState(false);
 
     const {
       setCurrentTime,
-      createBookmarkFromTranscript,
-      deleteBookmark,
       setIsPlaying,
       setIsLooping,
       setLoopPoints,
     } = usePlayerStore(
       useShallow((state) => ({
         setCurrentTime: state.setCurrentTime,
-        createBookmarkFromTranscript: state.createBookmarkFromTranscript,
-        deleteBookmark: state.deleteBookmark,
         setIsPlaying: state.setIsPlaying,
         setIsLooping: state.setIsLooping,
         setLoopPoints: state.setLoopPoints,
       }))
     );
+    const createBookmarkFromTranscript = useTranscriptStore((state) => state.createBookmarkFromTranscript);
+    const deleteBookmark = useBookmarkStore((state) => state.deleteBookmark);
 
-    const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(segment);
+    const { isActive, isPlaying, isCurrentlyLooping } = useSegmentState(
+      segment,
+      highlightEndTime
+    );
     const isBookmarked = matchedBookmarkId !== null;
 
     const shouldShowPauseButton = isActive && isPlaying;
@@ -121,10 +141,10 @@ export const TranscriptSegmentItem = memo(
       <>
         <div
           data-transcript-row
-          className={`group relative overflow-hidden rounded-xl px-4 py-6 transition-[opacity,background-color,box-shadow,transform] duration-300 ease-out ${
+          className={`group relative overflow-hidden rounded-xl px-4 py-3.5 transition-[opacity,background-color,box-shadow,transform] duration-300 ease-out ${
             isActive
-              ? "translate-x-[1px] bg-white/8 opacity-100 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)] dark:bg-white/5"
-              : "bg-transparent opacity-60 hover:bg-white/4 hover:opacity-100 dark:text-gray-400 dark:hover:bg-white/3"
+              ? "translate-x-[1px] bg-primary-500/5 opacity-100 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)] dark:bg-white/5 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.05)]"
+              : "bg-transparent opacity-70 hover:bg-gray-900/[0.03] hover:opacity-100 dark:text-gray-400 dark:hover:bg-white/[0.03]"
           }`}
         >
           <span
@@ -135,8 +155,15 @@ export const TranscriptSegmentItem = memo(
           />
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-500 font-mono">
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-500 font-mono">
                 {formatSegmentTime(segment.startTime)}
+                {isPracticed && (
+                  <CheckCircle2
+                    size={11}
+                    className="text-emerald-500/80"
+                    aria-label={t("sentencePractice.practicedBadge")}
+                  />
+                )}
               </span>
 
               <div className={`flex space-x-1 transition-opacity ${
@@ -240,6 +267,14 @@ export const TranscriptSegmentItem = memo(
                   selectionEnabled={selectionEnabled}
                   onSelectionChange={onSelectionChange}
                   isActive={isActive}
+                />
+              )}
+
+              {translationEnabled && (
+                <TranscriptTranslationLine
+                  sourceText={segment.text}
+                  targetLanguage={translationLanguage}
+                  blurMode={translationBlurMode}
                 />
               )}
             </div>

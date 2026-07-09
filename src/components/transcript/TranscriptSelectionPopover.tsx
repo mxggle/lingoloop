@@ -2,12 +2,15 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { AI_PROMPTS } from "../../config/prompts";
-import { BookmarkPlus, Loader, RotateCcw, Sparkles, X } from "lucide-react";
+import { BookmarkPlus, Loader, Mic, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { aiService } from "../../services/aiService";
 import { usePlayerStore, type TranscriptSegment } from "../../stores/playerStore";
+import { useTranscriptStore } from "../../stores/transcriptStore";
+import { useSentencePracticeStore } from "../../stores/sentencePracticeStore";
 import {
   AIProvider,
   AIServiceConfig,
@@ -37,6 +40,7 @@ export const TranscriptSelectionPopover = ({
   onClose,
 }: TranscriptSelectionPopoverProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [result, setResult] = useState<SelectionExplanationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -49,7 +53,7 @@ export const TranscriptSelectionPopover = ({
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const currentFile = usePlayerStore((state) => state.currentFile);
   const currentYouTube = usePlayerStore((state) => state.currentYouTube);
-  const addGlossaryEntry = usePlayerStore((state) => state.addGlossaryEntry);
+  const addGlossaryEntry = useTranscriptStore((state) => state.addGlossaryEntry);
   const getCurrentMediaId = usePlayerStore((state) => state.getCurrentMediaId);
 
   const key = useMemo(() => buildTranscriptSelectionKey(selection), [selection]);
@@ -232,6 +236,21 @@ export const TranscriptSelectionPopover = ({
     }
   };
 
+  // Deep link into Sentence Practice with this segment preselected.
+  const handlePracticeSentence = () => {
+    const mediaId = getCurrentMediaId();
+    if (!mediaId) {
+      toast.error(t("glossary.loadMediaFirst"));
+      return;
+    }
+    const segments = useTranscriptStore.getState().mediaTranscripts[mediaId] ?? [];
+    const index = segments.findIndex((s) => s.id === segment.id);
+    if (index === -1) return;
+    useSentencePracticeStore.getState().setCurrentSentenceIndex(index);
+    onClose();
+    navigate("/sentence-practice");
+  };
+
   const handleDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof HTMLElement) || target.closest("button")) {
@@ -264,7 +283,7 @@ export const TranscriptSelectionPopover = ({
   const content = (
     <motion.div
       ref={popoverRef}
-      className="transcript-selection-popover fixed z-[70] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200/80 bg-white/98 text-gray-900 shadow-xl shadow-black/10 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/98 dark:text-gray-100"
+      className="transcript-selection-popover fixed z-[70] flex w-[min(24rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200/80 bg-white/95 text-gray-900 shadow-xl shadow-black/10 backdrop-blur-sm dark:border-white/10 dark:bg-gray-900/95 dark:text-gray-100"
       initial={{ opacity: 0, scale: 0.96, y: -4 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
@@ -310,6 +329,15 @@ export const TranscriptSelectionPopover = ({
         >
           <BookmarkPlus size={12} />
           {t("glossary.saveSelection")}
+        </button>
+
+        <button
+          type="button"
+          onClick={handlePracticeSentence}
+          className="inline-flex items-center gap-1.5 rounded-md bg-purple-600/10 px-2.5 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-600/15 active:bg-purple-600/20 dark:bg-purple-400/10 dark:text-purple-300 dark:hover:bg-purple-400/15"
+        >
+          <Mic size={12} />
+          {t("sentencePractice.practiceThisSentence")}
         </button>
 
         {!result && (

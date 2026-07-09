@@ -19,17 +19,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # tauri.conf.json pins bundle targets to nsis (Windows). Override the
+          # bundle types per platform here so each OS emits its native installer.
           - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
+            args: "--target aarch64-apple-darwin --bundles dmg"
             rust-targets: aarch64-apple-darwin
           - platform: macos-latest
-            args: "--target x86_64-apple-darwin"
+            args: "--target x86_64-apple-darwin --bundles dmg"
             rust-targets: x86_64-apple-darwin
           - platform: ubuntu-22.04
-            args: ""
+            args: "--bundles deb,appimage"
             rust-targets: ""
           - platform: windows-latest
-            args: ""
+            args: "--bundles nsis"
             rust-targets: ""
 
     runs-on: ${{ matrix.platform }}

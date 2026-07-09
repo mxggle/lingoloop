@@ -9,8 +9,10 @@ Pawcast is a sleek and intuitive desktop app (Tauri 2) designed for language lea
 🔁 **Loop:** Set custom A-B loop points to focus on specific sections.
 🎙️ **Shadow:** Record your voice over the track to practice pronunciation.
 
-<img width="2844" height="1874" alt="CleanShot 2026-04-29 at 21 32 03@2x" src="https://github.com/user-attachments/assets/25c9cac9-df0b-4ce5-a25f-20ec0e700f2b" />
-<img width="2844" height="1874" alt="CleanShot 2026-04-29 at 21 32 24@2x" src="https://github.com/user-attachments/assets/4ec4b59d-9c06-4615-8cba-beef5c1e88f0" />
+<img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 59 11@2x" src="https://github.com/user-attachments/assets/9636fd15-7b39-4563-9d30-21998d785b71" />
+<img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 58 15@2x" src="https://github.com/user-attachments/assets/5084c0e1-3994-43bd-be6e-b2a96f1bfb8d" />
+<img width="2560" height="1600" alt="CleanShot 2026-07-09 at 07 56 29@2x" src="https://github.com/user-attachments/assets/72e69531-a6c7-4c19-8bb3-e91241374df4" />
+
 
 ## ✨ Features
 

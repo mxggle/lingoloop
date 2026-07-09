@@ -24,7 +24,10 @@ jobs:
           - platform: macos-latest
             args: "--target aarch64-apple-darwin --bundles dmg"
             rust-targets: aarch64-apple-darwin
-          - platform: macos-latest
+          # Build Intel on a native Intel runner: prepare:sidecars fetches
+          # host-arch binaries, so cross-building x64 on the arm64 runner can't
+          # supply binaries/ffmpeg-x86_64-apple-darwin.
+          - platform: macos-13
             args: "--target x86_64-apple-darwin --bundles dmg"
             rust-targets: x86_64-apple-darwin
           - platform: ubuntu-22.04

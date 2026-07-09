@@ -88,3 +88,4 @@ coverage
 
 # Ignore CleanShot screenshots dropped in the repo
 CleanShot*.png
+clipboard-*.png
